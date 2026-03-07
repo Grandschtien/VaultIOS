@@ -6,6 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		602D1D822F5C8ADD003BAF20 /* Nivelir in Frameworks */ = {isa = PBXBuildFile; productRef = 602D1D812F5C8ADD003BAF20 /* Nivelir */; };
+		60A19B242F5C8A1E00607182 /* NetworkClient in Frameworks */ = {isa = PBXBuildFile; productRef = 60A19B232F5C8A1E00607182 /* NetworkClient */; };
+		60A19B272F5C8A7800607182 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 60A19B262F5C8A7800607182 /* SnapKit */; };
+		60A19B292F5C8A7800607182 /* SnapKit-Dynamic in Frameworks */ = {isa = PBXBuildFile; productRef = 60A19B282F5C8A7800607182 /* SnapKit-Dynamic */; };
+		60A19B2C2F5C8A8F00607182 /* Swinject in Frameworks */ = {isa = PBXBuildFile; productRef = 60A19B2B2F5C8A8F00607182 /* Swinject */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		609A28492F2F7B86007145D5 /* Vault.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vault.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +44,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				60A19B242F5C8A1E00607182 /* NetworkClient in Frameworks */,
+				602D1D822F5C8ADD003BAF20 /* Nivelir in Frameworks */,
+				60A19B272F5C8A7800607182 /* SnapKit in Frameworks */,
+				60A19B292F5C8A7800607182 /* SnapKit-Dynamic in Frameworks */,
+				60A19B2C2F5C8A8F00607182 /* Swinject in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +91,11 @@
 			);
 			name = Vault;
 			packageProductDependencies = (
+				60A19B232F5C8A1E00607182 /* NetworkClient */,
+				60A19B262F5C8A7800607182 /* SnapKit */,
+				60A19B282F5C8A7800607182 /* SnapKit-Dynamic */,
+				60A19B2B2F5C8A8F00607182 /* Swinject */,
+				602D1D812F5C8ADD003BAF20 /* Nivelir */,
 			);
 			productName = Vault;
 			productReference = 609A28492F2F7B86007145D5 /* Vault.app */;
@@ -107,6 +125,12 @@
 			);
 			mainGroup = 609A28402F2F7B86007145D5;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				60A19B222F5C8A1E00607182 /* XCRemoteSwiftPackageReference "NetworkClient" */,
+				60A19B252F5C8A7800607182 /* XCRemoteSwiftPackageReference "SnapKit" */,
+				60A19B2A2F5C8A8F00607182 /* XCRemoteSwiftPackageReference "Swinject" */,
+				602D1D802F5C8ADD003BAF20 /* XCRemoteSwiftPackageReference "Nivelir" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 609A284A2F2F7B86007145D5 /* Products */;
 			projectDirPath = "";
@@ -152,13 +176,13 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.egorShkarin.Vault;
+				PRODUCT_BUNDLE_IDENTIFIER = com.egor.shkarin.Vault;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -188,13 +212,13 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.egorShkarin.Vault;
+				PRODUCT_BUNDLE_IDENTIFIER = com.egor.shkarin.Vault;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -351,6 +375,69 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		602D1D802F5C8ADD003BAF20 /* XCRemoteSwiftPackageReference "Nivelir" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/hhru/Nivelir";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.9.13;
+			};
+		};
+		60A19B222F5C8A1E00607182 /* XCRemoteSwiftPackageReference "NetworkClient" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Grandschtien/NetworkClient.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.5;
+			};
+		};
+		60A19B252F5C8A7800607182 /* XCRemoteSwiftPackageReference "SnapKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SnapKit/SnapKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.7.1;
+			};
+		};
+		60A19B2A2F5C8A8F00607182 /* XCRemoteSwiftPackageReference "Swinject" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Swinject/Swinject.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.10.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		602D1D812F5C8ADD003BAF20 /* Nivelir */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 602D1D802F5C8ADD003BAF20 /* XCRemoteSwiftPackageReference "Nivelir" */;
+			productName = Nivelir;
+		};
+		60A19B232F5C8A1E00607182 /* NetworkClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 60A19B222F5C8A1E00607182 /* XCRemoteSwiftPackageReference "NetworkClient" */;
+			productName = NetworkClient;
+		};
+		60A19B262F5C8A7800607182 /* SnapKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 60A19B252F5C8A7800607182 /* XCRemoteSwiftPackageReference "SnapKit" */;
+			productName = SnapKit;
+		};
+		60A19B282F5C8A7800607182 /* SnapKit-Dynamic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 60A19B252F5C8A7800607182 /* XCRemoteSwiftPackageReference "SnapKit" */;
+			productName = "SnapKit-Dynamic";
+		};
+		60A19B2B2F5C8A8F00607182 /* Swinject */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 60A19B2A2F5C8A8F00607182 /* XCRemoteSwiftPackageReference "Swinject" */;
+			productName = Swinject;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 609A28412F2F7B86007145D5 /* Project object */;
 }
