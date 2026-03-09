@@ -1,6 +1,7 @@
 {
-  "colors" : [
+  "images" : [
     {
+      "filename" : "onboarding_2.svg",
       "idiom" : "universal"
     }
   ],
