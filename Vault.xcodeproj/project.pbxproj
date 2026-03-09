@@ -78,6 +78,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 609A285C2F2F7B88007145D5 /* Build configuration list for PBXNativeTarget "Vault" */;
 			buildPhases = (
+				60F8D93B307D4CEB00F4E7A1 /* SwiftGen */,
 				609A28452F2F7B86007145D5 /* Sources */,
 				609A28462F2F7B86007145D5 /* Frameworks */,
 				609A28472F2F7B86007145D5 /* Resources */,
@@ -153,6 +154,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		60F8D93B307D4CEB00F4E7A1 /* SwiftGen */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/swiftgen.yml",
+				"$(SRCROOT)/Vault/Assets.xcassets",
+				"$(SRCROOT)/Vault/Common/en.lproj/Localizable.strings",
+			);
+			name = SwiftGen;
+			outputPaths = (
+				"$(SRCROOT)/Vault/Common/Generated/Assets+Generated.swift",
+				"$(SRCROOT)/Vault/Common/Generated/Strings+Generated.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if command -v swiftgen > /dev/null 2>&1; then\n  swiftgen config run --config \"${SRCROOT}/swiftgen.yml\"\nelse\n  echo \"warning: SwiftGen is not installed. Install it from https://github.com/SwiftGen/SwiftGen\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		609A28452F2F7B86007145D5 /* Sources */ = {

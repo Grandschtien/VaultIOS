@@ -8,30 +8,29 @@
 import UIKit
 
 protocol LayoutScaleProviding {
-    var spaces: [CGFloat] { get }
-    var sizes: [CGFloat] { get }
+    static var sizeXS: CGFloat { get }
+    static var sizeS: CGFloat { get }
+    static var sizeM: CGFloat { get }
+    static var sizeL: CGFloat { get }
+
+    static var spaceXXXS: CGFloat { get }
+    static var spaceXXS: CGFloat { get }
+    static var spaceXS: CGFloat { get }
+    static var spaceS: CGFloat { get }
+    static var spaceM: CGFloat { get }
+    static var spaceL: CGFloat { get }
 }
 
-struct PowerOfTwoLayoutScaleProvider: LayoutScaleProviding {
-    let spaces: [CGFloat]
-    let sizes: [CGFloat]
+struct LayoutScale: LayoutScaleProviding {
+    static let sizeXS: CGFloat = 8
+    static let sizeS: CGFloat = 16
+    static let sizeM: CGFloat = 32
+    static let sizeL: CGFloat = 64
 
-    init() {
-        spaces = Self.makePowerOfTwoScale(minimum: 2, maximum: 64)
-        sizes = Self.makePowerOfTwoScale(minimum: 8, maximum: 128)
-    }
-
-    private static func makePowerOfTwoScale(minimum: Int, maximum: Int) -> [CGFloat] {
-        guard minimum > 0, maximum >= minimum else { return [] }
-
-        var values: [CGFloat] = []
-        var current = minimum
-
-        while current <= maximum {
-            values.append(CGFloat(current))
-            current *= 2
-        }
-
-        return values
-    }
+    static let spaceXXXS: CGFloat = 2
+    static let spaceXXS: CGFloat = 4
+    static let spaceXS: CGFloat = 8
+    static let spaceS: CGFloat = 16
+    static let spaceM: CGFloat = 32
+    static let spaceL: CGFloat = 64
 }
