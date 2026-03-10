@@ -21,16 +21,16 @@ protocol LayoutScaleProviding {
     static var spaceL: CGFloat { get }
 }
 
-struct LayoutScale: LayoutScaleProviding {
-    static let sizeXS: CGFloat = 8
-    static let sizeS: CGFloat = 16
-    static let sizeM: CGFloat = 32
-    static let sizeL: CGFloat = 64
-
-    static let spaceXXXS: CGFloat = 2
-    static let spaceXXS: CGFloat = 4
-    static let spaceXS: CGFloat = 8
-    static let spaceS: CGFloat = 16
-    static let spaceM: CGFloat = 32
-    static let spaceL: CGFloat = 64
+extension LayoutScaleProviding {
+    static var sizeXS: CGFloat { 8 }
+    static var sizeS: CGFloat { 16 }
+    static var sizeM: CGFloat { 32 }
+    static var sizeL: CGFloat { 64 }
+    
+    static var spaceXXXS: CGFloat { 2 }
+    static var spaceXXS: CGFloat { 4 }
+    static var spaceXS: CGFloat { 8 }
+    static var spaceS: CGFloat { 16 }
+    static var spaceM: CGFloat { 32 }
+    static var spaceL: CGFloat { 64 }
 }
