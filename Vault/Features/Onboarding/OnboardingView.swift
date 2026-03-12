@@ -21,30 +21,11 @@ final class OnboardingView: UIView, LayoutScaleProviding {
         super.init(frame: frame)
         setupViews()
         setupLayout()
-        configureBindings()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-
-        guard !viewModel.pages.isEmpty else {
-            return
-        }
-
-        guard !imageScrollView.isTracking, !imageScrollView.isDragging, !imageScrollView.isDecelerating else {
-            return
-        }
-
-        let currentPage = clamp(page: viewModel.pageControl.currentPage)
-        let targetOffset = CGFloat(currentPage) * max(imageScrollView.bounds.width, 1)
-        if abs(imageScrollView.contentOffset.x - targetOffset) > 0.5 {
-            imageScrollView.setContentOffset(CGPoint(x: targetOffset, y: .zero), animated: false)
-        }
     }
 }
 
@@ -55,7 +36,7 @@ extension OnboardingView {
         buildPages(with: viewModel.pages)
         titleLabel.apply(viewModel.title)
         subtitleLabel.apply(viewModel.subtitle)
-        applyPageControl(with: viewModel.pageControl)
+        pageControl.apply(viewModel.pageControl, animated: true)
         primaryButton.apply(viewModel.primaryButton)
         pill.apply(viewModel: viewModel.pillViewModel)
         lastNotifiedPage = clamp(page: viewModel.pageControl.currentPage)
@@ -87,68 +68,65 @@ private extension OnboardingView {
         imageScrollView.isPagingEnabled = true
         imageScrollView.alwaysBounceVertical = false
         imageScrollView.alwaysBounceHorizontal = false
-        imageScrollView.delegate = self
-
+        imageScrollView.isScrollEnabled = false
+        
         pagesStackView.axis = .horizontal
         pagesStackView.alignment = .fill
         pagesStackView.distribution = .fill
         pagesStackView.spacing = .zero
+        pageControl.isUserInteractionEnabled = false
     }
 
     func setupLayout() {
         addSubview(imageScrollView)
         imageScrollView.addSubview(pagesStackView)
-        addSubview(pill)
-        addSubview(titleLabel)
-        addSubview(subtitleLabel)
+        imageScrollView.addSubview(pill)
+        imageScrollView.addSubview(titleLabel)
+        imageScrollView.addSubview(subtitleLabel)
         addSubview(pageControl)
         addSubview(primaryButton)
 
         imageScrollView.snp.makeConstraints {
             $0.top.equalTo(safeAreaLayoutGuide).offset(spaceS)
             $0.leading.trailing.equalToSuperview().inset(spaceS)
-            $0.height.equalTo(imageScrollView.snp.width).multipliedBy(0.9).priority(.high)
+            $0.bottom.equalTo(pageControl.snp.top).offset(-spaceS)
         }
 
         pagesStackView.snp.makeConstraints {
-            $0.edges.equalTo(imageScrollView.contentLayoutGuide)
-            $0.height.equalTo(imageScrollView.frameLayoutGuide)
+            $0.top.equalTo(imageScrollView.contentLayoutGuide)
+            $0.leading.trailing.equalTo(imageScrollView.contentLayoutGuide)
+            $0.height.equalTo(imageScrollView.frameLayoutGuide.snp.width).multipliedBy(0.9).priority(.high)
         }
         
         pill.snp.makeConstraints {
-            $0.centerX.equalToSuperview()
-            $0.top.equalTo(imageScrollView.snp.bottom).offset(spaceL)
+            $0.centerX.equalTo(imageScrollView.frameLayoutGuide)
+            $0.top.equalTo(pagesStackView.snp.bottom).offset(spaceL)
         }
 
         titleLabel.snp.makeConstraints {
             $0.top.equalTo(pill.snp.bottom).offset(spaceM)
-            $0.leading.trailing.equalToSuperview().inset(spaceS)
+            $0.leading.trailing.equalTo(imageScrollView.frameLayoutGuide).inset(spaceS)
         }
 
         subtitleLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(spaceS)
-            $0.leading.trailing.equalToSuperview().inset(spaceL)
+            $0.leading.trailing.equalTo(imageScrollView.frameLayoutGuide).inset(spaceL)
+            $0.bottom.equalTo(imageScrollView.contentLayoutGuide)
         }
-        
+
         pageControl.snp.makeConstraints {
-            $0.top.equalTo(subtitleLabel.snp.bottom).offset(spaceS)
+            $0.bottom.equalTo(primaryButton.snp.top).offset(-spaceL)
             $0.centerX.equalToSuperview()
         }
 
         primaryButton.snp.makeConstraints {
-            $0.top.equalTo(pageControl.snp.bottom).offset(spaceL)
             $0.leading.trailing.equalToSuperview().inset(spaceL)
-        }
-    }
-
-    func configureBindings() {
-        pageControl.connect(to: imageScrollView)
-        pageControl.onPageSelected = { [weak self] page in
-            self?.notifyCurrentPageChanged(page)
+            $0.bottom.equalTo(safeAreaLayoutGuide).inset(spaceL)
         }
     }
 
     func buildPages(with pages: [OnboardingViewModel.PageViewModel]) {
+        guard pageViews.isEmpty else { return }
         for page in pages {
             let pageView = UIView()
             let imageView = UIImageView(image: image(for: page.image))
@@ -166,30 +144,6 @@ private extension OnboardingView {
 
             pageViews.append(pageView)
         }
-    }
-
-    func applyPageControl(with viewModel: PageControl.PageControlViewModel) {
-        pageControl.apply(viewModel, animated: true)
-    }
-
-    func notifyCurrentPageChanged(_ page: Int) {
-        let page = clamp(page: page)
-        guard page != lastNotifiedPage else {
-            return
-        }
-
-        lastNotifiedPage = page
-        viewModel.currentPageChangedCommand?.execute(page)
-    }
-
-    func resolvedCurrentPage() -> Int {
-        guard !viewModel.pages.isEmpty else {
-            return .zero
-        }
-
-        let pageWidth = max(imageScrollView.bounds.width, 1)
-        let rawPage = Int(round(imageScrollView.contentOffset.x / pageWidth))
-        return clamp(page: rawPage)
     }
 
     func clamp(page: Int) -> Int {
@@ -211,10 +165,4 @@ private extension OnboardingView {
         }
     }
 
-}
-
-extension OnboardingView: UIScrollViewDelegate {
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        notifyCurrentPageChanged(resolvedCurrentPage())
-    }
 }
