@@ -2,7 +2,7 @@
 //  PageControl.swift
 //  Vault
 //
-//  Created by Codex on 09.03.2026.
+//  Created by Egor Shkarin on 09.03.2026.
 //
 
 import UIKit
@@ -212,7 +212,7 @@ final class PageControl: UIView {
 }
 
 extension PageControl {
-    struct PageControlViewModel {
+    struct PageControlViewModel: Equatable {
         let pageCount: Int
         let currentPage: Int
         let activeColor: UIColor
@@ -222,6 +222,17 @@ extension PageControl {
         let spacing: CGFloat
         let allowsSelection: Bool
         let animationDuration: TimeInterval
+        
+        static let initial = PageControlViewModel(
+            pageCount: .zero,
+            currentPage: .zero,
+            activeColor: Asset.Colors.interactiveElemetsPrimary.color,
+            inactiveColor: Asset.Colors.textAndIconPlaceseholder.color,
+            indicatorSize: 8,
+            activeWidth: 24,
+            spacing: 8,
+            allowsSelection: true
+        )
 
         init(
             pageCount: Int,

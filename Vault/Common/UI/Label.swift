@@ -8,21 +8,7 @@
 import UIKit
 
 final class Label: UILabel {
-    private(set) var viewModel: LabelViewModel
-
-    init(viewModel: LabelViewModel) {
-        self.viewModel = viewModel
-        super.init(frame: .zero)
-        apply(viewModel)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
     func apply(_ viewModel: LabelViewModel) {
-        self.viewModel = viewModel
         text = viewModel.text
         font = viewModel.font
         textColor = viewModel.textColor
@@ -33,12 +19,28 @@ final class Label: UILabel {
 }
 
 extension Label {
-    struct LabelViewModel {
+    struct LabelViewModel: Equatable {
         let text: String
         let font: UIFont
         let textColor: UIColor
         let alignment: NSTextAlignment
         let numberOfLines: Int
         let lineBreakMode: NSLineBreakMode
+        
+        init(
+            text: String = "",
+            font: UIFont = Typography.regular16,
+            textColor: UIColor = .textAndIconPrimary,
+            alignment: NSTextAlignment = .left,
+            numberOfLines: Int = 1,
+            lineBreakMode: NSLineBreakMode = .byWordWrapping
+        ) {
+            self.text = text
+            self.font = font
+            self.textColor = textColor
+            self.alignment = alignment
+            self.numberOfLines = numberOfLines
+            self.lineBreakMode = lineBreakMode
+        }
     }
 }

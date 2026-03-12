@@ -142,3 +142,25 @@ Unhealthy response:
 - In unit tests you need to test corner cases/happy pass/negative pass
 - Try to minimaze amount of tests per one test case
 - If it's test for one class but for different use cases divide it into extensions of test case
+
+## Architecture rules
+
+- Every feature module MUST be created from the VIPER template and include:
+  `Factory`, `Interactor`, `Presenter`, `Router`, `ViewController`, `View`, `FetchData`, `ViewModel`.
+- Supporting files are allowed inside the same module folder when needed:
+  `*Model` for domain/static data and reusable UIKit subviews like `PillView`.
+- Factory is the composition root and MUST wire dependencies in this order:
+  create `ViewModel` -> `Presenter` -> `Router` -> `Interactor` -> `ViewModelStore` -> `ViewController`;
+  connect `presenter.handler = interactor`.
+- Business logic and module state MUST be in `Interactor` (`actor`), never in `View` or `ViewController`.
+- Interactor MUST communicate through protocols only:
+  `*PresentationLogic` for output and `*RoutingLogic` for navigation.
+- Presenter MUST prepare full root `ViewModel` and all nested subview view models.
+- Presenter MUST use existing component view models (`Label.LabelViewModel`, `Button.ButtonViewModel`, etc).
+- UI actions MUST flow as commands from root `ViewModel` to `Interactor` through `*Handler` protocol methods.
+- Handler method names for UI actions MUST use `did...` style (`didTapPrimaryButton`, `didChangeCurrentPage`).
+- `ViewController` MUST only bind `ViewModelStore`, render `contentView`, and trigger initial `fetchData()`.
+- `View` MUST contain layout/UI adapter logic only (`configure`, scroll/table/collection delegates, etc).
+- Never use closure callbacks in views for UI actions (for example `(() -> Void)?` or `((Int) -> Void)?`).
+- For `Button`, pass action only via `Button.ViewModel.tapCommand` and never add extra `addTarget` handlers from screen views/controllers.
+- Router MUST contain routing only and MUST navigate through `Nivelir` (`ScreenNavigator`).

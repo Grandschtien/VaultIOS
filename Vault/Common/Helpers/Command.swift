@@ -7,21 +7,17 @@
 
 import Foundation
 
-public struct Command {
-    public typealias Action = () -> Void
+public struct Command: Equatable {
+    public typealias Action = () async -> Void
 
+    private let id: UUID
     private let action: Action?
 
     // MARK: - Init
 
-    private init(action: Action?) {
+    init(action: Action?, id: UUID = UUID()) {
+        self.id = id
         self.action = action
-    }
-
-    // MARK: - Builders
-
-    public static func make(_ action: @escaping Action) -> Command {
-        Command(action: action)
     }
 
     // MARK: - Default cases
@@ -32,40 +28,36 @@ public struct Command {
     // MARK: - Execute
 
     public func execute() {
-        action?()
+        Task { await action?() }
     }
 
     // MARK: - State
-
-    public var hasAction: Bool {
-        action != nil
-    }
-
-    public var isNope: Bool {
-        action == nil
+    
+    public static func == (lhs: Command, rhs: Command) -> Bool {
+        lhs.id == rhs.id
     }
 }
 
-public struct CommandOf<Input> {
-    public typealias Action = (Input) -> Void
+public struct CommandOf<Input>: Equatable {
+    public typealias Action = (Input) async -> Void
 
+    private let id: UUID
     private let action: Action?
 
     // MARK: - Init
 
-    private init(action: Action?) {
+    init(action: Action?, id: UUID = UUID()) {
+        self.id = id
         self.action = action
-    }
-
-    // MARK: - Builders
-
-    public static func make(_ action: @escaping Action) -> CommandOf<Input> {
-        CommandOf<Input>(action: action)
     }
 
     // MARK: - Execute
 
     public func execute(_ input: Input) {
-        action?(input)
+        Task { await action?(input) }
+    }
+    
+    public static func == (lhs: CommandOf, rhs: CommandOf) -> Bool {
+        lhs.id == rhs.id
     }
 }

@@ -2,14 +2,14 @@
 //  TextField.swift
 //  Vault
 //
-//  Created by Codex on 10.03.2026.
+//  Created by Egor Shkarin on 10.03.2026.
 //
 
 import UIKit
 import SnapKit
 
 final class TextField: UIView, LayoutScaleProviding {
-    private var viewModel: TextField.ViewModel
+    private var viewModel: TextField.ViewModel = .init()
 
     private let contentStackView = UIStackView()
     private let topRowView = UIView()
@@ -31,13 +31,11 @@ final class TextField: UIView, LayoutScaleProviding {
     private var textFieldTrailingConstraint: Constraint?
     private var isSecureModeEnabled = false
 
-    init(viewModel: TextField.ViewModel = .init()) {
-        self.viewModel = viewModel
+    init() {
         super.init(frame: .zero)
         setupViews()
         setupConstraints()
         applyInternalStyle()
-        apply(viewModel)
     }
 
     @available(*, unavailable)
@@ -214,14 +212,14 @@ private extension TextField {
 
         leftAccessoryWidthConstraint?.update(offset: hasLeftIcon ? accessoryContainerWidth : 0)
         rightAccessoryWidthConstraint?.update(offset: hasRightIcon ? accessoryContainerWidth : 0)
-        rightAccessorConstraint?.update(inset: hasRightIcon ? Self.spaceS : 0)
-        leftAccessoryConstraint?.update(offset: hasLeftIcon ? Self.spaceS : 0)
+        rightAccessorConstraint?.update(inset: hasRightIcon ? spaceS : 0)
+        leftAccessoryConstraint?.update(offset: hasLeftIcon ? spaceS : 0)
         textFieldLeadingConstraint?.update(offset: hasLeftIcon ? iconToTextSpacing : textHorizontalInset)
         textFieldTrailingConstraint?.update(offset: hasRightIcon ? -iconToTextSpacing : -textHorizontalInset)
     }
 
     func updateAdditionalLabelInteraction() {
-        additionalLabel.isUserInteractionEnabled = hasContent(viewModel.additionalLabelText) && viewModel.onAdditionalLabelTap.hasAction
+        additionalLabel.isUserInteractionEnabled = hasContent(viewModel.additionalLabelText) && viewModel.onAdditionalLabelTap != .nope
     }
 
     func resolvedRightIcon() -> UIImage? {
@@ -254,7 +252,7 @@ private extension TextField {
 private extension TextField {
     @objc
     func handleTextChanged() {
-        viewModel.onTextDidChanged.execute(textField.text ?? "")
+        viewModel.onTextDidChanged?.execute(textField.text ?? "")
     }
 
     @objc
@@ -289,35 +287,35 @@ private extension TextField {
     }
 
     var inputHeight: CGFloat {
-        Self.spaceM + Self.spaceS
+        spaceM + spaceS
     }
 
     var topToInputSpacing: CGFloat {
-        Self.spaceXS
+        spaceXS
     }
 
     var inputToHelpSpacing: CGFloat {
-        Self.spaceXXS
+        spaceXXS
     }
 
     var labelsSpacing: CGFloat {
-        Self.spaceS
+        spaceS
     }
 
     var textHorizontalInset: CGFloat {
-        Self.spaceS + Self.spaceXXS
+        spaceS + spaceXXS
     }
 
     var iconSize: CGFloat {
-        Self.sizeS + Self.spaceXXS
+        sizeS + spaceXXS
     }
 
     var iconHorizontalPadding: CGFloat {
-        Self.spaceXXS
+        spaceXXS
     }
 
     var iconToTextSpacing: CGFloat {
-        Self.spaceXS
+        spaceXS
     }
 
     var accessoryContainerWidth: CGFloat {
@@ -371,7 +369,7 @@ private extension TextField {
 
 // MARK: ViewModel
 extension TextField {
-    struct ViewModel {
+    struct ViewModel: Equatable {
         let text: String?
         let placeholder: String?
         let isSecureTextEntry: Bool
@@ -381,7 +379,7 @@ extension TextField {
         let rightIcon: UIImage?
         let helpText: String?
         let helpTextColor: UIColor
-        let onTextDidChanged: CommandOf<String>
+        let onTextDidChanged: CommandOf<String>?
         let onReturn: Command
         let onAdditionalLabelTap: Command
 
@@ -395,7 +393,7 @@ extension TextField {
             rightIcon: UIImage? = nil,
             helpText: String? = nil,
             helpTextColor: UIColor = Asset.Colors.textAndIconSecondary.color,
-            onTextDidChanged: CommandOf<String> = .make { _ in },
+            onTextDidChanged: CommandOf<String>? = nil,
             onReturn: Command = .nope,
             onAdditionalLabelTap: Command = .nope
         ) {

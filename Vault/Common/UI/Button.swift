@@ -8,7 +8,7 @@
 import UIKit
 import SnapKit
 
-final class Button: UIButton {
+final class Button: UIButton, LayoutScaleProviding {
     private enum Constants {
         static let iconTextSpacing: CGFloat = 8
         static let pressedScale: CGFloat = 0.96
@@ -18,25 +18,16 @@ final class Button: UIButton {
         static let releaseSpringVelocity: CGFloat = 2
     }
 
-    private(set) var viewModel: ButtonViewModel
+    private(set) var viewModel: ButtonViewModel = .init()
     private let rootStack = UIStackView()
     private let centerStack = UIStackView()
     private let leftIconView = UIImageView()
     private let titleTextLabel = UILabel()
     private let rightIconView = UIImageView()
 
-    init(viewModel: ButtonViewModel) {
-        self.viewModel = viewModel
-        super.init(frame: .zero)
+    override init(frame: CGRect) {
+        super.init(frame: frame)
         setupContent()
-        addTarget(self, action: #selector(handleTouchDown), for: .touchDown)
-        addTarget(self, action: #selector(handleTouchDown), for: .touchDragEnter)
-        addTarget(self, action: #selector(handleTouchUp), for: .touchUpInside)
-        addTarget(self, action: #selector(handleTouchUp), for: .touchUpOutside)
-        addTarget(self, action: #selector(handleTouchUp), for: .touchDragExit)
-        addTarget(self, action: #selector(handleTouchUp), for: .touchCancel)
-        addTarget(self, action: #selector(handleTap), for: .touchUpInside)
-        apply(viewModel)
     }
 
     @available(*, unavailable)
@@ -47,9 +38,13 @@ final class Button: UIButton {
     func apply(_ viewModel: ButtonViewModel) {
         self.viewModel = viewModel
 
-        directionalLayoutMargins = viewModel.contentInsets
+        directionalLayoutMargins = NSDirectionalEdgeInsets(
+            top: spaceS,
+            leading: spaceM,
+            bottom: spaceS,
+            trailing: spaceM
+        )
         backgroundColor = viewModel.backgroundColor
-        layer.cornerRadius = viewModel.cornerRadius
         clipsToBounds = true
         isEnabled = viewModel.isEnabled
         alpha = viewModel.isEnabled ? 1 : 0.6
@@ -143,8 +138,23 @@ final class Button: UIButton {
             make.centerX.equalToSuperview()
         }
         
+        snp.makeConstraints {
+            $0.height.equalTo(56)
+        }
+        
+        layer.cornerRadius = spaceM
+
+        
         rootStack.isUserInteractionEnabled = false
         titleTextLabel.isUserInteractionEnabled = false
+        
+        addTarget(self, action: #selector(handleTouchDown), for: .touchDown)
+        addTarget(self, action: #selector(handleTouchDown), for: .touchDragEnter)
+        addTarget(self, action: #selector(handleTouchUp), for: .touchUpInside)
+        addTarget(self, action: #selector(handleTouchUp), for: .touchUpOutside)
+        addTarget(self, action: #selector(handleTouchUp), for: .touchDragExit)
+        addTarget(self, action: #selector(handleTouchUp), for: .touchCancel)
+        addTarget(self, action: #selector(handleTap), for: .touchUpInside)
     }
 
     private func applyIcon(image: UIImage?, imageView: UIImageView, tintColor: UIColor) {
@@ -161,14 +171,11 @@ final class Button: UIButton {
 }
 
 extension Button {
-    struct ButtonViewModel {
+    struct ButtonViewModel: Equatable {
         let title: String
         let titleColor: UIColor
         let backgroundColor: UIColor
         let font: UIFont
-        let cornerRadius: CGFloat
-        let contentInsets: NSDirectionalEdgeInsets
-        let height: CGFloat
         let isEnabled: Bool
         let tapCommand: Command
         let leftIcon: UIImage?
@@ -176,15 +183,12 @@ extension Button {
         let iconTintColor: UIColor?
 
         init(
-            title: String,
-            titleColor: UIColor,
-            backgroundColor: UIColor,
-            font: UIFont,
-            cornerRadius: CGFloat,
-            contentInsets: NSDirectionalEdgeInsets,
-            height: CGFloat,
-            isEnabled: Bool,
-            tapCommand: Command,
+            title: String = "",
+            titleColor: UIColor = .textAndIconPrimaryInverted,
+            backgroundColor: UIColor = .backgroundPrimary,
+            font: UIFont = Typography.regular16,
+            isEnabled: Bool = true,
+            tapCommand: Command = .nope,
             leftIcon: UIImage? = nil,
             rightIcon: UIImage? = nil,
             iconTintColor: UIColor? = nil
@@ -193,9 +197,6 @@ extension Button {
             self.titleColor = titleColor
             self.backgroundColor = backgroundColor
             self.font = font
-            self.cornerRadius = cornerRadius
-            self.contentInsets = contentInsets
-            self.height = height
             self.isEnabled = isEnabled
             self.tapCommand = tapCommand
             self.leftIcon = leftIcon

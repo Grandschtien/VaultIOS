@@ -8,29 +8,31 @@
 import UIKit
 
 protocol LayoutScaleProviding {
-    static var sizeXS: CGFloat { get }
-    static var sizeS: CGFloat { get }
-    static var sizeM: CGFloat { get }
-    static var sizeL: CGFloat { get }
+    var sizeXS: CGFloat { get }
+    var sizeS: CGFloat { get }
+    var sizeM: CGFloat { get }
+    var sizeL: CGFloat { get }
 
-    static var spaceXXXS: CGFloat { get }
-    static var spaceXXS: CGFloat { get }
-    static var spaceXS: CGFloat { get }
-    static var spaceS: CGFloat { get }
-    static var spaceM: CGFloat { get }
-    static var spaceL: CGFloat { get }
+    var spaceXXXS: CGFloat { get }
+    var spaceXXS: CGFloat { get }
+    var spaceXS: CGFloat { get }
+    var spaceS: CGFloat { get }
+    var spaceM: CGFloat { get }
+    var spaceL: CGFloat { get }
 }
 
 extension LayoutScaleProviding {
-    static var sizeXS: CGFloat { 8 }
-    static var sizeS: CGFloat { 16 }
-    static var sizeM: CGFloat { 32 }
-    static var sizeL: CGFloat { 64 }
-    
-    static var spaceXXXS: CGFloat { 2 }
-    static var spaceXXS: CGFloat { 4 }
-    static var spaceXS: CGFloat { 8 }
-    static var spaceS: CGFloat { 16 }
-    static var spaceM: CGFloat { 32 }
-    static var spaceL: CGFloat { 64 }
+    var sizeXS: CGFloat { 8 }
+    var sizeS: CGFloat { 16 }
+    var sizeM: CGFloat { 24 }
+    var sizeL: CGFloat { 32 }
+    var sizeXL: CGFloat { 64 }
+
+    var spaceXXXS: CGFloat { 2 }
+    var spaceXXS: CGFloat { 4 }
+    var spaceXS: CGFloat { 8 }
+    var spaceS: CGFloat { 16 }
+    var spaceM: CGFloat { 24 }
+    var spaceL: CGFloat { 32 }
+    var spaceXL: CGFloat { 64 }
 }
