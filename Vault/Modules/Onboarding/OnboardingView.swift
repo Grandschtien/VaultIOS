@@ -96,6 +96,7 @@ private extension OnboardingView {
         primaryButton.snp.makeConstraints {
             $0.top.equalTo(pageControl.snp.bottom).offset(spaceL)
             $0.leading.trailing.equalToSuperview().inset(spaceL)
+            $0.bottom.equalTo(safeAreaLayoutGuide).inset(spaceXL)
         }
 
         buildPages(with: pages)

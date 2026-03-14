@@ -3,13 +3,17 @@
 import UIKit
 import Nivelir
 import Foundation
+import NetworkClient
 
 final class LoginFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
+        @SafeInject
+        var networkClient: NetworkClient
+        
         let viewModel = LoginViewModel()
         let presenter = LoginPresenter(viewModel: viewModel)
         let router = LoginRouter(screenRouter: navigator)
-        let interactor = LoginInteractor(presenter: presenter, router: router)
+        let interactor = LoginInteractor(networkClient: networkClient, presenter: presenter, router: router)
 
         let viewModelStore = ViewModelStore(
             viewModel: presenter.viewModel,

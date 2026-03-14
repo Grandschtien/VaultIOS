@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Swinject
 import Nivelir
 
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
@@ -19,6 +20,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let navigator = ScreenNavigator(window: window)
         let coordinator = AppCoordinator(
             screenNavigator: navigator,
+            appAssebler: DI.assembler,
             isLoggedIn: false
         )
 

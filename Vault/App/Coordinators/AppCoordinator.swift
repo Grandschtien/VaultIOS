@@ -6,12 +6,14 @@
 //
 
 import UIKit
+import Swinject
 import Nivelir
 
 @MainActor
 final class AppCoordinator {
-    private let screenNavigator: ScreenNavigator
     private let isLoggedIn: Bool
+    private let screenNavigator: ScreenNavigator
+    private let appAssebler: Assembler
     private let rootViewController: RootViewController
     
     @UserDefault(.isOnboardingCompleted, default: false)
@@ -19,14 +21,17 @@ final class AppCoordinator {
 
     init(
         screenNavigator: ScreenNavigator,
+        appAssebler: Assembler,
         isLoggedIn: Bool
     ) {
         self.screenNavigator = screenNavigator
         self.isLoggedIn = isLoggedIn
         self.rootViewController = RootViewController()
+        self.appAssebler = appAssebler
     }
 
     func start() {
+        appAssebler.apply(assembly: AppAssembly())
         screenNavigator.navigate { route in
             route
                 .setRoot(to: rootViewController)
