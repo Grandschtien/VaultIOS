@@ -18,7 +18,6 @@ final class OnboardingFactory: Screen {
 
         let viewModelStore = ViewModelStore(
             viewModel: presenter.viewModel,
-            options: .applyInitial,
             publisher: presenter.$viewModel
         )
 

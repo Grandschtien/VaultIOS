@@ -2,36 +2,94 @@
 
 import UIKit
 
-struct OnboardingModel {
-    let title: String
-    let subtitle: String
-    let image: OnboardingViewModel.Image
-    let pillText: String
-    let pillImage: UIImage
+struct OnboardingModel: Equatable {
+    let image: UIImage
+    let title: Label.LabelViewModel
+    let subtitle: Label.LabelViewModel
+    let pill: PillView.ViewModel
 }
 
 extension OnboardingModel {
     static let pages: [OnboardingModel] = [
         .init(
-            title: L10n.onboarding1Title,
-            subtitle: L10n.onboarding1Subtitle,
-            image: .onboarding1,
-            pillText: L10n.aiPowered,
-            pillImage: Asset.Icons.aiUsageLight.image
+            image: .onboarding1, title: Label.LabelViewModel(
+                text: L10n.onboarding1Title,
+                font: Typography.typographySemibold32,
+                textColor: Asset.Colors.textAndIconPrimary.color,
+                alignment: .center,
+                numberOfLines: .zero,
+                lineBreakMode: .byWordWrapping
+            ),
+            subtitle: Label.LabelViewModel(
+                text: L10n.onboarding1Subtitle,
+                font: Typography.typographyRegular16,
+                textColor: Asset.Colors.textAndIconSecondary.color,
+                alignment: .center,
+                numberOfLines: .zero,
+                lineBreakMode: .byWordWrapping
+            ),
+            pill: PillView.ViewModel(
+                text: Label.LabelViewModel(
+                    text: L10n.aiPowered,
+                    font: Typography.typographySemibold12,
+                    textColor: .interactiveElemetsPrimary
+                ),
+                image: .aiUsageLight
+            ),
         ),
         .init(
-            title: L10n.onboarding2Title,
-            subtitle: L10n.onboarding2Subtitle,
             image: .onboarding2,
-            pillText: L10n.aiSmartEntry,
-            pillImage: Asset.Icons.aiUsageLight.image
+            title: Label.LabelViewModel(
+                text: L10n.onboarding2Title,
+                font: Typography.typographySemibold32,
+                textColor: Asset.Colors.textAndIconPrimary.color,
+                alignment: .center,
+                numberOfLines: .zero,
+                lineBreakMode: .byWordWrapping
+            ),
+            subtitle: Label.LabelViewModel(
+                text: L10n.onboarding2Subtitle,
+                font: Typography.typographyRegular16,
+                textColor: Asset.Colors.textAndIconSecondary.color,
+                alignment: .center,
+                numberOfLines: .zero,
+                lineBreakMode: .byWordWrapping
+            ),
+            pill: PillView.ViewModel(
+                text: Label.LabelViewModel(
+                    text: L10n.aiSmartEntry,
+                    font: Typography.typographySemibold12,
+                    textColor: .interactiveElemetsPrimary
+                ),
+                image: .aiUsageLight
+            )
         ),
         .init(
-            title: L10n.onboarding3Title,
-            subtitle: L10n.onboarding3Subtitle,
             image: .onboarding3,
-            pillText: L10n.insightfulAnalytics,
-            pillImage: Asset.Icons.insights.image
+            title: Label.LabelViewModel(
+                text: L10n.onboarding3Title,
+                font: Typography.typographySemibold32,
+                textColor: Asset.Colors.textAndIconPrimary.color,
+                alignment: .center,
+                numberOfLines: .zero,
+                lineBreakMode: .byWordWrapping
+            ),
+            subtitle: Label.LabelViewModel(
+                text: L10n.onboarding3Subtitle,
+                font: Typography.typographyRegular16,
+                textColor: Asset.Colors.textAndIconSecondary.color,
+                alignment: .center,
+                numberOfLines: .zero,
+                lineBreakMode: .byWordWrapping
+            ),
+            pill: PillView.ViewModel(
+                text: Label.LabelViewModel(
+                    text: L10n.insightfulAnalytics,
+                    font: Typography.typographySemibold12,
+                    textColor: .interactiveElemetsPrimary
+                ),
+                image: .insights
+            )
         )
     ]
 }

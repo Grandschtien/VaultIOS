@@ -13,6 +13,8 @@ final class OnboardingView: UIView, LayoutScaleProviding {
     private let primaryButton = Button()
     private let pill = PillView()
     private let pageControl = PageControl(viewModel: OnboardingViewModel().pageControl)
+    
+    private let pages = OnboardingModel.pages
 
     private var pageViews: [UIView] = []
     private var lastNotifiedPage: Int = .zero
@@ -33,20 +35,12 @@ extension OnboardingView {
     func configure(with viewModel: OnboardingViewModel) {
         self.viewModel = viewModel
         
-        buildPages(with: viewModel.pages)
-        titleLabel.apply(viewModel.title)
-        subtitleLabel.apply(viewModel.subtitle)
+//        scrollToPage(viewModel.selectedPage, animated: true)
         pageControl.apply(viewModel.pageControl, animated: true)
         primaryButton.apply(viewModel.primaryButton)
-        pill.apply(viewModel: viewModel.pillViewModel)
-        lastNotifiedPage = clamp(page: viewModel.pageControl.currentPage)
     }
 
     func scrollToPage(_ page: Int, animated: Bool) {
-        guard !viewModel.pages.isEmpty else {
-            return
-        }
-
         let clampedPage = clamp(page: page)
         let pageWidth = max(imageScrollView.bounds.width, 1)
         imageScrollView.setContentOffset(
@@ -80,89 +74,100 @@ private extension OnboardingView {
     func setupLayout() {
         addSubview(imageScrollView)
         imageScrollView.addSubview(pagesStackView)
-        imageScrollView.addSubview(pill)
-        imageScrollView.addSubview(titleLabel)
-        imageScrollView.addSubview(subtitleLabel)
         addSubview(pageControl)
         addSubview(primaryButton)
 
         imageScrollView.snp.makeConstraints {
-            $0.top.equalTo(safeAreaLayoutGuide).offset(spaceS)
+            $0.top.equalTo(safeAreaLayoutGuide).offset(spaceM)
             $0.leading.trailing.equalToSuperview().inset(spaceS)
-            $0.bottom.equalTo(pageControl.snp.top).offset(-spaceS)
+            $0.height.equalTo(UIScreen.main.bounds.height * 0.6)
         }
 
         pagesStackView.snp.makeConstraints {
-            $0.top.equalTo(imageScrollView.contentLayoutGuide)
-            $0.leading.trailing.equalTo(imageScrollView.contentLayoutGuide)
-            $0.height.equalTo(imageScrollView.frameLayoutGuide.snp.width).multipliedBy(0.9).priority(.high)
-        }
-        
-        pill.snp.makeConstraints {
-            $0.centerX.equalTo(imageScrollView.frameLayoutGuide)
-            $0.top.equalTo(pagesStackView.snp.bottom).offset(spaceL)
-        }
-
-        titleLabel.snp.makeConstraints {
-            $0.top.equalTo(pill.snp.bottom).offset(spaceM)
-            $0.leading.trailing.equalTo(imageScrollView.frameLayoutGuide).inset(spaceS)
-        }
-
-        subtitleLabel.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(spaceS)
-            $0.leading.trailing.equalTo(imageScrollView.frameLayoutGuide).inset(spaceL)
-            $0.bottom.equalTo(imageScrollView.contentLayoutGuide)
+            $0.edges.equalTo(imageScrollView.contentLayoutGuide)
+            $0.height.equalTo(imageScrollView.frameLayoutGuide)
         }
 
         pageControl.snp.makeConstraints {
-            $0.bottom.equalTo(primaryButton.snp.top).offset(-spaceL)
+            $0.top.equalTo(imageScrollView.snp.bottom).offset(spaceM)
             $0.centerX.equalToSuperview()
         }
 
         primaryButton.snp.makeConstraints {
+            $0.top.equalTo(pageControl.snp.bottom).offset(spaceL)
             $0.leading.trailing.equalToSuperview().inset(spaceL)
-            $0.bottom.equalTo(safeAreaLayoutGuide).inset(spaceL)
         }
+
+        buildPages(with: pages)
     }
 
-    func buildPages(with pages: [OnboardingViewModel.PageViewModel]) {
+    func buildPages(with pages: [OnboardingModel]) {
         guard pageViews.isEmpty else { return }
+
         for page in pages {
             let pageView = UIView()
-            let imageView = UIImageView(image: image(for: page.image))
+
+            let imageView = UIImageView(image: page.image)
             imageView.contentMode = .scaleAspectFit
 
+            let titleLabel = Label()
+            titleLabel.apply(page.title)
+
+            let subtitleLabel = Label()
+            subtitleLabel.apply(page.subtitle)
+
+            let pill = PillView()
+            pill.apply(viewModel: page.pill)
+
             pageView.addSubview(imageView)
+            pageView.addSubview(pill)
+            pageView.addSubview(titleLabel)
+            pageView.addSubview(subtitleLabel)
+
             imageView.snp.makeConstraints {
-                $0.edges.equalToSuperview().inset(spaceS)
+                $0.top.equalToSuperview()
+                $0.leading.trailing.equalToSuperview()
+                $0.centerX.equalToSuperview()
+                $0.height.lessThanOrEqualToSuperview().multipliedBy(0.65)
+            }
+
+            pill.snp.makeConstraints {
+                $0.top.equalTo(imageView.snp.bottom).offset(spaceL)
+                $0.centerX.equalToSuperview()
+            }
+
+            titleLabel.snp.makeConstraints {
+                $0.top.equalTo(pill.snp.bottom).offset(spaceM)
+                $0.horizontalEdges.equalToSuperview().inset(spaceS)
+            }
+
+            subtitleLabel.snp.makeConstraints {
+                $0.top.equalTo(titleLabel.snp.bottom).offset(spaceS)
+                $0.horizontalEdges.equalToSuperview().inset(spaceL)
+                $0.bottom.equalToSuperview()
             }
 
             pagesStackView.addArrangedSubview(pageView)
+
             pageView.snp.makeConstraints {
                 $0.width.equalTo(imageScrollView.frameLayoutGuide)
+                $0.height.equalTo(imageScrollView.frameLayoutGuide)
             }
 
             pageViews.append(pageView)
+            
+            imageView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+            pill.setContentCompressionResistancePriority(.required, for: .vertical)
+            titleLabel.setContentCompressionResistancePriority(.required, for: .vertical)
+            subtitleLabel.setContentCompressionResistancePriority(.required, for: .vertical)
         }
     }
 
     func clamp(page: Int) -> Int {
-        guard !viewModel.pages.isEmpty else {
+        guard !pages.isEmpty else {
             return .zero
         }
 
-        return min(max(.zero, page), viewModel.pages.count - 1)
+        return min(max(.zero, page), pages.count - 1)
     }
-
-    func image(for image: OnboardingViewModel.Image) -> UIImage {
-        switch image {
-        case .onboarding1:
-            return Asset.Images.onboarding1.image
-        case .onboarding2:
-            return Asset.Images.onboarding2.image
-        case .onboarding3:
-            return Asset.Images.onboarding3.image
-        }
-    }
-
 }
