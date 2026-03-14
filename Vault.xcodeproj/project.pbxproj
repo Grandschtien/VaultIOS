@@ -14,8 +14,19 @@
 		60A19B2C2F5C8A8F00607182 /* Swinject in Frameworks */ = {isa = PBXBuildFile; productRef = 60A19B2B2F5C8A8F00607182 /* Swinject */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		61B0A109307E8B0100A10001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 609A28412F2F7B86007145D5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 609A28482F2F7B86007145D5;
+			remoteInfo = Vault;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		609A28492F2F7B86007145D5 /* Vault.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vault.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		61B0A100307E8B0100A10001 /* VaultTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VaultTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -37,6 +48,11 @@
 			path = Vault;
 			sourceTree = "<group>";
 		};
+		61B0A101307E8B0100A10001 /* VaultTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = VaultTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +68,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		61B0A103307E8B0100A10001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -59,6 +82,7 @@
 			isa = PBXGroup;
 			children = (
 				609A284B2F2F7B86007145D5 /* Vault */,
+				61B0A101307E8B0100A10001 /* VaultTests */,
 				609A284A2F2F7B86007145D5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -67,6 +91,7 @@
 			isa = PBXGroup;
 			children = (
 				609A28492F2F7B86007145D5 /* Vault.app */,
+				61B0A100307E8B0100A10001 /* VaultTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,6 +127,29 @@
 			productReference = 609A28492F2F7B86007145D5 /* Vault.app */;
 			productType = "com.apple.product-type.application";
 		};
+		61B0A102307E8B0100A10001 /* VaultTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 61B0A106307E8B0100A10001 /* Build configuration list for PBXNativeTarget "VaultTests" */;
+			buildPhases = (
+				61B0A105307E8B0100A10001 /* Sources */,
+				61B0A103307E8B0100A10001 /* Frameworks */,
+				61B0A104307E8B0100A10001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				61B0A10A307E8B0100A10001 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				61B0A101307E8B0100A10001 /* VaultTests */,
+			);
+			name = VaultTests;
+			packageProductDependencies = (
+			);
+			productName = VaultTests;
+			productReference = 61B0A100307E8B0100A10001 /* VaultTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -114,6 +162,10 @@
 				TargetAttributes = {
 					609A28482F2F7B86007145D5 = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					61B0A102307E8B0100A10001 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 609A28482F2F7B86007145D5;
 					};
 				};
 			};
@@ -141,12 +193,20 @@
 			projectRoot = "";
 			targets = (
 				609A28482F2F7B86007145D5 /* Vault */,
+				61B0A102307E8B0100A10001 /* VaultTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		609A28472F2F7B86007145D5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		61B0A104307E8B0100A10001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -185,7 +245,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		61B0A105307E8B0100A10001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		61B0A10A307E8B0100A10001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 609A28482F2F7B86007145D5 /* Vault */;
+			targetProxy = 61B0A109307E8B0100A10001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		609A285D2F2F7B88007145D5 /* Debug */ = {
@@ -379,6 +454,56 @@
 			};
 			name = Release;
 		};
+		61B0A107307E8B0100A10001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					XCTest,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.egor.shkarin.VaultTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vault.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vault";
+			};
+			name = Debug;
+		};
+		61B0A108307E8B0100A10001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					XCTest,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.egor.shkarin.VaultTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vault.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vault";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -396,6 +521,15 @@
 			buildConfigurations = (
 				609A285D2F2F7B88007145D5 /* Debug */,
 				609A285E2F2F7B88007145D5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		61B0A106307E8B0100A10001 /* Build configuration list for PBXNativeTarget "VaultTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				61B0A107307E8B0100A10001 /* Debug */,
+				61B0A108307E8B0100A10001 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

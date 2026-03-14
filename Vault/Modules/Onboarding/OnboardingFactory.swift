@@ -5,11 +5,16 @@ import Nivelir
 import Foundation
 
 final class OnboardingFactory: Screen {
+    private weak var output: OnboardingFlowOutput?
+
+    init(output: OnboardingFlowOutput?) {
+        self.output = output
+    }
+
     func build(navigator: ScreenNavigator) -> UIViewController {
         let viewModel = OnboardingViewModel()
         let presenter = OnboardingPresenter(viewModel: viewModel)
-        let router = OnboardingRouter(screenRouter: navigator)
-        let interactor = OnboardingInteractor(presenter: presenter, router: router)
+        let interactor = OnboardingInteractor(presenter: presenter)
 
         let viewModelStore = ViewModelStore(
             viewModel: presenter.viewModel,
@@ -23,6 +28,7 @@ final class OnboardingFactory: Screen {
         )
         
         presenter.handler = interactor
+        interactor.output = output
 
         return controller
     }

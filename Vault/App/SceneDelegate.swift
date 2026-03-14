@@ -10,21 +10,21 @@ import Nivelir
 
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
-    private var screenNavigator: ScreenNavigator?
+    private var appCoordinator: AppCoordinator?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let scene = (scene as? UIWindowScene) else { return }
 
         let window = UIWindow(windowScene: scene)
         let navigator = ScreenNavigator(window: window)
+        let coordinator = AppCoordinator(
+            screenNavigator: navigator,
+            isLoggedIn: false
+        )
 
         self.window = window
-        self.screenNavigator = navigator
+        self.appCoordinator = coordinator
 
-        navigator.navigate { route in
-            route
-                .setRoot(to: OnboardingFactory())
-                .makeKeyAndVisible()
-        }
+        coordinator.start()
     }
 }

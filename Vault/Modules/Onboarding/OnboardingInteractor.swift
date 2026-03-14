@@ -13,24 +13,28 @@ protocol OnboardingHandler: Sendable, AnyObject {
     func didChangeCurrentPage(_ page: Int) async
 }
 
-actor OnboardingInteractor: OnboardingBusinessLogic {
+protocol OnboardingFlowOutput: AnyObject {
+    func didFinishOnboarding() async
+}
+
+@MainActor
+final class OnboardingInteractor: OnboardingBusinessLogic {
     private let presenter: OnboardingPresentationLogic
-    private let router: OnboardingRoutingLogic
     private var currentPage: Int = .zero
+    
+    weak var output: OnboardingFlowOutput?
 
     private let pagesCount: Int = OnboardingModel.pages.count
 
     init(
-        presenter: OnboardingPresentationLogic,
-        router: OnboardingRoutingLogic
+        presenter: OnboardingPresentationLogic
     ) {
         self.presenter = presenter
-        self.router = router
     }
 
     func fetchData() async {
         currentPage = .zero
-        await presenter.presentFetchedData(
+        presenter.presentFetchedData(
             OnboardingFetchData(
                 currentPage: currentPage,
                 scrollCommand: nil
@@ -44,12 +48,12 @@ extension OnboardingInteractor: OnboardingHandler {
     func didTapPrimaryButton() async {
         let lastPage = max(.zero, pagesCount - 1)
         guard currentPage < lastPage else {
-            await router.routeToNextScreen()
+            await output?.didFinishOnboarding()
             return
         }
 
         currentPage += 1
-        await presenter.presentFetchedData(
+        presenter.presentFetchedData(
             OnboardingFetchData(
                 currentPage: currentPage,
                 scrollCommand: .init(
@@ -67,7 +71,7 @@ extension OnboardingInteractor: OnboardingHandler {
         }
 
         currentPage = clampedPage
-        await presenter.presentFetchedData(
+        presenter.presentFetchedData(
             OnboardingFetchData(
                 currentPage: currentPage,
                 scrollCommand: nil
