@@ -78,9 +78,9 @@ private extension OnboardingView {
         addSubview(primaryButton)
 
         imageScrollView.snp.makeConstraints {
-            $0.top.equalTo(safeAreaLayoutGuide).offset(spaceM)
+            $0.top.equalTo(safeAreaLayoutGuide).offset(spaceL)
             $0.leading.trailing.equalToSuperview().inset(spaceS)
-            $0.height.equalTo(UIScreen.main.bounds.height * 0.6)
+            $0.height.equalTo(UIScreen.main.bounds.height * 0.6).priority(.high)
         }
 
         pagesStackView.snp.makeConstraints {
@@ -91,10 +91,11 @@ private extension OnboardingView {
         pageControl.snp.makeConstraints {
             $0.top.equalTo(imageScrollView.snp.bottom).offset(spaceM)
             $0.centerX.equalToSuperview()
+            $0.height.equalTo(pageControl.viewModel.indicatorSize)
         }
 
         primaryButton.snp.makeConstraints {
-            $0.top.equalTo(pageControl.snp.bottom).offset(spaceL)
+            $0.top.greaterThanOrEqualTo(pageControl.snp.bottom).offset(spaceL)
             $0.leading.trailing.equalToSuperview().inset(spaceL)
             $0.bottom.equalTo(safeAreaLayoutGuide).inset(spaceXL)
         }
