@@ -9,7 +9,7 @@ import Foundation
 import Alamofire
 import NetworkClient
 
-enum AuthAPI: ApiTarget {
+enum AuthAPI: ApiTarget, Sendable {
     case login(LoginRequestDTO)
     case register(AuthTokenRequestDTO)
     case refresh

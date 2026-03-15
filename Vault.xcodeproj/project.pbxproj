@@ -48,11 +48,6 @@
 			path = Vault;
 			sourceTree = "<group>";
 		};
-		61B0A101307E8B0100A10001 /* VaultTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = VaultTests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,7 +77,6 @@
 			isa = PBXGroup;
 			children = (
 				609A284B2F2F7B86007145D5 /* Vault */,
-				61B0A101307E8B0100A10001 /* VaultTests */,
 				609A284A2F2F7B86007145D5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -139,9 +133,6 @@
 			);
 			dependencies = (
 				61B0A10A307E8B0100A10001 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				61B0A101307E8B0100A10001 /* VaultTests */,
 			);
 			name = VaultTests;
 			packageProductDependencies = (
@@ -291,7 +282,7 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -327,7 +318,7 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;

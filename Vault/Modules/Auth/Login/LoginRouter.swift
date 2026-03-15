@@ -5,7 +5,10 @@ import Foundation
 import Nivelir
 
 @MainActor
-protocol LoginRoutingLogic: Sendable {}
+protocol LoginRoutingLogic: Sendable {
+    func openRegistration()
+    func openForgetPasswordScreen()
+}
 
 final class LoginRouter: LoginRoutingLogic {
     private let screenRouter: ScreenNavigator
@@ -14,5 +17,13 @@ final class LoginRouter: LoginRoutingLogic {
 
     init(screenRouter: ScreenNavigator) {
         self.screenRouter = screenRouter
+    }
+
+    func openRegistration() {
+        
+    }
+    
+    func openForgetPasswordScreen() {
+        
     }
 }

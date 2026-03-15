@@ -8,12 +8,19 @@ import NetworkClient
 final class LoginFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
-        var networkClient: NetworkClient
+        var networkClient: AsyncNetworkClient
+        @SafeInject
+        var tokenStorageService: TokenStorageServiceProtocol
         
         let viewModel = LoginViewModel()
         let presenter = LoginPresenter(viewModel: viewModel)
         let router = LoginRouter(screenRouter: navigator)
-        let interactor = LoginInteractor(networkClient: networkClient, presenter: presenter, router: router)
+        let interactor = LoginInteractor(
+            networkClient: networkClient,
+            presenter: presenter,
+            router: router,
+            tokenStorageService: tokenStorageService
+        )
 
         let viewModelStore = ViewModelStore(
             viewModel: presenter.viewModel,

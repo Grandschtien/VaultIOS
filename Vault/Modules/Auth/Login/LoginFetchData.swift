@@ -2,4 +2,10 @@
 
 import Foundation
 
-struct LoginFetchData: Sendable {}
+struct LoginFetchData: Sendable {
+    let loadingState: LoadingStatus
+    
+    init(loadingState: LoadingStatus = .idle) {
+        self.loadingState = loadingState
+    }
+}

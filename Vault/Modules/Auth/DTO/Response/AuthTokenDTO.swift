@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct AuthTokenDTO: Codable, Equatable {
+struct AuthTokenDTO: Codable, Equatable, Sendable {
     let accessToken: String
     let refreshToken: String
     let tokenType: String

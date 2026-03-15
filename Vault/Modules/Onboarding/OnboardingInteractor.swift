@@ -2,13 +2,13 @@
 
 import Foundation
 
-protocol OnboardingBusinessLogic: Sendable {
+protocol OnboardingBusinessLogic {
     func fetchData() async
     func didTapPrimaryButton() async
     func didChangeCurrentPage(_ page: Int) async
 }
 
-protocol OnboardingHandler: Sendable, AnyObject {
+protocol OnboardingHandler: AnyObject {
     func didTapPrimaryButton() async
     func didChangeCurrentPage(_ page: Int) async
 }
@@ -17,7 +17,6 @@ protocol OnboardingFlowOutput: AnyObject {
     func didFinishOnboarding() async
 }
 
-@MainActor
 final class OnboardingInteractor: OnboardingBusinessLogic {
     private let presenter: OnboardingPresentationLogic
     private var currentPage: Int = .zero
@@ -34,7 +33,7 @@ final class OnboardingInteractor: OnboardingBusinessLogic {
 
     func fetchData() async {
         currentPage = .zero
-        presenter.presentFetchedData(
+        await presenter.presentFetchedData(
             OnboardingFetchData(
                 currentPage: currentPage,
                 scrollCommand: nil
@@ -53,7 +52,7 @@ extension OnboardingInteractor: OnboardingHandler {
         }
 
         currentPage += 1
-        presenter.presentFetchedData(
+        await presenter.presentFetchedData(
             OnboardingFetchData(
                 currentPage: currentPage,
                 scrollCommand: .init(
@@ -71,7 +70,7 @@ extension OnboardingInteractor: OnboardingHandler {
         }
 
         currentPage = clampedPage
-        presenter.presentFetchedData(
+        await presenter.presentFetchedData(
             OnboardingFetchData(
                 currentPage: currentPage,
                 scrollCommand: nil

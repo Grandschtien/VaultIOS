@@ -7,6 +7,6 @@
 
 import Foundation
 
-struct AuthTokenRequestDTO: Codable {
+struct AuthTokenRequestDTO: Codable, Sendable {
     let refreshToken: String
 }
