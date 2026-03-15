@@ -35,7 +35,6 @@ extension OnboardingView {
     func configure(with viewModel: OnboardingViewModel) {
         self.viewModel = viewModel
         
-//        scrollToPage(viewModel.selectedPage, animated: true)
         pageControl.apply(viewModel.pageControl, animated: true)
         primaryButton.apply(viewModel.primaryButton)
     }

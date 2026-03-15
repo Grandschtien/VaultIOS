@@ -6,8 +6,8 @@
 - Goal: users add expenses in free-form text, the LLM parses them into structured entries, and the user confirms or corrects the result before saving
 
 ## Technical Rules
-- Architecture: `VIPER`
-  - Presenter - is used for preapre data to pass it into view
+- Architecture: `Clean architecture`
+  - Presenter - is used for preapre data to pass it into view. It MUST prepare viewModel and assign it into its internal viewModel property. No viewModel setup outside of presenter.
   - Interactor for business logic
   - if there is seaprate functional which is not related for general logic - add it into separate class
 - Primary UI framework: `UIKit`
@@ -20,111 +20,6 @@
 - Prefer Swift Concurrency for async work
 - Do not introduce `GCD` or `Operation`-based concurrency for new code
 
-## Client Domain Models
-
-`ErrorResponse`
-- `error: string`
-
-`TokensResponse`
-- `access_token: string`
-- `refresh_token: string`
-- `token_type: string`
-- `expires_in: int64`
-
-`ProfileResponse`
-- `id: string`
-- `email?: string`
-- `name: string`
-- `currency: string`
-- `preferred_language: string`
-- `tier: string`
-- `tier_valid_until?: time.Time`
-
-`AuthResponse`
-- `access_token: string`
-- `refresh_token: string`
-- `token_type: string`
-- `expires_in: int64`
-- `user: ProfileResponse`
-
-`Category`
-- `id: string`
-- `name: string`
-- `icon: string`
-- `color: string`
-
-`RateResponse`
-- `currency: string`
-- `rate_to_usd: float64`
-- `as_of: string`
-
-`ExpenseResponse`
-- `id: string`
-- `title: string`
-- `description?: string`
-- `amount: float64`
-- `currency: string`
-- `category: string`
-- `time_of_add: string`
-
-`ExpenseCreateResponse`
-- `expenses: ExpenseResponse[]`
-
-`ExpenseListResponse`
-- `expenses: ExpenseResponse[]`
-- `next_cursor?: string`
-- `has_more: bool`
-
-`ExpenseSummaryByCategory`
-- `category: string`
-- `total: float64`
-
-`ExpenseSummaryResponse`
-- `category?: string`
-- `total: float64`
-- `currency: string`
-- `by_category?: ExpenseSummaryByCategory[]`
-
-`ParsedExpenseResponse`
-- `title: string`
-- `amount: float64`
-- `currency: string`
-- `category: string`
-- `suggested_category?: string`
-- `confidence: float64`
-
-`UsageResponse`
-- `entries_used: int32`
-- `entries_limit: int32`
-- `resets_at: time.Time`
-
-`ParseResponse`
-- `expenses: ParsedExpenseResponse[]`
-- `usage: UsageResponse`
-- `error?: string`
-
-`LimitReachedResponse`
-- `error: string`
-- `resets_at: time.Time`
-- `usage: UsageResponse`
-
-`CreateCategoryResponse`
-- `category: Category`
-
-`ListCategoriesResponse`
-- `categories: Category[]`
-
-**Health Responses**
-
-Healthy response:
-- `status: "ok"`
-- `service: "vault-backend"`
-
-Unhealthy response:
-- `status: "error"`
-- `service: "vault-backend"`
-- `error: string`
-
 ## General Engineering Guardrails for coding
 
 - Never auto-save AI parsed data without user confirmation
@@ -134,6 +29,9 @@ Unhealthy response:
 - Never add a new service without tests
 - Never use `GCD` or `OperationQueue` in new code when Swift Concurrency can express the flow
 - Use final if there is no inheritabce for class
+- Usage of SafeInjected outside from Factory is stricly porhibited.
+- All warnings connected with Swift concurrency MUST be fixed
+- All new API targets must inherit ApiTarget protocol
 
 ## Engineering Guardrails for unit testing
 
@@ -164,3 +62,4 @@ Unhealthy response:
 - Never use closure callbacks in views for UI actions (for example `(() -> Void)?` or `((Int) -> Void)?`).
 - For `Button`, pass action only via `Button.ViewModel.tapCommand` and never add extra `addTarget` handlers from screen views/controllers.
 - Router MUST contain routing only and MUST navigate through `Nivelir` (`ScreenNavigator`).
+- All calls of Commands MUST be inside child of UIView, not in UIViewController.
