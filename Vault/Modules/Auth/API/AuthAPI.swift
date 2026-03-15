@@ -11,7 +11,7 @@ import NetworkClient
 
 enum AuthAPI: ApiTarget {
     case login(LoginRequestDTO)
-    case register
+    case register(AuthTokenRequestDTO)
     case refresh
     
     var host: String {

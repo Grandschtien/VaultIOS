@@ -14,15 +14,16 @@
 - Primary layout framework: `SnapKit`
 - All modules must be created through factories built with `Nivelir`, using template
 - All navigation must go through `Nivelir`
-- Network calls must go through `NetworkService`
+- Network calls must go through `NetworkService`(use `AsyncNetworkService` for Swift Concurrency)
 - Every service must be abstracted behind a protocol
 - Every new service must include tests
 - Prefer Swift Concurrency for async work
 - Do not introduce `GCD` or `Operation`-based concurrency for new code
+- When you add new service, which does not apply to Architecture add it into AppAssembly
+- Never add CodingKeys to Coding models
 
 ## General Engineering Guardrails for coding
 
-- Never auto-save AI parsed data without user confirmation
 - Never bypass `Nivelir` for screen transitions
 - Never call networking directly from presentation or view layers
 - Never introduce a concrete service dependency where a protocol should be injected
@@ -56,7 +57,7 @@
 - Presenter MUST prepare full root `ViewModel` and all nested subview view models.
 - Presenter MUST use existing component view models (`Label.LabelViewModel`, `Button.ButtonViewModel`, etc).
 - UI actions MUST flow as commands from root `ViewModel` to `Interactor` through `*Handler` protocol methods.
-- Handler method names for UI actions MUST use `did...` style (`didTapPrimaryButton`, `didChangeCurrentPage`).
+- Handler method names for UI actions MUST use `hadnle...` style (`handleTapPrimaryButton`, `handleChangeCurrentPage`).
 - `ViewController` MUST only bind `ViewModelStore`, render `contentView`, and trigger initial `fetchData()`.
 - `View` MUST contain layout/UI adapter logic only (`configure`, scroll/table/collection delegates, etc).
 - Never use closure callbacks in views for UI actions (for example `(() -> Void)?` or `((Int) -> Void)?`).

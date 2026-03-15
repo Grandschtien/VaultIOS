@@ -12,6 +12,7 @@ import NetworkClient
 struct AppAssembly: Assembly {
     func assemble(container: Container) {
         regiaterNetworkClient(with: container)
+        registerServices(with: container)
     }
 }
 
@@ -26,5 +27,12 @@ private extension AppAssembly {
         }
         .implements(AsyncNetworkClient.self)
         .inObjectScope(.transient)
+    }
+
+    func registerServices(with container: Container) {
+        container.register(TokenStorageServiceProtocol.self) { _ in
+            TokenStorageService()
+        }
+        .inObjectScope(.container)
     }
 }
