@@ -287,7 +287,7 @@ private extension TextField {
     }
 
     var inputHeight: CGFloat {
-        spaceM + spaceS
+        56
     }
 
     var topToInputSpacing: CGFloat {

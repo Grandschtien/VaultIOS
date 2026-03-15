@@ -32,6 +32,10 @@ final class LoginViewController: UIViewController, HasContentView {
         viewModelStore.onViewModelChange = { [weak self] viewModel in
             self?.render(with: viewModel)
         }
+
+        Task { [weak self] in
+            await self?.interactor.fetchData()
+        }
     }
 }
 

@@ -11,6 +11,7 @@ import SnapKit
 final class Button: UIButton, LayoutScaleProviding {
     private enum Constants {
         static let iconTextSpacing: CGFloat = 8
+        static let defaultHeight: CGFloat = 56
         static let pressedScale: CGFloat = 0.96
         static let pressAnimationDuration: TimeInterval = 0.12
         static let releaseAnimationDuration: TimeInterval = 0.38
@@ -139,7 +140,7 @@ final class Button: UIButton, LayoutScaleProviding {
         }
         
         snp.makeConstraints {
-            $0.height.equalTo(56)
+           $0.height.equalTo(Constants.defaultHeight)
         }
         
         layer.cornerRadius = spaceM

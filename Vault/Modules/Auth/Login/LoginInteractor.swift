@@ -8,7 +8,9 @@ protocol LoginBusinessLogic: Sendable {
 }
 
 protocol LoginHandler: AnyObject, Sendable {
-    func handleSignInDidTap(email: String, password: String) async
+    func handleEmailDidChange(_ email: String) async
+    func handlePasswordDidChange(_ password: String) async
+    func handleSignInDidTap() async
     func handleSignUpDidTap() async
     func handleForgotDidTap() async
 }
@@ -18,6 +20,9 @@ actor LoginInteractor: LoginBusinessLogic {
     private let presenter: LoginPresentationLogic
     private let router: LoginRoutingLogic
     private let tokenStorageService: TokenStorageServiceProtocol
+
+    private var email: String = ""
+    private var password: String = ""
 
     init(
         networkClient: AsyncNetworkClient,
@@ -38,12 +43,26 @@ actor LoginInteractor: LoginBusinessLogic {
 
 private extension LoginInteractor {
     func presentFetchedData(_ loadingStatus: LoadingStatus) async {
-        await presenter.presentFetchedData(LoginFetchData(loadingState: loadingStatus))
+        await presenter.presentFetchedData(
+            LoginFetchData(
+                loadingState: loadingStatus,
+                email: email,
+                password: password
+            )
+        )
     }
 }
 
 extension LoginInteractor: LoginHandler {
-    func handleSignInDidTap(email: String, password: String) async {
+    func handleEmailDidChange(_ email: String) async {
+        self.email = email
+    }
+
+    func handlePasswordDidChange(_ password: String) async {
+        self.password = password
+    }
+
+    func handleSignInDidTap() async {
         do {
             await presentFetchedData(.loading)
             let result = try await networkClient.request(
@@ -65,17 +84,17 @@ extension LoginInteractor: LoginHandler {
                     expiresIn: result.expiresIn
                 )
             )
-            
+
             await presentFetchedData(.loaded)
         } catch {
             await presentFetchedData(.failed(error))
         }
     }
-    
+
     func handleSignUpDidTap() async {
         await router.openRegistration()
     }
-    
+
     func handleForgotDidTap() async {
         await router.openForgetPasswordScreen()
     }

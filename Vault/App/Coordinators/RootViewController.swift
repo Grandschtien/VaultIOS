@@ -9,7 +9,7 @@ import UIKit
 import SnapKit
 import Nivelir
 
-final class RootViewController: UINavigationController, Screen {
+final class RootViewController: UIViewController, Screen {
     private var currentChildViewController: UIViewController?
 
     func setRoot(_ viewController: UIViewController) {

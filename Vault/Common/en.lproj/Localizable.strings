@@ -1,6 +1,8 @@
 /* English localizations */
 "ai_powered" = "AI Powered";
 "ai_smart_entry" = "AI Smart Entry";
+"email_address" = "Email";
+"email_placeholder" = "name@example.com";
 "enter_your_name" = "Enter Your Name";
 "forgot" = "Forgot?";
 "get_started" = "Get started";
@@ -13,7 +15,7 @@
 "see_where_your_money_goes" = "See where your money goes";
 "see_where_your_money_goes_with_smart_automated_insights" = "See where your money goes with smart, automated insights";
 "sign_in" = "Sign In";
-"smart_expense_tracking_for_your_digital_lifestyle" = "Smart expense tracking for your digital lifestyle";
+"smart_expense_tracking_for_your_digital_lifestyle" = "Smart expense tracking\nfor your digital lifestyle";
 "smart_savings" = "Smart Savings";
 "support" = "Support";
 "terms" = "Terms";
@@ -22,6 +24,8 @@
 "onboarding_1_title" = "Track expenses effortlessly";
 "onboarding_2_title" = "Voice or text. AI handles it";
 "onboarding_3_title" = "See where your money goes";
+"password" = "Password";
+"password_placeholder" = "••••••••";
 
 "onboarding_1_subtitle" = "Take control of your finances with our intuitive, AI-driven expense tracker. Simple, safe and secure";
 "onboarding_2_subtitle" = "Input with your voice or text. Our AI handles the rest automatically";

@@ -15,15 +15,15 @@ enum AuthAPI: ApiTarget, Sendable {
     case refresh
     
     var host: String {
-        return "https://localhost:8080"
+        return "localhost:8080"
     }
     
     var path: String {
         switch self {
         case .login:
-            "/auth/register"
-        case .register:
             "/auth/login"
+        case .register:
+            "/auth/register"
         case .refresh:
             "/auth/refresh"
         }

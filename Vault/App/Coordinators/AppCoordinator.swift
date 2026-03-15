@@ -63,6 +63,7 @@ private extension AppCoordinator {
     func showAuthFlow() {
         let loginController = LoginFactory().build(navigator: screenNavigator)
         let navigationController = UINavigationController(rootViewController: loginController)
+        navigationController.setNavigationBarHidden(true, animated: false)
         rootViewController.setRoot(navigationController)
     }
 

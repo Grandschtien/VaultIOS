@@ -48,6 +48,11 @@
 			path = Vault;
 			sourceTree = "<group>";
 		};
+		61B0A10B307E8B0200A10001 /* VaultTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = VaultTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,6 +82,7 @@
 			isa = PBXGroup;
 			children = (
 				609A284B2F2F7B86007145D5 /* Vault */,
+				61B0A10B307E8B0200A10001 /* VaultTests */,
 				609A284A2F2F7B86007145D5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -133,6 +139,9 @@
 			);
 			dependencies = (
 				61B0A10A307E8B0100A10001 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				61B0A10B307E8B0200A10001 /* VaultTests */,
 			);
 			name = VaultTests;
 			packageProductDependencies = (
