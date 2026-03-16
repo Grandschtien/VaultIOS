@@ -34,5 +34,10 @@ private extension AppAssembly {
             TokenStorageService()
         }
         .inObjectScope(.container)
+
+        container.register(ToastPresenting.self) { _ in
+            ToastPresenter()
+        }
+        .inObjectScope(.container)
     }
 }

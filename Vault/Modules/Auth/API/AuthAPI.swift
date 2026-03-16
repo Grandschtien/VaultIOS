@@ -15,7 +15,7 @@ enum AuthAPI: ApiTarget, Sendable {
     case refresh
     
     var host: String {
-        return "localhost:8080"
+        return "localhost"
     }
     
     var path: String {
@@ -54,5 +54,17 @@ enum AuthAPI: ApiTarget, Sendable {
         case .refresh:
             .plain
         }
+    }
+    
+    // Temp before real server
+    var url: URL {
+        var components = URLComponents()
+        
+        components.host = host
+        components.port = 8080
+        components.scheme = "http"
+        components.path = path
+
+        return components.url!
     }
 }

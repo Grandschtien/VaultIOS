@@ -30,3 +30,5 @@
 "onboarding_1_subtitle" = "Take control of your finances with our intuitive, AI-driven expense tracker. Simple, safe and secure";
 "onboarding_2_subtitle" = "Input with your voice or text. Our AI handles the rest automatically";
 "onboarding_3_subtitle" = "See where your money goes with smart, automated insights";
+
+"common_fill_field" = "Please, fill this field";

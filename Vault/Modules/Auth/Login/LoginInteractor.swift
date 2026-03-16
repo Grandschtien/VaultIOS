@@ -16,6 +16,10 @@ protocol LoginHandler: AnyObject, Sendable {
 }
 
 actor LoginInteractor: LoginBusinessLogic {
+    enum LocalError: Error {
+        case emptyEmail
+        case emptyPassword
+    }
     private let networkClient: AsyncNetworkClient
     private let presenter: LoginPresentationLogic
     private let router: LoginRoutingLogic
@@ -63,14 +67,27 @@ extension LoginInteractor: LoginHandler {
     }
 
     func handleSignInDidTap() async {
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !normalizedEmail.isEmpty else {
+            await presentFetchedData(.failed(LocalError.emptyEmail))
+            return
+        }
+        
+        guard !normalizedPassword.isEmpty else {
+            await presentFetchedData(.failed(LocalError.emptyPassword))
+            return
+        }
+
         do {
             await presentFetchedData(.loading)
             let result = try await networkClient.request(
                 AuthAPI.login(
                     LoginRequestDTO(
                         provider: .password,
-                        email: email,
-                        password: password
+                        email: normalizedEmail,
+                        password: normalizedPassword
                     )
                 ),
                 responseType: LoginResponseDTO.self
@@ -88,6 +105,7 @@ extension LoginInteractor: LoginHandler {
             await presentFetchedData(.loaded)
         } catch {
             await presentFetchedData(.failed(error))
+            await router.presentError(with: error.localizedDescription)
         }
     }
 

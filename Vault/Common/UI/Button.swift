@@ -12,6 +12,7 @@ final class Button: UIButton, LayoutScaleProviding {
     private enum Constants {
         static let iconTextSpacing: CGFloat = 8
         static let defaultHeight: CGFloat = 56
+        static let defaultCornerRadius: CGFloat = 24
         static let pressedScale: CGFloat = 0.96
         static let pressAnimationDuration: TimeInterval = 0.12
         static let releaseAnimationDuration: TimeInterval = 0.38
@@ -25,6 +26,8 @@ final class Button: UIButton, LayoutScaleProviding {
     private let leftIconView = UIImageView()
     private let titleTextLabel = UILabel()
     private let rightIconView = UIImageView()
+    private let loaderView = UIActivityIndicatorView(style: .medium)
+    private var heightConstraint: Constraint?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -47,8 +50,10 @@ final class Button: UIButton, LayoutScaleProviding {
         )
         backgroundColor = viewModel.backgroundColor
         clipsToBounds = true
-        isEnabled = viewModel.isEnabled
+        isEnabled = viewModel.isEnabled && !viewModel.isLoading
         alpha = viewModel.isEnabled ? 1 : 0.6
+        heightConstraint?.update(offset: viewModel.height)
+        layer.cornerRadius = viewModel.cornerRadius
 
         titleTextLabel.text = viewModel.title
         titleTextLabel.font = viewModel.font
@@ -64,15 +69,16 @@ final class Button: UIButton, LayoutScaleProviding {
             imageView: rightIconView,
             tintColor: viewModel.iconTintColor ?? viewModel.titleColor
         )
+        updateLoadingState(for: viewModel)
 
-        if !viewModel.isEnabled {
+        if !viewModel.isEnabled || viewModel.isLoading {
             transform = .identity
         }
     }
 
     @objc
     private func handleTouchDown() {
-        guard viewModel.isEnabled else { return }
+        guard viewModel.isEnabled, !viewModel.isLoading else { return }
 
         UIView.animate(withDuration: Constants.pressAnimationDuration) {
             self.transform = CGAffineTransform(scaleX: Constants.pressedScale, y: Constants.pressedScale)
@@ -81,7 +87,7 @@ final class Button: UIButton, LayoutScaleProviding {
 
     @objc
     private func handleTouchUp() {
-        guard viewModel.isEnabled else { return }
+        guard viewModel.isEnabled, !viewModel.isLoading else { return }
 
         UIView.animate(
             withDuration: Constants.releaseAnimationDuration,
@@ -96,6 +102,7 @@ final class Button: UIButton, LayoutScaleProviding {
 
     @objc
     private func handleTap() {
+        guard viewModel.isEnabled, !viewModel.isLoading else { return }
         viewModel.tapCommand.execute()
     }
 
@@ -127,6 +134,7 @@ final class Button: UIButton, LayoutScaleProviding {
         addSubview(rootStack)
 
         rootStack.addArrangedSubview(centerStack)
+        rootStack.addArrangedSubview(loaderView)
 
         centerStack.addArrangedSubview(leftIconView)
         centerStack.addArrangedSubview(titleTextLabel)
@@ -140,15 +148,16 @@ final class Button: UIButton, LayoutScaleProviding {
         }
         
         snp.makeConstraints {
-           $0.height.equalTo(Constants.defaultHeight)
+            heightConstraint = $0.height.equalTo(Constants.defaultHeight).constraint
         }
-        
-        layer.cornerRadius = spaceM
+
+        layer.cornerRadius = Constants.defaultCornerRadius
 
         
         rootStack.isUserInteractionEnabled = false
         titleTextLabel.isUserInteractionEnabled = false
-        
+        loaderView.isHidden = true
+
         addTarget(self, action: #selector(handleTouchDown), for: .touchDown)
         addTarget(self, action: #selector(handleTouchDown), for: .touchDragEnter)
         addTarget(self, action: #selector(handleTouchUp), for: .touchUpInside)
@@ -156,6 +165,19 @@ final class Button: UIButton, LayoutScaleProviding {
         addTarget(self, action: #selector(handleTouchUp), for: .touchDragExit)
         addTarget(self, action: #selector(handleTouchUp), for: .touchCancel)
         addTarget(self, action: #selector(handleTap), for: .touchUpInside)
+    }
+
+    private func updateLoadingState(for viewModel: ButtonViewModel) {
+        let isLoading = viewModel.isLoading
+        centerStack.isHidden = isLoading
+        loaderView.isHidden = !isLoading
+        loaderView.color = viewModel.iconTintColor ?? viewModel.titleColor
+
+        if isLoading {
+            loaderView.startAnimating()
+        } else {
+            loaderView.stopAnimating()
+        }
     }
 
     private func applyIcon(image: UIImage?, imageView: UIImageView, tintColor: UIColor) {
@@ -178,10 +200,13 @@ extension Button {
         let backgroundColor: UIColor
         let font: UIFont
         let isEnabled: Bool
+        let isLoading: Bool
         let tapCommand: Command
         let leftIcon: UIImage?
         let rightIcon: UIImage?
         let iconTintColor: UIColor?
+        let height: CGFloat
+        let cornerRadius: CGFloat
 
         init(
             title: String = "",
@@ -189,20 +214,26 @@ extension Button {
             backgroundColor: UIColor = .backgroundPrimary,
             font: UIFont = Typography.regular16,
             isEnabled: Bool = true,
+            isLoading: Bool = false,
             tapCommand: Command = .nope,
             leftIcon: UIImage? = nil,
             rightIcon: UIImage? = nil,
-            iconTintColor: UIColor? = nil
+            iconTintColor: UIColor? = nil,
+            height: CGFloat = Constants.defaultHeight,
+            cornerRadius: CGFloat = Constants.defaultCornerRadius
         ) {
             self.title = title
             self.titleColor = titleColor
             self.backgroundColor = backgroundColor
             self.font = font
             self.isEnabled = isEnabled
+            self.isLoading = isLoading
             self.tapCommand = tapCommand
             self.leftIcon = leftIcon
             self.rightIcon = rightIcon
             self.iconTintColor = iconTintColor
+            self.height = height
+            self.cornerRadius = cornerRadius
         }
     }
 }

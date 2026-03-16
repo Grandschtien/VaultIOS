@@ -11,10 +11,12 @@ final class LoginFactory: Screen {
         var networkClient: AsyncNetworkClient
         @SafeInject
         var tokenStorageService: TokenStorageServiceProtocol
+        @SafeInject
+        var toastPresenter: ToastPresenting
         
         let viewModel = LoginViewModel()
         let presenter = LoginPresenter(viewModel: viewModel)
-        let router = LoginRouter(screenRouter: navigator)
+        let router = LoginRouter(screenRouter: navigator, toastPresenter: toastPresenter)
         let interactor = LoginInteractor(
             networkClient: networkClient,
             presenter: presenter,

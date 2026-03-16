@@ -22,18 +22,22 @@ final class LoginPresenter: LoginPresentationLogic {
 
     func presentFetchedData(_ data: LoginFetchData) {
         let isLoading: Bool
-        let errorMessage: String?
+        var errorEmailMessage: String?
+        var errorPasswordMessage: String?
 
         switch data.loadingState {
         case .loading:
             isLoading = true
-            errorMessage = nil
-        case .failed(let error):
+        case let .failed(error) where error as? LoginInteractor.LocalError == LoginInteractor.LocalError.emptyEmail:
             isLoading = false
-            errorMessage = error.localizedDescription
+            errorEmailMessage = L10n.commonFillField
+        case let .failed(error) where error as? LoginInteractor.LocalError == LoginInteractor.LocalError.emptyPassword:
+            isLoading = false
+            errorPasswordMessage = L10n.commonFillField
+        case .failed:
+            isLoading = false
         case .idle, .loaded:
             isLoading = false
-            errorMessage = nil
         }
 
         viewModel = LoginViewModel(
@@ -57,6 +61,8 @@ final class LoginPresenter: LoginPresentationLogic {
                 placeholder: L10n.emailPlaceholder,
                 titleText: L10n.emailAddress,
                 leftIcon: UIImage(systemName: "envelope"),
+                helpText: errorEmailMessage,
+                helpTextColor: .systemRed,
                 onTextDidChanged: CommandOf { [weak handler] email in
                     await handler?.handleEmailDidChange(email)
                 }
@@ -68,7 +74,7 @@ final class LoginPresenter: LoginPresentationLogic {
                 titleText: L10n.password,
                 additionalLabelText: L10n.forgot,
                 leftIcon: UIImage(systemName: "lock"),
-                helpText: errorMessage,
+                helpText: errorPasswordMessage,
                 helpTextColor: .systemRed,
                 onTextDidChanged: CommandOf { [weak handler] password in
                     await handler?.handlePasswordDidChange(password)
@@ -86,6 +92,7 @@ final class LoginPresenter: LoginPresentationLogic {
                 backgroundColor: Asset.Colors.interactiveElemetsPrimary.color,
                 font: Typography.typographyBold18,
                 isEnabled: !isLoading,
+                isLoading: isLoading,
                 tapCommand: Command { [weak handler] in
                     await handler?.handleSignInDidTap()
                 },

@@ -46,6 +46,7 @@ extension LoginPresenterTests {
         )
 
         XCTAssertFalse(sut.viewModel.signInButton.isEnabled)
+        XCTAssertTrue(sut.viewModel.signInButton.isLoading)
     }
 }
 
@@ -62,6 +63,7 @@ extension LoginPresenterTests {
         XCTAssertEqual(sut.viewModel.emailField.text, "name@example.com")
         XCTAssertEqual(sut.viewModel.passwordField.text, "12345678")
         XCTAssertNotNil(sut.viewModel.passwordField.helpText)
+        XCTAssertFalse(sut.viewModel.signInButton.isLoading)
     }
 }
 

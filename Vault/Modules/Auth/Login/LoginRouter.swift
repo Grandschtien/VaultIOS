@@ -8,15 +8,21 @@ import Nivelir
 protocol LoginRoutingLogic: Sendable {
     func openRegistration()
     func openForgetPasswordScreen()
+    func presentError(with text: String)
 }
 
 final class LoginRouter: LoginRoutingLogic {
     private let screenRouter: ScreenNavigator
+    private let toastPresenter: ToastPresenting
 
     weak var viewController: UIViewController?
 
-    init(screenRouter: ScreenNavigator) {
+    init(
+        screenRouter: ScreenNavigator,
+        toastPresenter: ToastPresenting
+    ) {
         self.screenRouter = screenRouter
+        self.toastPresenter = toastPresenter
     }
 
     func openRegistration() {
@@ -25,5 +31,9 @@ final class LoginRouter: LoginRoutingLogic {
     
     func openForgetPasswordScreen() {
         
+    }
+    
+    func presentError(with text: String) {
+        toastPresenter.present(state: .error, title: text)
     }
 }
