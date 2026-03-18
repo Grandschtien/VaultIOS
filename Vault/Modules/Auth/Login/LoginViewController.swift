@@ -28,6 +28,7 @@ final class LoginViewController: UIViewController, HasContentView {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        navigationItem.backButtonDisplayMode = .minimal
 
         viewModelStore.onViewModelChange = { [weak self] viewModel in
             self?.render(with: viewModel)
@@ -36,6 +37,12 @@ final class LoginViewController: UIViewController, HasContentView {
         Task { [weak self] in
             await self?.interactor.fetchData()
         }
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+        navigationController?.setNavigationBarHidden(true, animated: animated)
     }
 }
 

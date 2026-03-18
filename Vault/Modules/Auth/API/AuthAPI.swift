@@ -11,8 +11,8 @@ import NetworkClient
 
 enum AuthAPI: ApiTarget, Sendable {
     case login(LoginRequestDTO)
-    case register(AuthTokenRequestDTO)
-    case refresh
+    case register(RegisterRequestDTO)
+    case refresh(AuthTokenRequestDTO)
     
     var host: String {
         return "localhost"
@@ -33,26 +33,20 @@ enum AuthAPI: ApiTarget, Sendable {
         .post
     }
     
-    var headers: [String : String] {
-        [:]
-    }
+    var headers: [String : String] { [:] }
     
-    var timeoutInterval: TimeInterval {
-        30
-    }
+    var timeoutInterval: TimeInterval { 30 }
     
-    var httpBody: Data?  {
-        nil
-    }
+    var httpBody: Data?  { nil }
     
     var requestType: RequestType {
         switch self {
         case let .login(dto):
             .custonJSON(data: dto, encoder: JSONCoder.encoder)
-        case .register:
-            .plain
-        case .refresh:
-            .plain
+        case let .register(dto):
+            .custonJSON(data: dto, encoder: JSONCoder.encoder)
+        case let .refresh(dto):
+            .custonJSON(data: dto, encoder: JSONCoder.encoder)
         }
     }
     

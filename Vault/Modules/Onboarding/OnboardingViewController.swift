@@ -1,8 +1,9 @@
 // Created by Egor Shkarin 11.03.2026
 
 import UIKit
+import Nivelir
 
-final class OnboardingViewController: UIViewController, HasContentView {
+final class OnboardingViewController: UIViewController, HasContentView, Screen {
     typealias ContentView = OnboardingView
 
     private let interactor: OnboardingBusinessLogic

@@ -29,6 +29,8 @@ extension LoginPresenterTests {
         XCTAssertEqual(sut.viewModel.title.text, L10n.vault)
         XCTAssertEqual(sut.viewModel.subtitle.text, L10n.smartExpenseTrackingForYourDigitalLifestyle)
         XCTAssertEqual(sut.viewModel.emailField.placeholder, L10n.emailPlaceholder)
+        XCTAssertEqual(sut.viewModel.emailField.additionalLabelText, L10n.signUp)
+        XCTAssertNotEqual(sut.viewModel.emailField.onAdditionalLabelTap, .nope)
         XCTAssertEqual(sut.viewModel.passwordField.additionalLabelText, L10n.forgot)
         XCTAssertEqual(sut.viewModel.signInButton.height, 64)
         XCTAssertEqual(sut.viewModel.signInButton.cornerRadius, 32)

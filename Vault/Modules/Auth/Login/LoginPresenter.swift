@@ -60,11 +60,15 @@ final class LoginPresenter: LoginPresentationLogic {
                 text: data.email,
                 placeholder: L10n.emailPlaceholder,
                 titleText: L10n.emailAddress,
+                additionalLabelText: L10n.signUp,
                 leftIcon: UIImage(systemName: "envelope"),
                 helpText: errorEmailMessage,
                 helpTextColor: .systemRed,
                 onTextDidChanged: CommandOf { [weak handler] email in
                     await handler?.handleEmailDidChange(email)
+                },
+                onAdditionalLabelTap: Command { [weak handler] in
+                    await handler?.handleSignUpDidTap()
                 }
             ),
             passwordField: TextField.ViewModel(

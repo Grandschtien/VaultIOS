@@ -15,6 +15,7 @@
 "see_where_your_money_goes" = "See where your money goes";
 "see_where_your_money_goes_with_smart_automated_insights" = "See where your money goes with smart, automated insights";
 "sign_in" = "Sign In";
+"sign_up" = "Sign Up";
 "smart_expense_tracking_for_your_digital_lifestyle" = "Smart expense tracking\nfor your digital lifestyle";
 "smart_savings" = "Smart Savings";
 "support" = "Support";
@@ -32,3 +33,17 @@
 "onboarding_3_subtitle" = "See where your money goes with smart, automated insights";
 
 "common_fill_field" = "Please, fill this field";
+
+"step_number" = "STEP %@ OF %@";
+"account_step_registration_sutitle" = "Use a strong password to keep your data safe";
+"name_step_registration_sutitle" = "Join Vault to start tracking effortlessly";
+"registration_back" = "Back";
+"registration_confirm_password" = "Confirm Password";
+"registration_name_placeholder" = "Egor";
+"registration_select_base_currency" = "Select Base Currency";
+"registration_search_currency_placeholder" = "Search currency...";
+"registration_popular_currencies" = "POPULAR CURRENCIES";
+"registration_other_currencies" = "OTHER CURRENCIES";
+"registration_error_invalid_email" = "Please enter a valid email";
+"registration_error_password_mismatch" = "Passwords do not match";
+"registration_error_select_currency" = "Please select currency";

@@ -14,7 +14,6 @@ final class AppCoordinator {
     private let isLoggedIn: Bool
     private let screenNavigator: ScreenNavigator
     private let appAssebler: Assembler
-    private let rootViewController: RootViewController
     
     @UserDefault(.isOnboardingCompleted, default: false)
     var isOnboardingShown: Bool
@@ -26,18 +25,11 @@ final class AppCoordinator {
     ) {
         self.screenNavigator = screenNavigator
         self.isLoggedIn = isLoggedIn
-        self.rootViewController = RootViewController()
         self.appAssebler = appAssebler
     }
 
     func start() {
         appAssebler.apply(assembly: AppAssembly())
-        screenNavigator.navigate { route in
-            route
-                .setRoot(to: rootViewController)
-                .makeKeyAndVisible()
-        }
-
         routeToInitialFlow()
     }
 }
@@ -56,26 +48,37 @@ private extension AppCoordinator {
     func showOnboardingFlow() {
         let onboardingController = OnboardingFactory(output: self).build(
             navigator: screenNavigator
-        )
-        rootViewController.setRoot(onboardingController)
+        ) as! OnboardingViewController
+
+        screenNavigator.navigate { route in
+            route
+                .setRoot(to: onboardingController)
+                .makeKeyAndVisible()
+        }
     }
 
     func showAuthFlow() {
         let loginController = LoginFactory().build(navigator: screenNavigator)
-        let navigationController = UINavigationController(rootViewController: loginController)
-        navigationController.setNavigationBarHidden(true, animated: false)
-        rootViewController.setRoot(navigationController)
+        let root = RootAuthViewController(rootViewController: loginController)
+        root.setNavigationBarHidden(true, animated: false)
+
+        screenNavigator.navigate { route in
+            route
+                .setRoot(to: root)
+                .makeKeyAndVisible()
+        }
     }
 
     func showMainFlow() {
-        rootViewController.setRoot(makeMainTabBarController())
-    }
+        let root = MainFlowRootViewController()
 
-    func makeMainTabBarController() -> UITabBarController {
-        return UITabBarController()
+        screenNavigator.navigate { route in
+            route
+                .setRoot(to: root)
+                .makeKeyAndVisible()
+        }
     }
 }
-
 // MARK: - OnboardingFlowOutput
 extension AppCoordinator: OnboardingFlowOutput {
     func didFinishOnboarding() {

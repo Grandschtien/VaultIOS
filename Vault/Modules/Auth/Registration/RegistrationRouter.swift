@@ -1,19 +1,19 @@
-// Created by Egor Shkarin 14.03.2026
+// Created by Egor Shkarin 16.03.2026
 
 import UIKit
 import Foundation
 import Nivelir
 
 @MainActor
-protocol LoginRoutingLogic: Sendable {
-    func openRegistration()
-    func openForgetPasswordScreen()
+protocol RegistrationRoutingLogic: Sendable {
     func presentError(with text: String)
 }
 
-final class LoginRouter: LoginRoutingLogic {
+final class RegistrationRouter: RegistrationRoutingLogic {
     private let screenRouter: ScreenNavigator
     private let toastPresenter: ToastPresenting
+
+    weak var viewController: UIViewController?
 
     init(
         screenRouter: ScreenNavigator,
@@ -21,18 +21,6 @@ final class LoginRouter: LoginRoutingLogic {
     ) {
         self.screenRouter = screenRouter
         self.toastPresenter = toastPresenter
-    }
-
-    func openRegistration() {
-        screenRouter.navigate(to: { route in
-            route
-                .top(.stack)
-                .push(RegistrationFactory())
-        })
-    }
-
-    func openForgetPasswordScreen() {
-
     }
 
     func presentError(with text: String) {

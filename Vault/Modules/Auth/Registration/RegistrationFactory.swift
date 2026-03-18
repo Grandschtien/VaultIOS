@@ -1,11 +1,11 @@
-// Created by Egor Shkarin 14.03.2026
+// Created by Egor Shkarin 16.03.2026
 
 import UIKit
 import Nivelir
 import Foundation
 import NetworkClient
 
-final class LoginFactory: Screen {
+final class RegistrationFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
         var networkClient: AsyncNetworkClient
@@ -13,15 +13,20 @@ final class LoginFactory: Screen {
         var tokenStorageService: TokenStorageServiceProtocol
         @SafeInject
         var toastPresenter: ToastPresenting
-        
-        let viewModel = LoginViewModel()
-        let presenter = LoginPresenter(viewModel: viewModel)
-        let router = LoginRouter(screenRouter: navigator, toastPresenter: toastPresenter)
-        let interactor = LoginInteractor(
+
+        let registrationStorage = RegistrationStorage()
+        let viewModel = RegistrationViewModel()
+        let presenter = RegistrationPresenter(viewModel: viewModel)
+        let router = RegistrationRouter(
+            screenRouter: navigator,
+            toastPresenter: toastPresenter
+        )
+        let interactor = RegistrationInteractor(
             networkClient: networkClient,
             presenter: presenter,
             router: router,
-            tokenStorageService: tokenStorageService
+            tokenStorageService: tokenStorageService,
+            registrationStorage: registrationStorage
         )
 
         let viewModelStore = ViewModelStore(
@@ -30,12 +35,13 @@ final class LoginFactory: Screen {
             publisher: presenter.$viewModel
         )
 
-        let controller = LoginViewController(
+        let controller = RegistrationViewController(
             interactor: interactor,
             viewModelStore: viewModelStore
         )
 
         presenter.handler = interactor
+        router.viewController = controller
 
         return controller
     }

@@ -57,7 +57,7 @@ final class Button: UIButton, LayoutScaleProviding {
 
         titleTextLabel.text = viewModel.title
         titleTextLabel.font = viewModel.font
-        titleTextLabel.textColor = Asset.Colors.textAndIconPrimaryInverted.color
+        titleTextLabel.textColor = viewModel.titleColor
     
         applyIcon(
             image: viewModel.leftIcon,
