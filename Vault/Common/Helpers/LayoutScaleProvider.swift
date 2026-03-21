@@ -2,7 +2,7 @@
 //  LayoutScaleProvider.swift
 //  Vault
 //
-//  Created by Codex on 09.03.2026.
+//  Created by Egor Shkarin on 09.03.2026.
 //
 
 import UIKit

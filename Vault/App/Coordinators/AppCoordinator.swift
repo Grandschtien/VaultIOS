@@ -11,37 +11,65 @@ import Nivelir
 
 @MainActor
 final class AppCoordinator {
-    private let isLoggedIn: Bool
     private let screenNavigator: ScreenNavigator
     private let appAssebler: Assembler
+    private var logoutObserver: NSObjectProtocol?
     
     @UserDefault(.isOnboardingCompleted, default: false)
     var isOnboardingShown: Bool
 
     init(
         screenNavigator: ScreenNavigator,
-        appAssebler: Assembler,
-        isLoggedIn: Bool
+        appAssebler: Assembler
     ) {
         self.screenNavigator = screenNavigator
-        self.isLoggedIn = isLoggedIn
         self.appAssebler = appAssebler
     }
 
     func start() {
         appAssebler.apply(assembly: AppAssembly())
-        routeToInitialFlow()
+        observeLogoutEvents()
+
+        Task { [weak self] in
+            await self?.routeToInitialFlow()
+        }
+    }
+
+    deinit {
+        if let logoutObserver {
+            NotificationCenter.default.removeObserver(logoutObserver)
+        }
     }
 }
 
 private extension AppCoordinator {
-    func routeToInitialFlow() {
-        if isLoggedIn {
-            showMainFlow()
-        } else if isOnboardingShown {
-            showAuthFlow()
-        } else {
+    func routeToInitialFlow() async {
+        if !isOnboardingShown {
             showOnboardingFlow()
+            return
+        }
+
+        guard let authSessionService = appAssebler.resolver.resolve(AuthSessionServiceProtocol.self) else {
+            showAuthFlow()
+            return
+        }
+
+        if await authSessionService.hasValidSession() {
+            showMainFlow()
+        } else {
+            showAuthFlow()
+        }
+    }
+
+    func observeLogoutEvents() {
+        logoutObserver = NotificationCenter.default.addObserver(
+            forName: .authSessionDidLogout,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.showAuthFlow()
+            }
         }
     }
 

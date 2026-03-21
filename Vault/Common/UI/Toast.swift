@@ -2,7 +2,7 @@
 //  Toast.swift
 //  Vault
 //
-//  Created by Codex on 16.03.2026.
+//  Created by Egor Shkarin on 16.03.2026.
 //
 
 import UIKit

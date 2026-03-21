@@ -2,7 +2,7 @@
 //  OnboardingStateStorage.swift
 //  Vault
 //
-//  Created by Codex on 14.03.2026.
+//  Created by Egor Shkarin on 14.03.2026.
 //
 
 import Foundation

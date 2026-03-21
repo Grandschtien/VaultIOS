@@ -2,19 +2,19 @@
 //  TokenStorageService.swift
 //  Vault
 //
-//  Created by Codex on 15.03.2026.
+//  Created by Egor Shkarin on 15.03.2026.
 //
 
 import Foundation
 import Security
 
-protocol TokenStorageServiceProtocol {
+protocol TokenStorageServiceProtocol: Sendable {
     func setToken(_ token: AuthTokenDTO)
     func getToken() -> AuthTokenDTO?
     func removeToken()
 }
 
-final class TokenStorageService: TokenStorageServiceProtocol {
+final class TokenStorageService: TokenStorageServiceProtocol, @unchecked Sendable {
     private let keychainClient: KeychainClientProtocol
     private let service: String
     private let tokenAccount: String
@@ -32,7 +32,11 @@ final class TokenStorageService: TokenStorageServiceProtocol {
     }
 
     func setToken(_ token: AuthTokenDTO) {
-        guard let data = try? encoder.encode(token) else {
+        let preparedToken = token.issuedAt == nil
+            ? token.withIssuedAt(Date().timeIntervalSince1970)
+            : token
+
+        guard let data = try? encoder.encode(preparedToken) else {
             return
         }
 

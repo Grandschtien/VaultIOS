@@ -20,8 +20,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let navigator = ScreenNavigator(window: window)
         let coordinator = AppCoordinator(
             screenNavigator: navigator,
-            appAssebler: DI.assembler,
-            isLoggedIn: false
+            appAssebler: DI.assembler
         )
 
         self.window = window

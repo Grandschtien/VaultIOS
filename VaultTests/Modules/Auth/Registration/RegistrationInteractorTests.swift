@@ -289,7 +289,7 @@ private final class RegistrationRouterSpy: RegistrationRoutingLogic, @unchecked 
     }
 }
 
-private final class TokenStorageSpy: TokenStorageServiceProtocol {
+private final class TokenStorageSpy: TokenStorageServiceProtocol, @unchecked Sendable {
     private(set) var savedToken: AuthTokenDTO?
 
     func setToken(_ token: AuthTokenDTO) {
