@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Grandschtien/NetworkClient.git",
       "state" : {
-        "revision" : "ca3f7ab4d736f68f2f6b33aaa7ca6512d2d0d03e",
-        "version" : "1.0.5"
+        "revision" : "5e7012d7c6f72ebc659d5a8de17b120cd053dfdf",
+        "version" : "1.1.1"
       }
     },
     {
