@@ -21,6 +21,8 @@
 - Do not introduce `GCD` or `Operation`-based concurrency for new code
 - When you add new service, which does not apply to Architecture add it into AppAssembly
 - Never add CodingKeys to Coding models
+- Always use AppCoordinator if it is needed to decide which flow has been launched
+- RootAuthViewController - is root view contoller for all Auth flow
 
 ## General Engineering Guardrails for coding
 

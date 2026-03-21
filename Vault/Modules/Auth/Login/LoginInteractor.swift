@@ -103,6 +103,7 @@ extension LoginInteractor: LoginHandler {
             )
 
             await presentFetchedData(.loaded)
+            await router.openMainFlow()
         } catch {
             await presentFetchedData(.failed(error))
             await router.presentError(with: error.localizedDescription)

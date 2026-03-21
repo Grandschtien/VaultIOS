@@ -261,6 +261,7 @@ private extension RegistrationInteractor {
             loadingState = .loaded
             await registrationStorage.clear()
             await presentFetchedData()
+            await router.openMainFlow()
         } catch {
             loadingState = .failed(error)
             await presentFetchedData()

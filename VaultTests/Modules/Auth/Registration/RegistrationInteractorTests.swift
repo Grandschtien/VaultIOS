@@ -76,6 +76,7 @@ final class RegistrationInteractorTests: XCTestCase {
         }
 
         XCTAssertTrue(router.presentedErrors.isEmpty)
+        XCTAssertEqual(router.openedMainFlowCount, 1)
     }
 }
 
@@ -182,6 +183,7 @@ extension RegistrationInteractorTests {
         } else {
             XCTFail("Expected failed loading state")
         }
+        XCTAssertEqual(router.openedMainFlowCount, 0)
     }
 }
 
@@ -276,6 +278,11 @@ private final class RegistrationPresenterSpy: RegistrationPresentationLogic, @un
 @MainActor
 private final class RegistrationRouterSpy: RegistrationRoutingLogic, @unchecked Sendable {
     private(set) var presentedErrors: [String] = []
+    private(set) var openedMainFlowCount: Int = .zero
+
+    func openMainFlow() {
+        openedMainFlowCount += 1
+    }
 
     func presentError(with text: String) {
         presentedErrors.append(text)

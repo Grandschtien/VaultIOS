@@ -47,3 +47,8 @@
 "registration_error_invalid_email" = "Please enter a valid email";
 "registration_error_password_mismatch" = "Passwords do not match";
 "registration_error_select_currency" = "Please select currency";
+
+"main_add_expense_title" = "Add Expense";
+"main_tab_home" = "Home";
+"main_tab_stats" = "Stats";
+"main_profile_accessibility_label" = "Profile";

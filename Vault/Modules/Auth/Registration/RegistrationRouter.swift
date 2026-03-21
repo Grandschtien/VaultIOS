@@ -6,6 +6,7 @@ import Nivelir
 
 @MainActor
 protocol RegistrationRoutingLogic: Sendable {
+    func openMainFlow()
     func presentError(with text: String)
 }
 
@@ -21,6 +22,15 @@ final class RegistrationRouter: RegistrationRoutingLogic {
     ) {
         self.screenRouter = screenRouter
         self.toastPresenter = toastPresenter
+    }
+
+    func openMainFlow() {
+        let root = MainFlowRootViewController()
+        screenRouter.navigate(to: { route in
+            route
+                .setRoot(to: root)
+                .makeKeyAndVisible()
+        })
     }
 
     func presentError(with text: String) {

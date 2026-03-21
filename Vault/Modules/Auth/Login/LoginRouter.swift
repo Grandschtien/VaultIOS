@@ -7,6 +7,7 @@ import Nivelir
 @MainActor
 protocol LoginRoutingLogic: Sendable {
     func openRegistration()
+    func openMainFlow()
     func openForgetPasswordScreen()
     func presentError(with text: String)
 }
@@ -28,6 +29,15 @@ final class LoginRouter: LoginRoutingLogic {
             route
                 .top(.stack)
                 .push(RegistrationFactory())
+        })
+    }
+
+    func openMainFlow() {
+        let root = MainFlowRootViewController()
+        screenRouter.navigate(to: { route in
+            route
+                .setRoot(to: root)
+                .makeKeyAndVisible()
         })
     }
 
