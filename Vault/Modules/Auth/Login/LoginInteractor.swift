@@ -71,12 +71,12 @@ extension LoginInteractor: LoginHandler {
         let normalizedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !normalizedEmail.isEmpty else {
-            await presentFetchedData(.failed(LocalError.emptyEmail))
+            await presentFetchedData(.failed(.undelinedError(description: LocalError.emptyEmail.localizedDescription)))
             return
         }
         
         guard !normalizedPassword.isEmpty else {
-            await presentFetchedData(.failed(LocalError.emptyPassword))
+            await presentFetchedData(.failed(.undelinedError(description: LocalError.emptyPassword.localizedDescription)))
             return
         }
 
@@ -105,7 +105,7 @@ extension LoginInteractor: LoginHandler {
             await presentFetchedData(.loaded)
             await router.openMainFlow()
         } catch {
-            await presentFetchedData(.failed(error))
+            await presentFetchedData(.failed(.undelinedError(description: error.localizedDescription)))
             await router.presentError(with: error.localizedDescription)
         }
     }

@@ -26,9 +26,11 @@
 - When it is needed to add new endpoint always create new file with enum, which inherit ApiTarget
 - Never make huge contstans in, UI have to be sized to fit its content. You can make contstants only when it is really neccessary
 - If there is more than one service, view in module, always make separate folder and place files into it
-- When you use cornerRadiuses, spaces, sizes, always use them from LayoutScaleProviding, if there is small difference (befroe 15 points) round sizes to them. If there is significant difference add new property to protocol and use in in code
+- When you use cornerRadiuses, spaces, and sizes, always use values from `LayoutScaleProviding`. If design size differs by less than 15pt, round to the nearest existing token. If difference is 15pt or more, add a new property to `LayoutScaleProviding` and use it. New property MUST me power of 2
+- Never compose layout tokens with arithmetic (`+`, `-`, `*`, `/`). Do not derive one size from another in code.
 - if it is loading state of element with some content (like label, cell or image) use SkeletonView for loading state, but if it button of on the design can be seen obviously that it is loader - use spinner
 - use LoadingStatus for loading states
+- Never 
 
 ## General Engineering Guardrails for coding
 

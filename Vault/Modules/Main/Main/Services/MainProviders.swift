@@ -16,7 +16,7 @@ protocol MainExpensesProviding: Sendable {
 
 struct MainSummaryProviderMock: MainSummaryProviding {
     func fetchSummary() async throws -> MainSummaryModel {
-        try await Task.sleep(nanoseconds: 120_000_000)
+        try await Task.sleep(nanoseconds: 4_000_000_000)
 
         return MainSummaryModel(
             totalAmount: 2450.80,
@@ -28,7 +28,7 @@ struct MainSummaryProviderMock: MainSummaryProviding {
 
 struct MainCategoriesProviderMock: MainCategoriesProviding {
     func fetchCategories() async throws -> [MainCategoryCardModel] {
-        try await Task.sleep(nanoseconds: 220_000_000)
+        try await Task.sleep(nanoseconds: 7_000_000_000)
 
         return [
             MainCategoryCardModel(
@@ -69,7 +69,7 @@ struct MainCategoriesProviderMock: MainCategoriesProviding {
 
 struct MainExpensesProviderMock: MainExpensesProviding {
     func fetchExpenses() async throws -> [MainExpenseModel] {
-        try await Task.sleep(nanoseconds: 320_000_000)
+        try await Task.sleep(nanoseconds: 10_000_000_000)
 
         return [
             MainExpenseModel(

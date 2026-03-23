@@ -76,7 +76,7 @@ extension MainPresenterTests {
         )
 
         XCTAssertEqual(sut.viewModel.summarySection.amount.text, "amount-2450.8-USD")
-        XCTAssertEqual(sut.viewModel.summarySection.trend.text, "trend-12.0")
+        XCTAssertNil(sut.viewModel.summarySection.trend)
 
         XCTAssertEqual(sut.viewModel.categoriesSection.items.count, 1)
         XCTAssertEqual(sut.viewModel.categoriesSection.items[0].title.text, "Food")
@@ -92,19 +92,20 @@ extension MainPresenterTests {
 }
 
 extension MainPresenterTests {
-    func testPresentFetchedDataFailureShowsErrorText() {
+    func testPresentFetchedDataFailureShowsSectionErrorViewModels() {
         sut.presentFetchedData(
             MainFetchData(
-                summaryState: .failed(StubError(message: "summary failed")),
-                categoriesState: .failed(StubError(message: "categories failed")),
-                expensesState: .failed(StubError(message: "expenses failed"))
+                summaryState: .failed(.undelinedError(description: "summary failed")),
+                categoriesState: .failed(.undelinedError(description: "categories failed")),
+                expensesState: .failed(.undelinedError(description: "expenses failed"))
             )
         )
 
-        XCTAssertEqual(sut.viewModel.summarySection.amount.text, L10n.mainOverviewError)
-        XCTAssertEqual(sut.viewModel.summarySection.trend.text, "summary failed")
-        XCTAssertEqual(sut.viewModel.categoriesSection.emptyText, "categories failed")
-        XCTAssertEqual(sut.viewModel.expensesSection.emptyText, "expenses failed")
+        XCTAssertNotNil(sut.viewModel.summarySection.errorViewModel)
+        XCTAssertNotNil(sut.viewModel.categoriesSection.errorViewModel)
+        XCTAssertNotNil(sut.viewModel.expensesSection.errorViewModel)
+        XCTAssertTrue(sut.viewModel.categoriesSection.items.isEmpty)
+        XCTAssertTrue(sut.viewModel.expensesSection.sections.isEmpty)
     }
 }
 
@@ -123,13 +124,5 @@ private final class MainValueFormatterStub: MainValueFormatting, @unchecked Send
 
     func formatExpenseTime(_ date: Date, now: Date) -> String {
         "time-\(Int(date.timeIntervalSince1970))"
-    }
-}
-
-private struct StubError: LocalizedError {
-    let message: String
-
-    var errorDescription: String? {
-        message
     }
 }

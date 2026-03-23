@@ -5,9 +5,9 @@ final class MainTabBarView: UIView, LayoutScaleProviding {
     private(set) var viewModel: ViewModel = .init()
     private let centerActionButton = UIButton(type: .system)
 
-    private var centerActionButtonSize: CGFloat { sizeXL + sizeXS }
+    private var centerActionButtonSize: CGFloat { sizeXL }
     private var centerActionButtonOffset: CGFloat { spaceXS }
-    private var centerActionSymbolSize: CGFloat { sizeM + spaceXXS }
+    private var centerActionSymbolSize: CGFloat { sizeM }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -91,7 +91,7 @@ private extension MainTabBarView {
 
         centerActionButton.backgroundColor = Asset.Colors.interactiveElemetsPrimary.color
         centerActionButton.tintColor = Asset.Colors.textAndIconPrimaryInverted.color
-        centerActionButton.layer.cornerRadius = centerActionButtonSize / 2
+        centerActionButton.layer.cornerRadius = sizeL
         centerActionButton.layer.shadowColor = Asset.Colors.interactiveElemetsPrimary.color.cgColor
         centerActionButton.layer.shadowOpacity = 0.35
         centerActionButton.layer.shadowOffset = CGSize(width: .zero, height: spaceXS)

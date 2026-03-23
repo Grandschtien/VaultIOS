@@ -16,6 +16,7 @@ final class MainExpensesSectionView: UIView, LayoutScaleProviding {
 
     private let titleLabel = Label()
     private let seeAllButton = UIButton(type: .system)
+    private let errorView = MainSectionErrorView()
     private let emptyLabel = Label()
     private let loadingView = UIActivityIndicatorView(style: .medium)
 
@@ -75,6 +76,18 @@ final class MainExpensesSectionView: UIView, LayoutScaleProviding {
         loadingView.isHidden = true
         loadingView.stopAnimating()
 
+        if let errorViewModel = viewModel.errorViewModel {
+            errorView.isHidden = false
+            errorView.apply(errorViewModel)
+            emptyLabel.isHidden = true
+            collectionView.isHidden = true
+            collectionHeightConstraint?.update(offset: sizeXL)
+            return
+        }
+
+        errorView.isHidden = true
+        collectionView.isHidden = false
+
         if let emptyText = viewModel.emptyText {
             emptyLabel.isHidden = false
             emptyLabel.apply(
@@ -103,12 +116,13 @@ private extension MainExpensesSectionView {
         seeAllButton.contentHorizontalAlignment = .right
         seeAllButton.addTarget(self, action: #selector(handleTapSeeAll), for: .touchUpInside)
 
+        errorView.isHidden = true
         emptyLabel.isHidden = true
         loadingView.hidesWhenStopped = true
     }
 
     func setupLayout() {
-        [titleLabel, seeAllButton, loadingView, emptyLabel, collectionView].forEach {
+        [titleLabel, seeAllButton, loadingView, emptyLabel, collectionView, errorView].forEach {
             addSubview($0)
         }
 
@@ -129,6 +143,11 @@ private extension MainExpensesSectionView {
         emptyLabel.snp.makeConstraints { make in
             make.top.equalTo(titleLabel.snp.bottom).offset(spaceS)
             make.leading.trailing.equalToSuperview()
+        }
+
+        errorView.snp.makeConstraints { make in
+            make.top.equalTo(titleLabel.snp.bottom).offset(spaceS)
+            make.leading.trailing.bottom.equalToSuperview()
         }
 
         collectionView.snp.makeConstraints { make in
@@ -242,6 +261,7 @@ extension MainExpensesSectionView {
         let seeAllCommand: Command
         let isLoading: Bool
         let emptyText: String?
+        let errorViewModel: MainSectionErrorView.ViewModel?
         let sections: [SectionViewModel]
 
         init(
@@ -250,6 +270,7 @@ extension MainExpensesSectionView {
             seeAllCommand: Command = .nope,
             isLoading: Bool = false,
             emptyText: String? = nil,
+            errorViewModel: MainSectionErrorView.ViewModel? = nil,
             sections: [SectionViewModel] = []
         ) {
             self.title = title
@@ -257,6 +278,7 @@ extension MainExpensesSectionView {
             self.seeAllCommand = seeAllCommand
             self.isLoading = isLoading
             self.emptyText = emptyText
+            self.errorViewModel = errorViewModel
             self.sections = sections
         }
     }

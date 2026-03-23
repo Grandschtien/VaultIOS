@@ -9,6 +9,9 @@ protocol MainBusinessLogic: Sendable {
 protocol MainHandler: AnyObject, Sendable {
     func handleTapSeeAllCategories() async
     func handleTapSeeAllExpenses() async
+    func handleTapRetrySummary() async
+    func handleTapRetryCategories() async
+    func handleTapRetryExpenses() async
 }
 
 actor MainInteractor: MainBusinessLogic {
@@ -51,8 +54,6 @@ actor MainInteractor: MainBusinessLogic {
         summary = nil
         categories = []
         expenseGroups = []
-        
-        try? await Task.sleep(nanoseconds: 5_000_000_000)
 
         await presentFetchedData()
 
@@ -70,7 +71,7 @@ private extension MainInteractor {
             summary = try await summaryProvider.fetchSummary()
             summaryState = .loaded
         } catch {
-            summaryState = .failed(error)
+            summaryState = .failed(.undelinedError(description: error.localizedDescription))
         }
 
         await presentFetchedData()
@@ -81,7 +82,7 @@ private extension MainInteractor {
             categories = try await categoriesProvider.fetchCategories()
             categoriesState = .loaded
         } catch {
-            categoriesState = .failed(error)
+            categoriesState = .failed(.undelinedError(description: error.localizedDescription))
         }
 
         await presentFetchedData()
@@ -93,7 +94,7 @@ private extension MainInteractor {
             expenseGroups = expenseGrouping.groupExpenses(expenses)
             expensesState = .loaded
         } catch {
-            expensesState = .failed(error)
+            expensesState = .failed(.undelinedError(description: error.localizedDescription))
         }
 
         await presentFetchedData()
@@ -120,5 +121,29 @@ extension MainInteractor: MainHandler {
 
     func handleTapSeeAllExpenses() async {
         await router.openAllExpenses()
+    }
+
+    func handleTapRetrySummary() async {
+        summaryState = .loading
+        summary = nil
+
+        await presentFetchedData()
+        await loadSummary()
+    }
+
+    func handleTapRetryCategories() async {
+        categoriesState = .loading
+        categories = []
+
+        await presentFetchedData()
+        await loadCategories()
+    }
+
+    func handleTapRetryExpenses() async {
+        expensesState = .loading
+        expenseGroups = []
+
+        await presentFetchedData()
+        await loadExpenses()
     }
 }

@@ -16,8 +16,8 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
 
     private let screenNavigator: ScreenNavigator
     private let tabBarView = MainTabBarView()
-    private var profileButtonSize: CGFloat { sizeL + sizeXS }
-    private var profileIconSize: CGFloat { sizeM - spaceXXS }
+    private var profileButtonSize: CGFloat { sizeL }
+    private var profileIconSize: CGFloat { sizeS }
 
     init(screenNavigator: ScreenNavigator) {
         self.screenNavigator = screenNavigator
@@ -103,7 +103,7 @@ private extension MainFlowRootViewController {
             width: profileButtonSize,
             height: profileButtonSize
         )
-        button.layer.cornerRadius = profileButtonSize / 2
+        button.layer.cornerRadius = sizeS
         button.clipsToBounds = true
         button.backgroundColor = Asset.Colors.interactiveInputBackground.color
         button.tintColor = Asset.Colors.textAndIconSecondary.color

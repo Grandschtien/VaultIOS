@@ -23,6 +23,14 @@ final class MainPresenter: MainPresentationLogic {
     ) {
         self.viewModel = viewModel
         self.formatter = formatter
+
+        presentFetchedData(
+            MainFetchData(
+                summaryState: .loading,
+                categoriesState: .loading,
+                expensesState: .loading
+            )
+        )
     }
 
     func presentFetchedData(_ data: MainFetchData) {
@@ -65,28 +73,15 @@ private extension MainPresenter {
                     textColor: Asset.Colors.textAndIconPrimaryInverted.color,
                     alignment: .left
                 ),
-                isLoading: true
+                isLoading: data.summaryState == .loading
             )
 
-        case let .failed(error):
+        case .failed:
             return .init(
-                title: .init(
-                    text: L10n.mainOverviewTotalSpending,
-                    font: Typography.typographyMedium14,
-                    textColor: Asset.Colors.textAndIconPrimaryInverted.color.withAlphaComponent(0.75),
-                    alignment: .left
-                ),
-                amount: .init(
-                    text: L10n.mainOverviewError,
-                    font: Typography.typographyBold30,
-                    textColor: Asset.Colors.textAndIconPrimaryInverted.color,
-                    alignment: .left
-                ),
-                trend: .init(
-                    text: error.localizedDescription,
-                    font: Typography.typographyRegular12,
-                    textColor: Asset.Colors.textAndIconPrimaryInverted.color.withAlphaComponent(0.9),
-                    alignment: .left
+                errorViewModel: makeSectionErrorViewModel(
+                    command: Command { [weak handler] in
+                        await handler?.handleTapRetrySummary()
+                    }
                 )
             )
 
@@ -127,24 +122,18 @@ private extension MainPresenter {
                     textColor: Asset.Colors.textAndIconPrimaryInverted.color,
                     alignment: .left
                 ),
-                trend: .init(
-                    text: formatter.formatSummaryChange(summary.changePercent),
-                    font: Typography.typographyRegular12,
-                    textColor: Asset.Colors.textAndIconPrimaryInverted.color,
-                    alignment: .left
-                )
+                // TODO: Support on backend side
+                trend: nil
             )
         }
     }
 
     func makeCategoriesSectionViewModel(from data: MainFetchData) -> MainCategoriesSectionView.ViewModel {
         let categories: [CategoryCollectionViewCell.ViewModel]
-        if data.categoriesState.isLoading {
-            categories = (0..<4).map { _ in
-                CategoryCollectionViewCell.ViewModel(isLoading: true)
-            }
-        } else {
-            categories = data.categories.map { category in
+        
+        switch data.categoriesState {
+        case .loaded:
+            categories = data.categories.prefix(4).map { category in
                 CategoryCollectionViewCell.ViewModel(
                     id: category.id,
                     iconText: category.icon,
@@ -164,6 +153,12 @@ private extension MainPresenter {
                     tapCommand: .nope
                 )
             }
+        case .loading:
+            categories = (0..<4).map { _ in
+                CategoryCollectionViewCell.ViewModel(isLoading: true)
+            }
+        case .failed, .idle:
+            categories = []
         }
 
         let emptyMessage: String?
@@ -172,8 +167,8 @@ private extension MainPresenter {
             emptyMessage = nil
         case .loaded:
             emptyMessage = categories.isEmpty ? L10n.mainOverviewEmptyCategories : nil
-        case let .failed(error):
-            emptyMessage = error.localizedDescription
+        case .failed:
+            emptyMessage = nil
         }
 
         return .init(
@@ -194,6 +189,13 @@ private extension MainPresenter {
             },
             isLoading: data.categoriesState.isLoading,
             emptyText: emptyMessage,
+            errorViewModel: data.categoriesState.isFailed
+                ? makeSectionErrorViewModel(
+                    command: Command { [weak handler] in
+                        await handler?.handleTapRetryCategories()
+                    }
+                )
+                : nil,
             items: categories
         )
     }
@@ -203,7 +205,9 @@ private extension MainPresenter {
         categories: [String: MainCategoryCardModel]
     ) -> MainExpensesSectionView.ViewModel {
         let sections: [MainExpensesSectionView.SectionViewModel]
-        if data.expensesState.isLoading {
+        
+        switch data.expensesState {
+        case .loading, .idle:
             sections = [
                 .init(
                     title: .init(
@@ -215,8 +219,10 @@ private extension MainPresenter {
                     items: (0..<2).map { _ in ExpenseCollectionViewCell.ViewModel(isLoading: true) }
                 )
             ]
-        } else {
-            sections = data.expenseGroups.map { group in
+        case .failed:
+            sections = []
+        case .loaded:
+            sections = data.expenseGroups.prefix(6).map { group in
                 let rows: [ExpenseCollectionViewCell.ViewModel] = group.expenses.map { expense in
                     let category = categories[expense.category]
                     let amountText = "-\(formatter.formatAmount(expense.amount, currencyCode: expense.currency))"
@@ -265,8 +271,8 @@ private extension MainPresenter {
             emptyMessage = nil
         case .loaded:
             emptyMessage = sections.isEmpty ? L10n.mainOverviewEmptyExpenses : nil
-        case let .failed(error):
-            emptyMessage = error.localizedDescription
+        case .failed:
+            emptyMessage = nil
         }
 
         return .init(
@@ -287,7 +293,26 @@ private extension MainPresenter {
             },
             isLoading: data.expensesState.isLoading,
             emptyText: emptyMessage,
+            errorViewModel: data.expensesState.isFailed
+                ? makeSectionErrorViewModel(
+                    command: Command { [weak handler] in
+                        await handler?.handleTapRetryExpenses()
+                    }
+                )
+                : nil,
             sections: sections
+        )
+    }
+
+    func makeSectionErrorViewModel(command: Command) -> MainSectionErrorView.ViewModel {
+        .init(
+            title: .init(
+                text: "Failed to load",
+                font: Typography.typographyBold14,
+                textColor: Asset.Colors.textAndIconSecondary.color,
+                alignment: .center
+            ),
+            tapCommand: command
         )
     }
 
@@ -310,6 +335,14 @@ private extension MainPresenter {
 private extension LoadingStatus {
     var isLoading: Bool {
         if case .loading = self {
+            return true
+        }
+
+        return false
+    }
+
+    var isFailed: Bool {
+        if case .failed = self {
             return true
         }
 

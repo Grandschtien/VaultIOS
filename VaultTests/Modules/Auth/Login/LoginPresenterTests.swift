@@ -56,7 +56,7 @@ extension LoginPresenterTests {
     func testPresentFetchedDataFailedKeepsEnteredCredentials() {
         sut.presentFetchedData(
             LoginFetchData(
-                loadingState: .failed(StubError.any),
+                loadingState: .failed(.undelinedError(description: "any")),
                 email: "name@example.com",
                 password: "12345678"
             )
@@ -66,11 +66,5 @@ extension LoginPresenterTests {
         XCTAssertEqual(sut.viewModel.passwordField.text, "12345678")
         XCTAssertNotNil(sut.viewModel.passwordField.helpText)
         XCTAssertFalse(sut.viewModel.signInButton.isLoading)
-    }
-}
-
-private extension LoginPresenterTests {
-    enum StubError: Error {
-        case any
     }
 }

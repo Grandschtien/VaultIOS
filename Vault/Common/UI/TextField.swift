@@ -303,11 +303,11 @@ private extension TextField {
     }
 
     var textHorizontalInset: CGFloat {
-        spaceS + spaceXXS
+        spaceS
     }
 
     var iconSize: CGFloat {
-        sizeS + spaceXXS
+        sizeS
     }
 
     var iconHorizontalPadding: CGFloat {
@@ -319,7 +319,7 @@ private extension TextField {
     }
 
     var accessoryContainerWidth: CGFloat {
-        iconSize + iconHorizontalPadding * 2
+        sizeM
     }
 
     var inputCornerRadius: CGFloat {

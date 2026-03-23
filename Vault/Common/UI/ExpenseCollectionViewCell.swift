@@ -67,7 +67,7 @@ private extension ExpenseCollectionViewCell {
         cardView.backgroundColor = Asset.Colors.interactiveInputBackground.color
         cardView.layer.cornerRadius = sizeL
 
-        iconBackgroundView.layer.cornerRadius = sizeS + spaceXXS
+        iconBackgroundView.layer.cornerRadius = sizeS
     }
 
     func setupLayout() {
@@ -84,7 +84,7 @@ private extension ExpenseCollectionViewCell {
         iconBackgroundView.snp.makeConstraints { make in
             make.leading.equalToSuperview().offset(spaceS)
             make.centerY.equalToSuperview()
-            make.width.height.equalTo(sizeL + sizeXS)
+            make.width.height.equalTo(sizeL)
         }
 
         iconLabel.snp.makeConstraints { make in
@@ -116,6 +116,7 @@ private extension ExpenseCollectionViewCell {
         subtitleLabel.isHidden = true
         amountLabel.isHidden = true
 
+        cardView.skeletonCornerRadius = Float(cardView.layer.cornerRadius)
         cardView.showAnimatedGradientSkeleton()
     }
 

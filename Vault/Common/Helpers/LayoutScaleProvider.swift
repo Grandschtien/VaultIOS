@@ -12,6 +12,9 @@ protocol LayoutScaleProviding {
     var sizeS: CGFloat { get }
     var sizeM: CGFloat { get }
     var sizeL: CGFloat { get }
+    var sizeXL: CGFloat { get }
+    var sizeXXL: CGFloat { get }
+    var sizeXXXL: CGFloat { get }
 
     var spaceXXXS: CGFloat { get }
     var spaceXXS: CGFloat { get }
@@ -19,6 +22,7 @@ protocol LayoutScaleProviding {
     var spaceS: CGFloat { get }
     var spaceM: CGFloat { get }
     var spaceL: CGFloat { get }
+    var spaceXL: CGFloat { get }
 }
 
 extension LayoutScaleProviding {
@@ -27,6 +31,8 @@ extension LayoutScaleProviding {
     var sizeM: CGFloat { 24 }
     var sizeL: CGFloat { 32 }
     var sizeXL: CGFloat { 64 }
+    var sizeXXL: CGFloat { 128 }
+    var sizeXXXL: CGFloat { 152 }
 
     var spaceXXXS: CGFloat { 2 }
     var spaceXXS: CGFloat { 4 }

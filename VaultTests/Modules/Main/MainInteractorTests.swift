@@ -173,6 +173,153 @@ extension MainInteractorTests {
 }
 
 extension MainInteractorTests {
+    func testHandleTapRetryCategoriesReloadsOnlyCategoriesSection() async {
+        let presenter = MainPresenterSpy()
+
+        let summaryProvider = MainSummaryProviderStub(
+            result: .success(.init(totalAmount: 2450.8, currency: "USD", changePercent: 12))
+        )
+        let categoriesProvider = MainCategoriesProviderStub(results: [
+            .failure(StubError.any),
+            .success([
+                .init(
+                    id: "1",
+                    name: "Food",
+                    icon: "🍴",
+                    color: "light_orange",
+                    amount: 10,
+                    currency: "USD"
+                )
+            ])
+        ])
+        let expensesProvider = MainExpensesProviderStub(result: .success([]))
+
+        let sut = makeSut(
+            presenter: presenter,
+            router: MainRouterSpy(),
+            summaryProvider: summaryProvider,
+            categoriesProvider: categoriesProvider,
+            expensesProvider: expensesProvider
+        )
+
+        await sut.fetchData()
+        await sut.handleTapRetryCategories()
+
+        guard let last = presenter.presentedData.last else {
+            return XCTFail("Expected presenter update")
+        }
+
+        assertStatus(last.summaryState, is: .loaded)
+        assertStatus(last.categoriesState, is: .loaded)
+        assertStatus(last.expensesState, is: .loaded)
+        XCTAssertEqual(last.categories.count, 1)
+
+        let hasCategoriesOnlyLoadingUpdate = presenter.presentedData.contains { data in
+            isStatus(data.summaryState, .loaded)
+                && isStatus(data.categoriesState, .loading)
+                && isStatus(data.expensesState, .loaded)
+        }
+
+        XCTAssertTrue(hasCategoriesOnlyLoadingUpdate)
+        let summaryCallsCount = await summaryProvider.callsCount()
+        let categoriesCallsCount = await categoriesProvider.callsCount()
+        let expensesCallsCount = await expensesProvider.callsCount()
+        XCTAssertEqual(summaryCallsCount, 1)
+        XCTAssertEqual(categoriesCallsCount, 2)
+        XCTAssertEqual(expensesCallsCount, 1)
+    }
+}
+
+extension MainInteractorTests {
+    func testHandleTapRetrySummaryReloadsOnlySummarySection() async {
+        let presenter = MainPresenterSpy()
+
+        let summaryProvider = MainSummaryProviderStub(results: [
+            .failure(StubError.any),
+            .success(.init(totalAmount: 2450.8, currency: "USD", changePercent: 12))
+        ])
+        let categoriesProvider = MainCategoriesProviderStub(result: .success([]))
+        let expensesProvider = MainExpensesProviderStub(result: .success([]))
+
+        let sut = makeSut(
+            presenter: presenter,
+            router: MainRouterSpy(),
+            summaryProvider: summaryProvider,
+            categoriesProvider: categoriesProvider,
+            expensesProvider: expensesProvider
+        )
+
+        await sut.fetchData()
+        await sut.handleTapRetrySummary()
+
+        guard let last = presenter.presentedData.last else {
+            return XCTFail("Expected presenter update")
+        }
+
+        assertStatus(last.summaryState, is: .loaded)
+        assertStatus(last.categoriesState, is: .loaded)
+        assertStatus(last.expensesState, is: .loaded)
+        let summaryCallsCount = await summaryProvider.callsCount()
+        let categoriesCallsCount = await categoriesProvider.callsCount()
+        let expensesCallsCount = await expensesProvider.callsCount()
+        XCTAssertEqual(summaryCallsCount, 2)
+        XCTAssertEqual(categoriesCallsCount, 1)
+        XCTAssertEqual(expensesCallsCount, 1)
+    }
+}
+
+extension MainInteractorTests {
+    func testHandleTapRetryExpensesReloadsOnlyExpensesSection() async {
+        let presenter = MainPresenterSpy()
+
+        let summaryProvider = MainSummaryProviderStub(result: .success(
+            .init(totalAmount: 2450.8, currency: "USD", changePercent: 12)
+        ))
+        let categoriesProvider = MainCategoriesProviderStub(result: .success([]))
+        let expensesProvider = MainExpensesProviderStub(results: [
+            .failure(StubError.any),
+            .success([
+                .init(
+                    id: "1",
+                    title: "Coffee",
+                    description: "Morning",
+                    amount: 4.5,
+                    currency: "USD",
+                    category: "1",
+                    timeOfAdd: Date(timeIntervalSince1970: 100)
+                )
+            ])
+        ])
+
+        let sut = makeSut(
+            presenter: presenter,
+            router: MainRouterSpy(),
+            summaryProvider: summaryProvider,
+            categoriesProvider: categoriesProvider,
+            expensesProvider: expensesProvider
+        )
+
+        await sut.fetchData()
+        await sut.handleTapRetryExpenses()
+
+        guard let last = presenter.presentedData.last else {
+            return XCTFail("Expected presenter update")
+        }
+
+        assertStatus(last.summaryState, is: .loaded)
+        assertStatus(last.categoriesState, is: .loaded)
+        assertStatus(last.expensesState, is: .loaded)
+        XCTAssertEqual(last.expenseGroups.count, 1)
+        let summaryCallsCount = await summaryProvider.callsCount()
+        let categoriesCallsCount = await categoriesProvider.callsCount()
+        let expensesCallsCount = await expensesProvider.callsCount()
+        XCTAssertEqual(summaryCallsCount, 1)
+        XCTAssertEqual(categoriesCallsCount, 1)
+        XCTAssertEqual(expensesCallsCount, 2)
+    }
+}
+
+extension MainInteractorTests {
     func testSeeAllHandlersOnlyCallRouter() async {
         let presenter = MainPresenterSpy()
         let router = MainRouterSpy()
@@ -276,11 +423,17 @@ private final class MainRouterSpy: MainRoutingLogic, @unchecked Sendable {
 }
 
 private actor MainSummaryProviderStub: MainSummaryProviding {
-    let result: Result<MainSummaryModel, Error>
+    let results: [Result<MainSummaryModel, Error>]
     let delayNanoseconds: UInt64
+    private var fetchCallsCount: Int = .zero
 
     init(result: Result<MainSummaryModel, Error>, delayNanoseconds: UInt64 = .zero) {
-        self.result = result
+        self.results = [result]
+        self.delayNanoseconds = delayNanoseconds
+    }
+
+    init(results: [Result<MainSummaryModel, Error>], delayNanoseconds: UInt64 = .zero) {
+        self.results = results
         self.delayNanoseconds = delayNanoseconds
     }
 
@@ -289,16 +442,33 @@ private actor MainSummaryProviderStub: MainSummaryProviding {
             try? await Task.sleep(nanoseconds: delayNanoseconds)
         }
 
-        return try result.get()
+        let currentResult = resultForCurrentCall()
+        fetchCallsCount += 1
+        return try currentResult.get()
+    }
+
+    func callsCount() -> Int {
+        fetchCallsCount
+    }
+
+    private func resultForCurrentCall() -> Result<MainSummaryModel, Error> {
+        let index = min(fetchCallsCount, max(results.count - 1, .zero))
+        return results[index]
     }
 }
 
 private actor MainCategoriesProviderStub: MainCategoriesProviding {
-    let result: Result<[MainCategoryCardModel], Error>
+    let results: [Result<[MainCategoryCardModel], Error>]
     let delayNanoseconds: UInt64
+    private var fetchCallsCount: Int = .zero
 
     init(result: Result<[MainCategoryCardModel], Error>, delayNanoseconds: UInt64 = .zero) {
-        self.result = result
+        self.results = [result]
+        self.delayNanoseconds = delayNanoseconds
+    }
+
+    init(results: [Result<[MainCategoryCardModel], Error>], delayNanoseconds: UInt64 = .zero) {
+        self.results = results
         self.delayNanoseconds = delayNanoseconds
     }
 
@@ -307,16 +477,33 @@ private actor MainCategoriesProviderStub: MainCategoriesProviding {
             try? await Task.sleep(nanoseconds: delayNanoseconds)
         }
 
-        return try result.get()
+        let currentResult = resultForCurrentCall()
+        fetchCallsCount += 1
+        return try currentResult.get()
+    }
+
+    func callsCount() -> Int {
+        fetchCallsCount
+    }
+
+    private func resultForCurrentCall() -> Result<[MainCategoryCardModel], Error> {
+        let index = min(fetchCallsCount, max(results.count - 1, .zero))
+        return results[index]
     }
 }
 
 private actor MainExpensesProviderStub: MainExpensesProviding {
-    let result: Result<[MainExpenseModel], Error>
+    let results: [Result<[MainExpenseModel], Error>]
     let delayNanoseconds: UInt64
+    private var fetchCallsCount: Int = .zero
 
     init(result: Result<[MainExpenseModel], Error>, delayNanoseconds: UInt64 = .zero) {
-        self.result = result
+        self.results = [result]
+        self.delayNanoseconds = delayNanoseconds
+    }
+
+    init(results: [Result<[MainExpenseModel], Error>], delayNanoseconds: UInt64 = .zero) {
+        self.results = results
         self.delayNanoseconds = delayNanoseconds
     }
 
@@ -325,6 +512,17 @@ private actor MainExpensesProviderStub: MainExpensesProviding {
             try? await Task.sleep(nanoseconds: delayNanoseconds)
         }
 
-        return try result.get()
+        let currentResult = resultForCurrentCall()
+        fetchCallsCount += 1
+        return try currentResult.get()
+    }
+
+    func callsCount() -> Int {
+        fetchCallsCount
+    }
+
+    private func resultForCurrentCall() -> Result<[MainExpenseModel], Error> {
+        let index = min(fetchCallsCount, max(results.count - 1, .zero))
+        return results[index]
     }
 }

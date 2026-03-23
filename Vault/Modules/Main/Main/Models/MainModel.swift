@@ -8,14 +8,14 @@ struct MainSummaryModel: Equatable, Sendable {
     let changePercent: Double
 }
 
-struct MainCategoryModel: Equatable, Sendable {
+struct MainCategoryModel: Equatable, Codable, Sendable {
     let id: String
     let name: String
     let icon: String
     let color: String
 }
 
-struct MainCategoryCardModel: Equatable, Sendable {
+struct MainCategoryCardModel: Equatable, Codable, Sendable {
     let id: String
     let name: String
     let icon: String
@@ -24,7 +24,7 @@ struct MainCategoryCardModel: Equatable, Sendable {
     let currency: String
 }
 
-struct MainExpenseModel: Equatable, Sendable {
+struct MainExpenseModel: Equatable, Codable, Sendable {
     let id: String
     let title: String
     let description: String

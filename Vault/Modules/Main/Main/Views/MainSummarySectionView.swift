@@ -6,6 +6,7 @@ import SkeletonView
 
 final class MainSummarySectionView: UIView, LayoutScaleProviding {
     private let cardView = UIView()
+    private let errorView = MainSectionErrorView()
     private let titleLabel = Label()
     private let amountLabel = Label()
     private let trendContainerView = UIView()
@@ -24,17 +25,34 @@ final class MainSummarySectionView: UIView, LayoutScaleProviding {
 
     func configure(with viewModel: ViewModel) {
         if viewModel.isLoading {
+            cardView.isHidden = false
+            errorView.isHidden = true
             showSkeleton()
+            return
+        } else {
+            cardView.backgroundColor = Asset.Colors.interactiveElemetsPrimary.color
+            cardView.layer.shadowColor = Asset.Colors.interactiveElemetsPrimary.color.cgColor
+            hideSkeleton()
+        }
+
+        if let errorViewModel = viewModel.errorViewModel {
+            cardView.isHidden = true
+            errorView.isHidden = false
+            errorView.apply(errorViewModel)
             return
         }
 
-        hideSkeleton()
+        cardView.isHidden = false
+        errorView.isHidden = true
 
         titleLabel.apply(viewModel.title)
         amountLabel.apply(viewModel.amount)
-        trendLabel.apply(viewModel.trend)
-
-        trendContainerView.isHidden = viewModel.trend.text.isEmpty
+        
+        if let trend = viewModel.trend {
+            trendLabel.apply(trend)
+        }
+    
+        trendContainerView.isHidden = viewModel.trend == nil
     }
 }
 
@@ -43,26 +61,29 @@ private extension MainSummarySectionView {
         backgroundColor = .clear
 
         cardView.isSkeletonable = true
+        errorView.isHidden = true
 
-        cardView.backgroundColor = Asset.Colors.interactiveElemetsPrimary.color
+        trendContainerView.backgroundColor = UIColor.white.withAlphaComponent(0.1)
+        trendContainerView.layer.cornerRadius = sizeS
+        cardView.skeletonCornerRadius = Float(sizeM)
         cardView.layer.cornerRadius = sizeM
-        cardView.layer.shadowColor = Asset.Colors.interactiveElemetsPrimary.color.cgColor
         cardView.layer.shadowOpacity = 0.2
         cardView.layer.shadowOffset = CGSize(width: .zero, height: spaceXS)
         cardView.layer.shadowRadius = sizeS
-
-        trendContainerView.backgroundColor = UIColor.white.withAlphaComponent(0.1)
-        trendContainerView.layer.cornerRadius = sizeS + spaceXXS
     }
 
     func setupLayout() {
         addSubview(cardView)
+        addSubview(errorView)
         [titleLabel, amountLabel, trendContainerView].forEach { cardView.addSubview($0) }
         trendContainerView.addSubview(trendLabel)
 
         cardView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
-            make.height.equalTo(sizeXL * 2 + sizeM)
+        }
+
+        errorView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
         }
 
         titleLabel.snp.makeConstraints { make in
@@ -78,12 +99,11 @@ private extension MainSummarySectionView {
         trendContainerView.snp.makeConstraints { make in
             make.leading.equalToSuperview().offset(spaceS)
             make.top.equalTo(amountLabel.snp.bottom).offset(spaceS)
-            make.height.equalTo(sizeM + spaceXXS)
             make.bottom.lessThanOrEqualToSuperview().inset(spaceS)
         }
 
         trendLabel.snp.makeConstraints { make in
-            make.leading.trailing.equalToSuperview().inset(spaceS - spaceXXS)
+            make.leading.trailing.equalToSuperview().inset(spaceS)
             make.centerY.equalToSuperview()
         }
     }
@@ -111,19 +131,22 @@ extension MainSummarySectionView {
     struct ViewModel: Equatable {
         let title: Label.LabelViewModel
         let amount: Label.LabelViewModel
-        let trend: Label.LabelViewModel
+        let trend: Label.LabelViewModel?
         let isLoading: Bool
+        let errorViewModel: MainSectionErrorView.ViewModel?
 
         init(
             title: Label.LabelViewModel = .init(),
             amount: Label.LabelViewModel = .init(),
-            trend: Label.LabelViewModel = .init(),
-            isLoading: Bool = false
+            trend: Label.LabelViewModel? = .init(),
+            isLoading: Bool = false,
+            errorViewModel: MainSectionErrorView.ViewModel? = nil
         ) {
             self.title = title
             self.amount = amount
             self.trend = trend
             self.isLoading = isLoading
+            self.errorViewModel = errorViewModel
         }
     }
 }

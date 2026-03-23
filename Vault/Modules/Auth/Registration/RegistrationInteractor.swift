@@ -263,7 +263,7 @@ private extension RegistrationInteractor {
             await presentFetchedData()
             await router.openMainFlow()
         } catch {
-            loadingState = .failed(error)
+            loadingState = .failed(.undelinedError(description: error.localizedDescription))
             await presentFetchedData()
             await router.presentError(with: error.localizedDescription)
         }

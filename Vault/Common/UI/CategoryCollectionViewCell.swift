@@ -66,9 +66,10 @@ private extension CategoryCollectionViewCell {
         cardView.layer.shadowColor = UIColor.black.cgColor
         cardView.layer.shadowOpacity = 0.05
         cardView.layer.shadowOffset = CGSize(width: .zero, height: spaceXXS)
-        cardView.layer.shadowRadius = spaceXS + spaceXXS
+        cardView.layer.shadowRadius = spaceXS
 
-        iconBackgroundView.layer.cornerRadius = sizeS + spaceXXS
+        iconBackgroundView.layer.cornerRadius = sizeS
+        cardView.skeletonCornerRadius = Float(sizeS)
     }
 
     func setupLayout() {
@@ -82,7 +83,7 @@ private extension CategoryCollectionViewCell {
 
         iconBackgroundView.snp.makeConstraints { make in
             make.leading.top.equalToSuperview().inset(spaceS)
-            make.width.height.equalTo(sizeL + sizeXS)
+            make.width.height.equalTo(sizeL)
         }
 
         iconLabel.snp.makeConstraints { make in

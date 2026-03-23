@@ -40,31 +40,16 @@ struct MainValueFormatter: MainValueFormatting {
 
         let formatter = DateFormatter()
         formatter.locale = Locale.current
-        formatter.dateFormat = "MMM d"
+        formatter.dateFormat = "dd.MM.yyyy"
 
         return formatter.string(from: date)
     }
 
     func formatExpenseTime(_ date: Date, now: Date = Date()) -> String {
-        let calendar = Calendar.current
         let timeFormatter = DateFormatter()
         timeFormatter.locale = Locale.current
         timeFormatter.dateFormat = "hh:mm a"
 
-        let time = timeFormatter.string(from: date)
-
-        if calendar.isDateInToday(date) {
-            return "\(L10n.mainOverviewToday), \(time)"
-        }
-
-        if calendar.isDateInYesterday(date) {
-            return "\(L10n.mainOverviewYesterday), \(time)"
-        }
-
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale.current
-        dateFormatter.dateFormat = "MMM d"
-
-        return "\(dateFormatter.string(from: date)), \(time)"
+        return timeFormatter.string(from: date)
     }
 }
