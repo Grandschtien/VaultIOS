@@ -10,12 +10,24 @@ import Nivelir
 
 final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleProviding {
     private enum Constants {
-        static let centerTabIndex: Int = 1
+        static let homeTabIndex: Int = 0
+        static let centerActionTabIndex: Int = 1
     }
 
+    private let screenNavigator: ScreenNavigator
     private let tabBarView = MainTabBarView()
     private var profileButtonSize: CGFloat { sizeL + sizeXS }
     private var profileIconSize: CGFloat { sizeM - spaceXXS }
+
+    init(screenNavigator: ScreenNavigator) {
+        self.screenNavigator = screenNavigator
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -27,31 +39,25 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
         tabBarView.apply(
             .init(
                 centerActionTapCommand: Command { [weak self] in
-                    self?.selectedIndex = Constants.centerTabIndex
+                    self?.selectedIndex = Constants.centerActionTabIndex
                 }
             )
         )
 
-        selectedIndex = Constants.centerTabIndex
+        selectedIndex = Constants.homeTabIndex
     }
 }
 
 private extension MainFlowRootViewController {
     func setupTabs() {
-        let homeController = MainFlowPlaceholderViewController(titleText: L10n.mainTabHome)
-        let centerController = MainFlowPlaceholderViewController(titleText: L10n.mainAddExpenseTitle)
+        let homeController = MainFactory().build(navigator: screenNavigator)
         let statsController = MainFlowPlaceholderViewController(titleText: L10n.mainTabStats)
+        homeController.title = L10n.mainOverviewTitle
 
         homeController.tabBarItem = UITabBarItem(
             title: L10n.mainTabHome,
             image: UIImage(systemName: "house"),
             selectedImage: UIImage(systemName: "house.fill")
-        )
-
-        centerController.tabBarItem = UITabBarItem(
-            title: nil,
-            image: nil,
-            selectedImage: nil
         )
 
         statsController.tabBarItem = UITabBarItem(
@@ -62,7 +68,6 @@ private extension MainFlowRootViewController {
 
         viewControllers = [
             makeNavigationController(rootController: homeController),
-            makeNavigationController(rootController: centerController),
             makeNavigationController(rootController: statsController)
         ]
     }

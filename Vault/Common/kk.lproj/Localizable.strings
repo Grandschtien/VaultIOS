@@ -3,3 +3,16 @@
 "main_tab_home" = "Басты бет";
 "main_tab_stats" = "Статистика";
 "main_profile_accessibility_label" = "Профиль";
+"main_overview_title" = "Шолу";
+"main_overview_total_spending" = "Жалпы шығын";
+"main_overview_categories" = "САНАТТАР";
+"main_overview_recent_expenses" = "СОҢҒЫ ШЫҒЫНДАР";
+"main_overview_see_all" = "Барлығын көру";
+"main_overview_from_last_month" = "%@ өткен аймен салыстырғанда";
+"main_overview_loading" = "Жүктелуде...";
+"main_overview_empty_categories" = "Санаттар әлі жоқ";
+"main_overview_empty_expenses" = "Шығындар әлі жоқ";
+"main_overview_error" = "Қате орын алды";
+"main_overview_today" = "Бүгін";
+"main_overview_yesterday" = "Кеше";
+"main_overview_coming_soon" = "Жақында";

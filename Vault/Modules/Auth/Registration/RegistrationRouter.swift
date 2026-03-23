@@ -25,7 +25,7 @@ final class RegistrationRouter: RegistrationRoutingLogic {
     }
 
     func openMainFlow() {
-        let root = MainFlowRootViewController()
+        let root = MainFlowRootViewController(screenNavigator: screenRouter)
         screenRouter.navigate(to: { route in
             route
                 .setRoot(to: root)

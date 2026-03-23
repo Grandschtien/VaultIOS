@@ -52,3 +52,16 @@
 "main_tab_home" = "Home";
 "main_tab_stats" = "Stats";
 "main_profile_accessibility_label" = "Profile";
+"main_overview_title" = "Overview";
+"main_overview_total_spending" = "Total Spending";
+"main_overview_categories" = "CATEGORIES";
+"main_overview_recent_expenses" = "RECENT EXPENSES";
+"main_overview_see_all" = "See All";
+"main_overview_from_last_month" = "%@ from last month";
+"main_overview_loading" = "Loading...";
+"main_overview_empty_categories" = "No categories yet";
+"main_overview_empty_expenses" = "No expenses yet";
+"main_overview_error" = "Something went wrong";
+"main_overview_today" = "Today";
+"main_overview_yesterday" = "Yesterday";
+"main_overview_coming_soon" = "Coming soon";

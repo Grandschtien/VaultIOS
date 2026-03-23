@@ -10,6 +10,7 @@
 		6007AAC22F5CB51A00ED32D2 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6007AAC12F5CB51A00ED32D2 /* SnapKit */; };
 		602D1D822F5C8ADD003BAF20 /* Nivelir in Frameworks */ = {isa = PBXBuildFile; productRef = 602D1D812F5C8ADD003BAF20 /* Nivelir */; };
 		602D1D992F5C9DC2003BAF20 /* FloatingPanel in Frameworks */ = {isa = PBXBuildFile; productRef = 602D1D982F5C9DC2003BAF20 /* FloatingPanel */; };
+		606409B22F717664003D2BCC /* SkeletonView in Frameworks */ = {isa = PBXBuildFile; productRef = 606409B12F717664003D2BCC /* SkeletonView */; };
 		60A19B242F5C8A1E00607182 /* NetworkClient in Frameworks */ = {isa = PBXBuildFile; productRef = 60A19B232F5C8A1E00607182 /* NetworkClient */; };
 		60A19B2C2F5C8A8F00607182 /* Swinject in Frameworks */ = {isa = PBXBuildFile; productRef = 60A19B2B2F5C8A8F00607182 /* Swinject */; };
 /* End PBXBuildFile section */
@@ -64,6 +65,7 @@
 				602D1D822F5C8ADD003BAF20 /* Nivelir in Frameworks */,
 				602D1D992F5C9DC2003BAF20 /* FloatingPanel in Frameworks */,
 				60A19B2C2F5C8A8F00607182 /* Swinject in Frameworks */,
+				606409B22F717664003D2BCC /* SkeletonView in Frameworks */,
 				6007AAC22F5CB51A00ED32D2 /* SnapKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -122,6 +124,7 @@
 				602D1D812F5C8ADD003BAF20 /* Nivelir */,
 				602D1D982F5C9DC2003BAF20 /* FloatingPanel */,
 				6007AAC12F5CB51A00ED32D2 /* SnapKit */,
+				606409B12F717664003D2BCC /* SkeletonView */,
 			);
 			productName = Vault;
 			productReference = 609A28492F2F7B86007145D5 /* Vault.app */;
@@ -186,6 +189,7 @@
 				602D1D802F5C8ADD003BAF20 /* XCRemoteSwiftPackageReference "Nivelir" */,
 				602D1D972F5C9DC2003BAF20 /* XCRemoteSwiftPackageReference "FloatingPanel" */,
 				6007AAC02F5CB51A00ED32D2 /* XCRemoteSwiftPackageReference "SnapKit" */,
+				606409B02F717664003D2BCC /* XCRemoteSwiftPackageReference "SkeletonView" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 609A284A2F2F7B86007145D5 /* Products */;
@@ -561,6 +565,14 @@
 				minimumVersion = 3.2.2;
 			};
 		};
+		606409B02F717664003D2BCC /* XCRemoteSwiftPackageReference "SkeletonView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Juanpe/SkeletonView.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.31.0;
+			};
+		};
 		60A19B222F5C8A1E00607182 /* XCRemoteSwiftPackageReference "NetworkClient" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Grandschtien/NetworkClient.git";
@@ -594,6 +606,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 602D1D972F5C9DC2003BAF20 /* XCRemoteSwiftPackageReference "FloatingPanel" */;
 			productName = FloatingPanel;
+		};
+		606409B12F717664003D2BCC /* SkeletonView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 606409B02F717664003D2BCC /* XCRemoteSwiftPackageReference "SkeletonView" */;
+			productName = SkeletonView;
 		};
 		60A19B232F5C8A1E00607182 /* NetworkClient */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -23,6 +23,12 @@
 - Never add CodingKeys to Coding models
 - Always use AppCoordinator if it is needed to decide which flow has been launched
 - RootAuthViewController - is root view contoller for all Auth flow
+- When it is needed to add new endpoint always create new file with enum, which inherit ApiTarget
+- Never make huge contstans in, UI have to be sized to fit its content. You can make contstants only when it is really neccessary
+- If there is more than one service, view in module, always make separate folder and place files into it
+- When you use cornerRadiuses, spaces, sizes, always use them from LayoutScaleProviding, if there is small difference (befroe 15 points) round sizes to them. If there is significant difference add new property to protocol and use in in code
+- if it is loading state of element with some content (like label, cell or image) use SkeletonView for loading state, but if it button of on the design can be seen obviously that it is loader - use spinner
+- use LoadingStatus for loading states
 
 ## General Engineering Guardrails for coding
 

@@ -3,3 +3,16 @@
 "main_tab_home" = "Главная";
 "main_tab_stats" = "Статистика";
 "main_profile_accessibility_label" = "Профиль";
+"main_overview_title" = "Обзор";
+"main_overview_total_spending" = "Общие расходы";
+"main_overview_categories" = "КАТЕГОРИИ";
+"main_overview_recent_expenses" = "ПОСЛЕДНИЕ РАСХОДЫ";
+"main_overview_see_all" = "Смотреть все";
+"main_overview_from_last_month" = "%@ по сравнению с прошлым месяцем";
+"main_overview_loading" = "Загрузка...";
+"main_overview_empty_categories" = "Категорий пока нет";
+"main_overview_empty_expenses" = "Расходов пока нет";
+"main_overview_error" = "Что-то пошло не так";
+"main_overview_today" = "Сегодня";
+"main_overview_yesterday" = "Вчера";
+"main_overview_coming_soon" = "Скоро";
