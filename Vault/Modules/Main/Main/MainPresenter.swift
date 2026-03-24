@@ -149,6 +149,7 @@ private extension MainPresenter {
                         textColor: Asset.Colors.textAndIconPrimary.color,
                         alignment: .left
                     ),
+                    isAmountHidden: false,
                     iconBackgroundColor: color(for: category.color),
                     tapCommand: .nope
                 )

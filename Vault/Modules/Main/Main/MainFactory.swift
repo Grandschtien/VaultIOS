@@ -6,9 +6,21 @@ import Foundation
 
 final class MainFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
-        let summaryProvider = MainSummaryProviderMock()
-        let categoriesProvider = MainCategoriesProviderMock()
-        let expensesProvider = MainExpensesProviderMock()
+        @SafeInject
+        var summaryService: MainSummaryContractServicing
+        @SafeInject
+        var categoriesService: MainCategoriesContractServicing
+        @SafeInject
+        var expensesService: MainExpensesContractServicing
+
+        let dataStoreCache = MainDataStoreCache()
+        let summaryProvider = MainSummaryProvider(summaryService: summaryService)
+        let categoriesProvider = MainCategoriesProvider(
+            categoriesService: categoriesService,
+            summaryService: summaryService,
+            cache: dataStoreCache
+        )
+        let expensesProvider = MainExpensesProvider(expensesService: expensesService)
         let expenseGrouping = MainExpenseDateGrouping()
         let formatter = MainValueFormatter()
 

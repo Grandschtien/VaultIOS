@@ -18,4 +18,22 @@ final class CategoryCollectionViewCellTests: XCTestCase {
 
         XCTAssertEqual(sut.viewModel, viewModel)
     }
+
+    func testConfigureSupportsHiddenAmountState() {
+        let sut = CategoryCollectionViewCell(frame: .init(x: 0, y: 0, width: 160, height: 130))
+        let viewModel = CategoryCollectionViewCell.ViewModel(
+            id: "1",
+            iconText: "🍴",
+            title: .init(text: "Food"),
+            amount: .init(text: "$450.20"),
+            isAmountHidden: true,
+            iconBackgroundColor: .systemOrange,
+            tapCommand: .any
+        )
+
+        sut.configure(with: viewModel)
+
+        XCTAssertEqual(sut.viewModel, viewModel)
+        XCTAssertTrue(sut.viewModel.isAmountHidden)
+    }
 }

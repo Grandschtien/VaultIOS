@@ -80,6 +80,7 @@ extension MainPresenterTests {
 
         XCTAssertEqual(sut.viewModel.categoriesSection.items.count, 1)
         XCTAssertEqual(sut.viewModel.categoriesSection.items[0].title.text, "Food")
+        XCTAssertFalse(sut.viewModel.categoriesSection.items[0].isAmountHidden)
         XCTAssertNotEqual(sut.viewModel.categoriesSection.seeAllCommand, .nope)
 
         XCTAssertEqual(sut.viewModel.expensesSection.sections.count, 1)

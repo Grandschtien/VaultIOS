@@ -46,6 +46,7 @@ final class CategoryCollectionViewCell: UICollectionViewCell, LayoutScaleProvidi
         )
         titleLabel.apply(viewModel.title)
         amountLabel.apply(viewModel.amount)
+        amountLabel.isHidden = viewModel.isAmountHidden
         iconBackgroundView.backgroundColor = viewModel.iconBackgroundColor
     }
 
@@ -127,6 +128,7 @@ extension CategoryCollectionViewCell {
         let iconText: String
         let title: Label.LabelViewModel
         let amount: Label.LabelViewModel
+        let isAmountHidden: Bool
         let iconBackgroundColor: UIColor
         let tapCommand: Command
         let isLoading: Bool
@@ -136,6 +138,7 @@ extension CategoryCollectionViewCell {
             iconText: String = "",
             title: Label.LabelViewModel = .init(),
             amount: Label.LabelViewModel = .init(),
+            isAmountHidden: Bool = false,
             iconBackgroundColor: UIColor = Asset.Colors.interactiveInputBackground.color,
             tapCommand: Command = .nope,
             isLoading: Bool = false
@@ -144,6 +147,7 @@ extension CategoryCollectionViewCell {
             self.iconText = iconText
             self.title = title
             self.amount = amount
+            self.isAmountHidden = isAmountHidden
             self.iconBackgroundColor = iconBackgroundColor
             self.tapCommand = tapCommand
             self.isLoading = isLoading
