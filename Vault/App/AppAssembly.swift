@@ -87,6 +87,33 @@ private extension AppAssembly {
         }
         .inObjectScope(.container)
 
+        container.register(MainSummaryContractServicing.self) { resolver in
+            guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
+                fatalError("Failed to resolve AsyncNetworkClient for MainSummaryContractService")
+            }
+
+            return MainSummaryContractService(networkClient: networkClient)
+        }
+        .inObjectScope(.container)
+
+        container.register(MainCategoriesContractServicing.self) { resolver in
+            guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
+                fatalError("Failed to resolve AsyncNetworkClient for MainCategoriesContractService")
+            }
+
+            return MainCategoriesContractService(networkClient: networkClient)
+        }
+        .inObjectScope(.container)
+
+        container.register(MainExpensesContractServicing.self) { resolver in
+            guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
+                fatalError("Failed to resolve AsyncNetworkClient for MainExpensesContractService")
+            }
+
+            return MainExpensesContractService(networkClient: networkClient)
+        }
+        .inObjectScope(.container)
+
         container.register(ToastPresenting.self) { _ in
             ToastPresenter()
         }
