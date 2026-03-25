@@ -5,7 +5,7 @@ final class MainCategoriesContractServiceTests: XCTestCase {
     func testCreateCategoryForwardsBodyAndDecodesResponse() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: #"{"category":{"id":"cat-1","name":"Food","icon":"🍔","color":"light_green"}}"#
+            json: #"{"category":{"id":"cat-1","name":"Food","icon":"🍔","color":"light_green","total_spent_usd":110.5}}"#
         )
 
         var capturedDTO: CategoryCreateRequestDTO?
@@ -31,6 +31,7 @@ final class MainCategoriesContractServiceTests: XCTestCase {
         XCTAssertEqual(response.category.name, "Food")
         XCTAssertEqual(response.category.icon, "🍔")
         XCTAssertEqual(response.category.color, "light_green")
+        XCTAssertEqual(response.category.totalSpentUsd, 110.5)
     }
 }
 
@@ -38,7 +39,7 @@ extension MainCategoriesContractServiceTests {
     func testListCategoriesForwardsListAndDecodesResponse() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: #"{"categories":[{"id":"cat-1","name":"Food","icon":"🍔","color":"light_green"},{"id":"cat-2","name":"Taxi","icon":"🚕","color":"light_blue"}]}"#
+            json: #"{"categories":[{"id":"cat-1","name":"Food","icon":"🍔","color":"light_green","total_spent_usd":10},{"id":"cat-2","name":"Taxi","icon":"🚕","color":"light_blue","total_spent_usd":20.2}]}"#
         )
 
         var didCallList = false
@@ -58,6 +59,8 @@ extension MainCategoriesContractServiceTests {
         XCTAssertEqual(response.categories.count, 2)
         XCTAssertEqual(response.categories.first?.id, "cat-1")
         XCTAssertEqual(response.categories.last?.id, "cat-2")
+        XCTAssertEqual(response.categories.first?.totalSpentUsd, 10)
+        XCTAssertEqual(response.categories.last?.totalSpentUsd, 20.2)
     }
 }
 
@@ -65,7 +68,7 @@ extension MainCategoriesContractServiceTests {
     func testGetCategoryForwardsIDAndDecodesResponse() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: #"{"category":{"id":"cat-7","name":"Groceries","icon":"🛒","color":"light_orange"}}"#
+            json: #"{"category":{"id":"cat-7","name":"Groceries","icon":"🛒","color":"light_orange","total_spent_usd":45}}"#
         )
 
         var capturedID: String?
@@ -84,6 +87,7 @@ extension MainCategoriesContractServiceTests {
         XCTAssertEqual(capturedID, "cat-7")
         XCTAssertEqual(response.category.id, "cat-7")
         XCTAssertEqual(response.category.name, "Groceries")
+        XCTAssertEqual(response.category.totalSpentUsd, 45)
     }
 }
 

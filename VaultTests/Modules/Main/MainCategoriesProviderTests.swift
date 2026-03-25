@@ -2,117 +2,67 @@ import XCTest
 @testable import Vault
 
 final class MainCategoriesProviderTests: XCTestCase {
-    func testFetchCategoriesFetchesSummariesForFirstFourCategories() async throws {
+    func testFetchCategoriesMapsTotalSpentUsdIntoAmountForEachCategory() async throws {
         let categoriesService = CategoriesServiceSpy(
             listResult: .success(
                 CategoriesResponseDTO(categories: [
-                    .init(id: "cat-1", name: "Food", icon: "🍴", color: "light_orange"),
-                    .init(id: "cat-2", name: "Transport", icon: "🚘", color: "light_blue"),
-                    .init(id: "cat-3", name: "Leisure", icon: "🎬", color: "light_purple"),
-                    .init(id: "cat-4", name: "Shopping", icon: "🛍", color: "light_pink"),
-                    .init(id: "cat-5", name: "Health", icon: "💊", color: "light_red")
+                    .init(
+                        id: "cat-1",
+                        name: "Food",
+                        icon: "🍴",
+                        color: "light_orange",
+                        totalSpentUsd: 10
+                    ),
+                    .init(
+                        id: "cat-2",
+                        name: "Transport",
+                        icon: "🚘",
+                        color: "light_blue",
+                        totalSpentUsd: 25.4
+                    ),
+                    .init(
+                        id: "cat-3",
+                        name: "Leisure",
+                        icon: "🎬",
+                        color: "light_purple",
+                        totalSpentUsd: 0
+                    )
                 ])
             )
         )
-
-        let summaryService = SummaryServiceSpy(
-            summaryByCategoryResult: [
-                "cat-1": .success(.init(category: "cat-1", total: 10, currency: "USD", byCategory: nil)),
-                "cat-2": .success(.init(category: "cat-2", total: 20, currency: "USD", byCategory: nil)),
-                "cat-3": .success(.init(category: "cat-3", total: 30, currency: "USD", byCategory: nil)),
-                "cat-4": .success(.init(category: "cat-4", total: 40, currency: "USD", byCategory: nil))
-            ]
-        )
-
-        let sut = MainCategoriesProvider(
-            categoriesService: categoriesService,
-            summaryService: summaryService,
-            cache: MainDataStoreCache()
-        )
+        let sut = MainCategoriesProvider(categoriesService: categoriesService)
 
         let categories = try await sut.fetchCategories()
-        let requestedCategoryIDs = await summaryService.requestedCategoryIDs()
 
-        XCTAssertEqual(categories.count, 5)
-        XCTAssertEqual(Set(requestedCategoryIDs), Set(["cat-1", "cat-2", "cat-3", "cat-4"]))
+        XCTAssertEqual(categories.count, 3)
         XCTAssertEqual(categories[0].amount, 10)
-        XCTAssertEqual(categories[3].amount, 40)
-        XCTAssertEqual(categories[4].amount, 0)
+        XCTAssertEqual(categories[1].amount, 25.4)
+        XCTAssertEqual(categories[2].amount, 0)
+        XCTAssertTrue(categories.allSatisfy { $0.currency == "USD" })
     }
 }
 
 extension MainCategoriesProviderTests {
-    func testFetchCategoriesUsesCacheOnSecondLoad() async throws {
+    func testFetchCategoriesUsesZeroAmountWhenTotalSpentUsdIsMissing() async throws {
         let categoriesService = CategoriesServiceSpy(
             listResult: .success(
                 CategoriesResponseDTO(categories: [
-                    .init(id: "cat-1", name: "Food", icon: "🍴", color: "light_orange"),
-                    .init(id: "cat-2", name: "Transport", icon: "🚘", color: "light_blue"),
-                    .init(id: "cat-3", name: "Leisure", icon: "🎬", color: "light_purple"),
-                    .init(id: "cat-4", name: "Shopping", icon: "🛍", color: "light_pink")
+                    .init(
+                        id: "cat-1",
+                        name: "Food",
+                        icon: "🍴",
+                        color: "light_orange",
+                        totalSpentUsd: nil
+                    )
                 ])
             )
         )
-
-        let summaryService = SummaryServiceSpy(
-            summaryByCategoryResult: [
-                "cat-1": .success(.init(category: "cat-1", total: 10, currency: "USD", byCategory: nil)),
-                "cat-2": .success(.init(category: "cat-2", total: 20, currency: "USD", byCategory: nil)),
-                "cat-3": .success(.init(category: "cat-3", total: 30, currency: "USD", byCategory: nil)),
-                "cat-4": .success(.init(category: "cat-4", total: 40, currency: "USD", byCategory: nil))
-            ]
-        )
-
-        let sut = MainCategoriesProvider(
-            categoriesService: categoriesService,
-            summaryService: summaryService,
-            cache: MainDataStoreCache()
-        )
-
-        _ = try await sut.fetchCategories()
-        _ = try await sut.fetchCategories()
-
-        let requestedCategoryIDs = await summaryService.requestedCategoryIDs()
-        XCTAssertEqual(requestedCategoryIDs.count, 4)
-    }
-}
-
-extension MainCategoriesProviderTests {
-    func testFetchCategoriesWhenCategorySummaryFailsKeepsCategoryData() async throws {
-        let categoriesService = CategoriesServiceSpy(
-            listResult: .success(
-                CategoriesResponseDTO(categories: [
-                    .init(id: "cat-1", name: "Food", icon: "🍴", color: "light_orange"),
-                    .init(id: "cat-2", name: "Transport", icon: "🚘", color: "light_blue"),
-                    .init(id: "cat-3", name: "Leisure", icon: "🎬", color: "light_purple"),
-                    .init(id: "cat-4", name: "Shopping", icon: "🛍", color: "light_pink")
-                ])
-            )
-        )
-
-        let summaryService = SummaryServiceSpy(
-            summaryByCategoryResult: [
-                "cat-1": .success(.init(category: "cat-1", total: 10, currency: "USD", byCategory: nil)),
-                "cat-2": .failure(StubError.any),
-                "cat-3": .success(.init(category: "cat-3", total: 30, currency: "USD", byCategory: nil)),
-                "cat-4": .failure(StubError.any)
-            ]
-        )
-
-        let sut = MainCategoriesProvider(
-            categoriesService: categoriesService,
-            summaryService: summaryService,
-            cache: MainDataStoreCache()
-        )
+        let sut = MainCategoriesProvider(categoriesService: categoriesService)
 
         let categories = try await sut.fetchCategories()
 
-        XCTAssertEqual(categories.count, 4)
-        XCTAssertEqual(categories[0].name, "Food")
-        XCTAssertEqual(categories[1].name, "Transport")
-        XCTAssertEqual(categories[1].amount, .zero)
-        XCTAssertEqual(categories[1].currency, "USD")
-        XCTAssertEqual(categories[2].amount, 30)
+        XCTAssertEqual(categories.count, 1)
+        XCTAssertEqual(categories[0].amount, .zero)
     }
 }
 
@@ -121,27 +71,36 @@ extension MainCategoriesProviderTests {
         let categoriesService = CategoriesServiceSpy(
             listResult: .success(
                 CategoriesResponseDTO(categories: [
-                    .init(id: "cat-1", name: "Unmapped", icon: "📦", color: "light_gray")
+                    .init(
+                        id: "cat-1",
+                        name: "Unmapped",
+                        icon: "📦",
+                        color: "light_gray",
+                        totalSpentUsd: 0
+                    )
                 ])
             )
         )
-
-        let summaryService = SummaryServiceSpy(
-            summaryByCategoryResult: [
-                "cat-1": .success(.init(category: "cat-1", total: 0, currency: "USD", byCategory: nil))
-            ]
-        )
-
-        let sut = MainCategoriesProvider(
-            categoriesService: categoriesService,
-            summaryService: summaryService,
-            cache: MainDataStoreCache()
-        )
+        let sut = MainCategoriesProvider(categoriesService: categoriesService)
 
         let categories = try await sut.fetchCategories()
 
         XCTAssertEqual(categories.count, 1)
         XCTAssertEqual(categories[0].name, "Прочее")
+    }
+}
+
+extension MainCategoriesProviderTests {
+    func testFetchCategoriesWhenServiceFailsRethrowsError() async {
+        let categoriesService = CategoriesServiceSpy(listResult: .failure(StubError.any))
+        let sut = MainCategoriesProvider(categoriesService: categoriesService)
+
+        do {
+            _ = try await sut.fetchCategories()
+            XCTFail("Expected throw")
+        } catch {
+            XCTAssertNotNil(error as? StubError)
+        }
     }
 }
 
@@ -172,35 +131,5 @@ private actor CategoriesServiceSpy: MainCategoriesContractServicing {
 
     func deleteCategory(id: String) async throws {
         throw MainCategoriesProviderTests.StubError.any
-    }
-}
-
-private actor SummaryServiceSpy: MainSummaryContractServicing {
-    private let summaryByCategoryResult: [String: Result<SummaryResponseDTO, Error>]
-    private var requestedIDs: [String] = []
-
-    init(summaryByCategoryResult: [String: Result<SummaryResponseDTO, Error>]) {
-        self.summaryByCategoryResult = summaryByCategoryResult
-    }
-
-    func getSummary(parameters: SummaryQueryParameters) async throws -> SummaryResponseDTO {
-        throw MainCategoriesProviderTests.StubError.any
-    }
-
-    func getSummaryByCategory(
-        id: String,
-        parameters: SummaryQueryParameters
-    ) async throws -> SummaryResponseDTO {
-        requestedIDs.append(id)
-
-        if let result = summaryByCategoryResult[id] {
-            return try result.get()
-        }
-
-        throw MainCategoriesProviderTests.StubError.any
-    }
-
-    func requestedCategoryIDs() -> [String] {
-        requestedIDs
     }
 }

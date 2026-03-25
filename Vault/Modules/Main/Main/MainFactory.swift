@@ -17,17 +17,12 @@ final class MainFactory: Screen {
         @SafeInject
         var userProfileStorageService: UserProfileStorageServiceProtocol
 
-        let dataStoreCache = MainDataStoreCache()
         let currencyRateProvider = MainCurrencyRateProvider(
             currencyRateService: currencyRateService,
             userProfileStorageService: userProfileStorageService
         )
         let summaryProvider = MainSummaryProvider(summaryService: summaryService)
-        let categoriesProvider = MainCategoriesProvider(
-            categoriesService: categoriesService,
-            summaryService: summaryService,
-            cache: dataStoreCache
-        )
+        let categoriesProvider = MainCategoriesProvider(categoriesService: categoriesService)
         let expensesProvider = MainExpensesProvider(expensesService: expensesService)
         let expenseGrouping = MainExpenseDateGrouping()
         let formatter = MainValueFormatter()

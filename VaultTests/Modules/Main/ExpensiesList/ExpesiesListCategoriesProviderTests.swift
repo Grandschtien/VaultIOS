@@ -11,13 +11,15 @@ final class ExpesiesListCategoriesProviderTests: XCTestCase {
                             id: "cat-1",
                             name: "Food",
                             icon: "🍴",
-                            color: "light_orange"
+                            color: "light_orange",
+                            totalSpentUsd: 25
                         ),
                         .init(
                             id: "cat-2",
                             name: "Transport",
                             icon: "🚗",
-                            color: "light_blue"
+                            color: "light_blue",
+                            totalSpentUsd: 10
                         )
                     ]
                 )
