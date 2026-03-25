@@ -27,11 +27,13 @@ final class LoginInteractorTests: XCTestCase {
         let presenter = LoginPresenterSpy()
         let router = LoginRouterSpy()
         let tokenStorage = TokenStorageSpy()
+        let profileStorage = UserProfileStorageSpy()
         let sut = makeSut(
             networkClient: networkClient,
             presenter: presenter,
             router: router,
-            tokenStorage: tokenStorage
+            tokenStorage: tokenStorage,
+            profileStorage: profileStorage
         )
 
         await sut.handleEmailDidChange("name@example.com")
@@ -48,6 +50,16 @@ final class LoginInteractorTests: XCTestCase {
                 refreshToken: "refresh",
                 tokenType: "bearer",
                 expiresIn: 3600
+            )
+        )
+        XCTAssertEqual(
+            profileStorage.savedProfile,
+            UserProfileDefaults(
+                userId: "1",
+                email: "name@example.com",
+                name: "Egor",
+                currency: "USD",
+                language: "en-US"
             )
         )
         XCTAssertEqual(router.openedMainFlowCount, 1)
@@ -69,11 +81,13 @@ extension LoginInteractorTests {
     func testSignInWithEmptyEmailDoesNotOpenMainFlow() async {
         let presenter = LoginPresenterSpy()
         let router = LoginRouterSpy()
+        let profileStorage = UserProfileStorageSpy()
         let sut = makeSut(
             networkClient: AsyncNetworkClientSpy(),
             presenter: presenter,
             router: router,
-            tokenStorage: TokenStorageSpy()
+            tokenStorage: TokenStorageSpy(),
+            profileStorage: profileStorage
         )
 
         await sut.handlePasswordDidChange("12345678")
@@ -90,16 +104,16 @@ extension LoginInteractorTests {
             return XCTFail("Expected failed state")
         }
 
-        guard let localError = error as? LoginInteractor.LocalError else {
-            return XCTFail("Expected local validation error")
+        guard case let .undelinedError(description) = error else {
+            return XCTFail("Expected wrapped validation error")
         }
 
-        switch localError {
-        case .emptyEmail:
-            XCTAssertTrue(true)
-        case .emptyPassword:
-            XCTFail("Expected emptyEmail error")
-        }
+        XCTAssertEqual(
+            description,
+            LoginInteractor.LocalError.emptyEmail.localizedDescription
+        )
+
+        XCTAssertNil(profileStorage.savedProfile)
     }
 }
 
@@ -109,11 +123,13 @@ extension LoginInteractorTests {
         networkClient.nextResult = .failure(StubError.any)
         let presenter = LoginPresenterSpy()
         let router = LoginRouterSpy()
+        let profileStorage = UserProfileStorageSpy()
         let sut = makeSut(
             networkClient: networkClient,
             presenter: presenter,
             router: router,
-            tokenStorage: TokenStorageSpy()
+            tokenStorage: TokenStorageSpy(),
+            profileStorage: profileStorage
         )
 
         await sut.handleEmailDidChange("name@example.com")
@@ -132,6 +148,8 @@ extension LoginInteractorTests {
         } else {
             XCTFail("Expected failed state")
         }
+
+        XCTAssertNil(profileStorage.savedProfile)
     }
 }
 
@@ -140,13 +158,15 @@ private extension LoginInteractorTests {
         networkClient: AsyncNetworkClient,
         presenter: LoginPresentationLogic,
         router: LoginRoutingLogic,
-        tokenStorage: TokenStorageServiceProtocol
+        tokenStorage: TokenStorageServiceProtocol,
+        profileStorage: UserProfileStorageServiceProtocol
     ) -> LoginInteractor {
         LoginInteractor(
             networkClient: networkClient,
             presenter: presenter,
             router: router,
-            tokenStorageService: tokenStorage
+            tokenStorageService: tokenStorage,
+            userProfileStorageService: profileStorage
         )
     }
 
@@ -229,5 +249,21 @@ private final class TokenStorageSpy: TokenStorageServiceProtocol, @unchecked Sen
 
     func removeToken() {
         savedToken = nil
+    }
+}
+
+private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
+    private(set) var savedProfile: UserProfileDefaults?
+
+    func saveProfile(_ profile: UserProfileDefaults) {
+        savedProfile = profile
+    }
+
+    func loadProfile() -> UserProfileDefaults? {
+        savedProfile
+    }
+
+    func clearProfile() {
+        savedProfile = nil
     }
 }

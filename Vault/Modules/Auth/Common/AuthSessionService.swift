@@ -26,15 +26,18 @@ actor AuthSessionService: AuthSessionServiceProtocol {
 
     private let networkClient: AsyncNetworkClient
     private let tokenStorageService: TokenStorageServiceProtocol
+    private let userProfileStorageService: UserProfileStorageServiceProtocol
 
     private var refreshTask: Task<AuthTokenDTO, Swift.Error>?
 
     init(
         networkClient: AsyncNetworkClient,
-        tokenStorageService: TokenStorageServiceProtocol
+        tokenStorageService: TokenStorageServiceProtocol,
+        userProfileStorageService: UserProfileStorageServiceProtocol
     ) {
         self.networkClient = networkClient
         self.tokenStorageService = tokenStorageService
+        self.userProfileStorageService = userProfileStorageService
     }
 
     func hasValidSession() async -> Bool {
@@ -63,7 +66,7 @@ actor AuthSessionService: AuthSessionServiceProtocol {
             throw Error.missingToken
         }
 
-        let refreshTask = Task<AuthTokenDTO, Swift.Error> { [networkClient, tokenStorageService] in
+        let refreshTask = Task<AuthTokenDTO, Swift.Error> { [networkClient, tokenStorageService, userProfileStorageService] in
             do {
                 let tokenResponse = try await networkClient.request(
                     AuthAPI.refresh(
@@ -76,6 +79,7 @@ actor AuthSessionService: AuthSessionServiceProtocol {
                 return persistedToken
             } catch {
                 tokenStorageService.removeToken()
+                userProfileStorageService.clearProfile()
                 NotificationCenter.default.post(name: .authSessionDidLogout, object: nil)
                 throw error
             }
@@ -92,6 +96,7 @@ actor AuthSessionService: AuthSessionServiceProtocol {
 
     func logout() async {
         tokenStorageService.removeToken()
+        userProfileStorageService.clearProfile()
         NotificationCenter.default.post(name: .authSessionDidLogout, object: nil)
     }
 }

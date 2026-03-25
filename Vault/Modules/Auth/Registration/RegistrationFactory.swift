@@ -12,6 +12,8 @@ final class RegistrationFactory: Screen {
         @SafeInject
         var tokenStorageService: TokenStorageServiceProtocol
         @SafeInject
+        var userProfileStorageService: UserProfileStorageServiceProtocol
+        @SafeInject
         var toastPresenter: ToastPresenting
 
         let registrationStorage = RegistrationStorage()
@@ -26,6 +28,7 @@ final class RegistrationFactory: Screen {
             presenter: presenter,
             router: router,
             tokenStorageService: tokenStorageService,
+            userProfileStorageService: userProfileStorageService,
             registrationStorage: registrationStorage
         )
 

@@ -37,34 +37,41 @@ private extension AppAssembly {
             )
         }
         .implements(AsyncNetworkClient.self)
-        .inObjectScope(.container)
+        .inObjectScope(.transient)
     }
 
     func registerServices(with container: Container) {
         container.register(TokenStorageServiceProtocol.self) { _ in
             TokenStorageService()
         }
-        .inObjectScope(.container)
+        .inObjectScope(.transient)
+
+        container.register(UserProfileStorageServiceProtocol.self) { _ in
+            UserProfileStorageService()
+        }
+        .inObjectScope(.transient)
 
         container.register(AsyncNetworkClient.self, name: DependencyName.refreshNetworkClient) { _ in
             NetworkClientFactory().buildClient(
                 urlSessionConfiguration: .default
             )
         }
-        .inObjectScope(.container)
+        .inObjectScope(.transient)
 
         container.register(AuthSessionServiceProtocol.self) { resolver in
             guard let refreshNetworkClient = resolver.resolve(
                 AsyncNetworkClient.self,
                 name: DependencyName.refreshNetworkClient
             ),
-            let tokenStorageService = resolver.resolve(TokenStorageServiceProtocol.self) else {
+            let tokenStorageService = resolver.resolve(TokenStorageServiceProtocol.self),
+            let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self) else {
                 fatalError("Failed to resolve dependencies for AuthSessionService")
             }
 
             return AuthSessionService(
                 networkClient: refreshNetworkClient,
-                tokenStorageService: tokenStorageService
+                tokenStorageService: tokenStorageService,
+                userProfileStorageService: userProfileStorageService
             )
         }
         .inObjectScope(.container)
@@ -85,7 +92,7 @@ private extension AppAssembly {
 
             return RetryInterceptor(authSessionService: authSessionService)
         }
-        .inObjectScope(.container)
+        .inObjectScope(.transient)
 
         container.register(MainSummaryContractServicing.self) { resolver in
             guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
@@ -94,7 +101,16 @@ private extension AppAssembly {
 
             return MainSummaryContractService(networkClient: networkClient)
         }
-        .inObjectScope(.container)
+        .inObjectScope(.transient)
+
+        container.register(MainCurrencyRateContractServicing.self) { resolver in
+            guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
+                fatalError("Failed to resolve AsyncNetworkClient for MainCurrencyRateContractService")
+            }
+
+            return MainCurrencyRateContractService(networkClient: networkClient)
+        }
+        .inObjectScope(.transient)
 
         container.register(MainCategoriesContractServicing.self) { resolver in
             guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
@@ -103,7 +119,7 @@ private extension AppAssembly {
 
             return MainCategoriesContractService(networkClient: networkClient)
         }
-        .inObjectScope(.container)
+        .inObjectScope(.transient)
 
         container.register(MainExpensesContractServicing.self) { resolver in
             guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
@@ -112,11 +128,11 @@ private extension AppAssembly {
 
             return MainExpensesContractService(networkClient: networkClient)
         }
-        .inObjectScope(.container)
+        .inObjectScope(.transient)
 
         container.register(ToastPresenting.self) { _ in
             ToastPresenter()
         }
-        .inObjectScope(.container)
+        .inObjectScope(.transient)
     }
 }

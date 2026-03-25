@@ -104,6 +104,21 @@ extension MainContractsAPITests {
     }
 }
 
+extension MainContractsAPITests {
+    func testCurrencyRateBuildExpectedConfiguration() {
+        let target = CurrencyRateAPI.get(currency: "USD")
+
+        XCTAssertEqual(target.path, "/currency-rate")
+        XCTAssertEqual(target.method.rawValue, "GET")
+
+        guard case let .query(query, _) = target.requestType else {
+            return XCTFail("Expected query request type")
+        }
+
+        XCTAssertEqual(query["currency"] as? String, "USD")
+    }
+}
+
 private extension MainContractsAPITests {
     func limitValue(in query: [String: Any]) -> Int? {
         if let value = query["limit"] as? Int {

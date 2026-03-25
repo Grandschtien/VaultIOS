@@ -28,10 +28,12 @@ final class LoginPresenter: LoginPresentationLogic {
         switch data.loadingState {
         case .loading:
             isLoading = true
-        case let .failed(error) where error as? LoginInteractor.LocalError == LoginInteractor.LocalError.emptyEmail:
+        case let .failed(.undelinedError(description))
+            where description == LoginInteractor.LocalError.emptyEmail.localizedDescription:
             isLoading = false
             errorEmailMessage = L10n.commonFillField
-        case let .failed(error) where error as? LoginInteractor.LocalError == LoginInteractor.LocalError.emptyPassword:
+        case let .failed(.undelinedError(description))
+            where description == LoginInteractor.LocalError.emptyPassword.localizedDescription:
             isLoading = false
             errorPasswordMessage = L10n.commonFillField
         case .failed:

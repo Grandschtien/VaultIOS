@@ -30,7 +30,8 @@
 - Never compose layout tokens with arithmetic (`+`, `-`, `*`, `/`). Do not derive one size from another in code.
 - if it is loading state of element with some content (like label, cell or image) use SkeletonView for loading state, but if it button of on the design can be seen obviously that it is loader - use spinner
 - use LoadingStatus for loading states
-- Never 
+- Use final class by default instead of actors, the exception is interactors and services with container DI object type
+- Use transient object type in Swinject by default, contaianer have to be used only if it is really neccasery or if I ask you to do so
 
 ## General Engineering Guardrails for coding
 

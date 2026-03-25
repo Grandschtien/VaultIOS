@@ -24,6 +24,7 @@ actor RegistrationInteractor: RegistrationBusinessLogic {
     private let presenter: RegistrationPresentationLogic
     private let router: RegistrationRoutingLogic
     private let tokenStorageService: TokenStorageServiceProtocol
+    private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let registrationStorage: RegistrationStorageProtocol
     private let currencyProvider: RegistrationCurrencyProviding
     private let localeProvider: RegistrationLocaleProviding
@@ -54,6 +55,7 @@ actor RegistrationInteractor: RegistrationBusinessLogic {
         presenter: RegistrationPresentationLogic,
         router: RegistrationRoutingLogic,
         tokenStorageService: TokenStorageServiceProtocol,
+        userProfileStorageService: UserProfileStorageServiceProtocol,
         registrationStorage: RegistrationStorageProtocol,
         currencyProvider: RegistrationCurrencyProviding = RegistrationCurrencyProvider(),
         localeProvider: RegistrationLocaleProviding = RegistrationLocaleProvider()
@@ -62,6 +64,7 @@ actor RegistrationInteractor: RegistrationBusinessLogic {
         self.presenter = presenter
         self.router = router
         self.tokenStorageService = tokenStorageService
+        self.userProfileStorageService = userProfileStorageService
         self.registrationStorage = registrationStorage
         self.currencyProvider = currencyProvider
         self.localeProvider = localeProvider
@@ -256,6 +259,9 @@ private extension RegistrationInteractor {
                     tokenType: response.tokenType,
                     expiresIn: response.expiresIn
                 )
+            )
+            userProfileStorageService.saveProfile(
+                UserProfileDefaults(user: response.user)
             )
 
             loadingState = .loaded

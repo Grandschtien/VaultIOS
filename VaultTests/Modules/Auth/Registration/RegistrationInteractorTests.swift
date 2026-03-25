@@ -27,12 +27,14 @@ final class RegistrationInteractorTests: XCTestCase {
         let presenter = RegistrationPresenterSpy()
         let router = RegistrationRouterSpy()
         let tokenStorage = TokenStorageSpy()
+        let profileStorage = UserProfileStorageSpy()
         let storage = RegistrationStorage()
         let sut = makeSut(
             networkClient: networkClient,
             presenter: presenter,
             router: router,
             tokenStorage: tokenStorage,
+            profileStorage: profileStorage,
             storage: storage
         )
 
@@ -59,6 +61,16 @@ final class RegistrationInteractorTests: XCTestCase {
                 refreshToken: "refresh",
                 tokenType: "bearer",
                 expiresIn: 3600
+            )
+        )
+        XCTAssertEqual(
+            profileStorage.savedProfile,
+            UserProfileDefaults(
+                userId: "1",
+                email: "name@example.com",
+                name: "Egor",
+                currency: "USD",
+                language: "en-US"
             )
         )
 
@@ -92,6 +104,7 @@ extension RegistrationInteractorTests {
             presenter: presenter,
             router: router,
             tokenStorage: tokenStorage,
+            profileStorage: UserProfileStorageSpy(),
             storage: storage
         )
 
@@ -131,6 +144,7 @@ extension RegistrationInteractorTests {
             presenter: presenter,
             router: RegistrationRouterSpy(),
             tokenStorage: TokenStorageSpy(),
+            profileStorage: UserProfileStorageSpy(),
             storage: RegistrationStorage()
         )
 
@@ -155,11 +169,13 @@ extension RegistrationInteractorTests {
         networkClient.nextResult = .failure(StubError.any)
         let presenter = RegistrationPresenterSpy()
         let router = RegistrationRouterSpy()
+        let profileStorage = UserProfileStorageSpy()
         let sut = makeSut(
             networkClient: networkClient,
             presenter: presenter,
             router: router,
             tokenStorage: TokenStorageSpy(),
+            profileStorage: profileStorage,
             storage: RegistrationStorage()
         )
 
@@ -184,6 +200,7 @@ extension RegistrationInteractorTests {
             XCTFail("Expected failed loading state")
         }
         XCTAssertEqual(router.openedMainFlowCount, 0)
+        XCTAssertNil(profileStorage.savedProfile)
     }
 }
 
@@ -195,6 +212,7 @@ extension RegistrationInteractorTests {
             presenter: RegistrationPresenterSpy(),
             router: RegistrationRouterSpy(),
             tokenStorage: TokenStorageSpy(),
+            profileStorage: UserProfileStorageSpy(),
             storage: storage
         )
 
@@ -214,6 +232,7 @@ private extension RegistrationInteractorTests {
         presenter: RegistrationPresentationLogic,
         router: RegistrationRoutingLogic,
         tokenStorage: TokenStorageServiceProtocol,
+        profileStorage: UserProfileStorageServiceProtocol,
         storage: RegistrationStorageProtocol
     ) -> RegistrationInteractor {
         RegistrationInteractor(
@@ -221,6 +240,7 @@ private extension RegistrationInteractorTests {
             presenter: presenter,
             router: router,
             tokenStorageService: tokenStorage,
+            userProfileStorageService: profileStorage,
             registrationStorage: storage,
             currencyProvider: CurrencyProviderStub(),
             localeProvider: LocaleProviderStub()
@@ -302,6 +322,22 @@ private final class TokenStorageSpy: TokenStorageServiceProtocol, @unchecked Sen
 
     func removeToken() {
         savedToken = nil
+    }
+}
+
+private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
+    private(set) var savedProfile: UserProfileDefaults?
+
+    func saveProfile(_ profile: UserProfileDefaults) {
+        savedProfile = profile
+    }
+
+    func loadProfile() -> UserProfileDefaults? {
+        savedProfile
+    }
+
+    func clearProfile() {
+        savedProfile = nil
     }
 }
 
