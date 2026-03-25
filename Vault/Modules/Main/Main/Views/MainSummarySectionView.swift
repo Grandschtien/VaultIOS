@@ -6,7 +6,7 @@ import SkeletonView
 
 final class MainSummarySectionView: UIView, LayoutScaleProviding {
     private let cardView = UIView()
-    private let errorView = MainSectionErrorView()
+    private let errorView = FullScreenCommonErrorView()
     private let titleLabel = Label()
     private let amountLabel = Label()
     private let trendContainerView = UIView()
@@ -133,14 +133,14 @@ extension MainSummarySectionView {
         let amount: Label.LabelViewModel
         let trend: Label.LabelViewModel?
         let isLoading: Bool
-        let errorViewModel: MainSectionErrorView.ViewModel?
+        let errorViewModel: FullScreenCommonErrorView.ViewModel?
 
         init(
             title: Label.LabelViewModel = .init(),
             amount: Label.LabelViewModel = .init(),
             trend: Label.LabelViewModel? = .init(),
             isLoading: Bool = false,
-            errorViewModel: MainSectionErrorView.ViewModel? = nil
+            errorViewModel: FullScreenCommonErrorView.ViewModel? = nil
         ) {
             self.title = title
             self.amount = amount

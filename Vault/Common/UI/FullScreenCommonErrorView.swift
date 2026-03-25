@@ -3,7 +3,7 @@
 import UIKit
 import SnapKit
 
-final class MainSectionErrorView: UIControl, LayoutScaleProviding {
+final class FullScreenCommonErrorView: UIControl, LayoutScaleProviding {
     private(set) var viewModel: ViewModel = .init()
 
     private let titleLabel = Label()
@@ -25,7 +25,7 @@ final class MainSectionErrorView: UIControl, LayoutScaleProviding {
     }
 }
 
-private extension MainSectionErrorView {
+private extension FullScreenCommonErrorView {
     func setupViews() {
         backgroundColor = Asset.Colors.interactiveInputBackground.color
         layer.cornerRadius = sizeM
@@ -51,7 +51,7 @@ private extension MainSectionErrorView {
     }
 }
 
-extension MainSectionErrorView {
+extension FullScreenCommonErrorView {
     struct ViewModel: Equatable {
         let title: Label.LabelViewModel
         let tapCommand: Command

@@ -61,6 +61,98 @@ final class MainInteractorTests: XCTestCase {
 }
 
 extension MainInteractorTests {
+    func testFetchDataWhenCurrencyRateFailsWithoutCachedValueShowsBlockingErrorAndSkipsSections() async {
+        let presenter = MainPresenterSpy()
+        let summaryProvider = MainSummaryProviderStub(result: .success(
+            .init(totalAmount: 2450.8, currency: "USD", changePercent: 12)
+        ))
+        let categoriesProvider = MainCategoriesProviderStub(result: .success([]))
+        let expensesProvider = MainExpensesProviderStub(result: .success([]))
+        let currencyRateProvider = MainCurrencyRateProviderStub(result: .failure(StubError.any))
+
+        let sut = makeSut(
+            presenter: presenter,
+            router: MainRouterSpy(),
+            currencyRateProvider: currencyRateProvider,
+            summaryProvider: summaryProvider,
+            categoriesProvider: categoriesProvider,
+            expensesProvider: expensesProvider
+        )
+
+        await sut.fetchData()
+
+        guard let last = presenter.presentedData.last else {
+            return XCTFail("Expected presenter update")
+        }
+
+        XCTAssertEqual(last.blockingErrorDescription, L10n.mainOverviewError)
+        assertStatus(last.summaryState, is: .idle)
+        assertStatus(last.categoriesState, is: .idle)
+        assertStatus(last.expensesState, is: .idle)
+
+        let summaryCallsCount = await summaryProvider.callsCount()
+        let categoriesCallsCount = await categoriesProvider.callsCount()
+        let expensesCallsCount = await expensesProvider.callsCount()
+        let currencyRateCallsCount = await currencyRateProvider.callsCount()
+        XCTAssertEqual(summaryCallsCount, 0)
+        XCTAssertEqual(categoriesCallsCount, 0)
+        XCTAssertEqual(expensesCallsCount, 0)
+        XCTAssertEqual(currencyRateCallsCount, 1)
+    }
+}
+
+extension MainInteractorTests {
+    func testHandleTapRetryBlockingErrorRetriesCurrencyRateAndLoadsSections() async {
+        let presenter = MainPresenterSpy()
+
+        let summaryProvider = MainSummaryProviderStub(result: .success(
+            .init(totalAmount: 2450.8, currency: "USD", changePercent: 12)
+        ))
+        let categoriesProvider = MainCategoriesProviderStub(result: .success([]))
+        let expensesProvider = MainExpensesProviderStub(result: .success([]))
+        let currencyRateProvider = MainCurrencyRateProviderStub(results: [
+            .failure(StubError.any),
+            .success(())
+        ])
+
+        let sut = makeSut(
+            presenter: presenter,
+            router: MainRouterSpy(),
+            currencyRateProvider: currencyRateProvider,
+            summaryProvider: summaryProvider,
+            categoriesProvider: categoriesProvider,
+            expensesProvider: expensesProvider
+        )
+
+        await sut.fetchData()
+        await sut.handleTapRetryBlockingError()
+
+        guard let last = presenter.presentedData.last else {
+            return XCTFail("Expected presenter update")
+        }
+
+        XCTAssertNil(last.blockingErrorDescription)
+        assertStatus(last.summaryState, is: .loaded)
+        assertStatus(last.categoriesState, is: .loaded)
+        assertStatus(last.expensesState, is: .loaded)
+
+        let hadBlockingState = presenter.presentedData.contains {
+            $0.blockingErrorDescription != nil
+        }
+        XCTAssertTrue(hadBlockingState)
+
+        let summaryCallsCount = await summaryProvider.callsCount()
+        let categoriesCallsCount = await categoriesProvider.callsCount()
+        let expensesCallsCount = await expensesProvider.callsCount()
+        let currencyRateCallsCount = await currencyRateProvider.callsCount()
+        XCTAssertEqual(summaryCallsCount, 1)
+        XCTAssertEqual(categoriesCallsCount, 1)
+        XCTAssertEqual(expensesCallsCount, 1)
+        XCTAssertEqual(currencyRateCallsCount, 2)
+    }
+}
+
+extension MainInteractorTests {
     func testFetchDataWhenCategoriesFailKeepsOtherSectionsLoaded() async {
         let presenter = MainPresenterSpy()
 
@@ -350,6 +442,7 @@ private extension MainInteractorTests {
     func makeSut(
         presenter: MainPresentationLogic,
         router: MainRoutingLogic,
+        currencyRateProvider: MainCurrencyRateProviding = MainCurrencyRateProviderStub(result: .success(())),
         summaryProvider: MainSummaryProviding,
         categoriesProvider: MainCategoriesProviding,
         expensesProvider: MainExpensesProviding
@@ -357,6 +450,7 @@ private extension MainInteractorTests {
         MainInteractor(
             presenter: presenter,
             router: router,
+            currencyRateProvider: currencyRateProvider,
             summaryProvider: summaryProvider,
             categoriesProvider: categoriesProvider,
             expensesProvider: expensesProvider,
@@ -453,6 +547,34 @@ private actor MainSummaryProviderStub: MainSummaryProviding {
 
     private func resultForCurrentCall() -> Result<MainSummaryModel, Error> {
         let index = min(fetchCallsCount, max(results.count - 1, .zero))
+        return results[index]
+    }
+}
+
+private actor MainCurrencyRateProviderStub: MainCurrencyRateProviding {
+    let results: [Result<Void, Swift.Error>]
+    private var syncCallsCount: Int = .zero
+
+    init(result: Result<Void, Swift.Error>) {
+        self.results = [result]
+    }
+
+    init(results: [Result<Void, Swift.Error>]) {
+        self.results = results
+    }
+
+    func synchronizeCurrencyRateOnLaunch() async throws {
+        let currentResult = resultForCurrentCall()
+        syncCallsCount += 1
+        _ = try currentResult.get()
+    }
+
+    func callsCount() -> Int {
+        syncCallsCount
+    }
+
+    private func resultForCurrentCall() -> Result<Void, Swift.Error> {
+        let index = min(syncCallsCount, max(results.count - 1, .zero))
         return results[index]
     }
 }

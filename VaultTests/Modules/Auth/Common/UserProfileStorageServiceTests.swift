@@ -50,6 +50,26 @@ extension UserProfileStorageServiceTests {
 }
 
 extension UserProfileStorageServiceTests {
+    func testSaveProfilePersistsCurrencyRateValues() {
+        let updatedAt = Date(timeIntervalSince1970: 1_743_000_000)
+        let profile = UserProfileDefaults(
+            userId: "344c3ab5-4360-4f02-af5f-d3cabea23cb0",
+            email: "test3@example.com",
+            name: "Jane",
+            currency: "USD",
+            language: "en-US",
+            currencyRate: 1.43,
+            currencyRateUpdatedAt: updatedAt
+        )
+
+        sut.saveProfile(profile)
+
+        XCTAssertEqual(sut.loadProfile()?.currencyRate, 1.43)
+        XCTAssertEqual(sut.loadProfile()?.currencyRateUpdatedAt, updatedAt)
+    }
+}
+
+extension UserProfileStorageServiceTests {
     func testClearProfileRemovesSavedValue() {
         sut.saveProfile(
             UserProfileDefaults(
@@ -65,4 +85,32 @@ extension UserProfileStorageServiceTests {
 
         XCTAssertNil(sut.loadProfile())
     }
+}
+
+extension UserProfileStorageServiceTests {
+    func testLoadProfileFromLegacyPayloadDecodesWithoutCurrencyRateFields() throws {
+        let legacy = LegacyUserProfileDefaults(
+            userId: "344c3ab5-4360-4f02-af5f-d3cabea23cb0",
+            email: "test3@example.com",
+            name: "Jane",
+            currency: "USD",
+            language: "en-US"
+        )
+        let data = try JSONEncoder().encode(legacy)
+        defaults.set(data, forKey: "auth.profile.defaults")
+
+        let profile = sut.loadProfile()
+
+        XCTAssertNotNil(profile)
+        XCTAssertNil(profile?.currencyRate)
+        XCTAssertNil(profile?.currencyRateUpdatedAt)
+    }
+}
+
+private struct LegacyUserProfileDefaults: Codable {
+    let userId: String
+    let email: String
+    let name: String
+    let currency: String
+    let language: String
 }

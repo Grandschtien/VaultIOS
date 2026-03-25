@@ -7,13 +7,19 @@ final class MainCategoriesSectionView: UIView, LayoutScaleProviding {
     private var itemHeight: CGFloat { sizeXXL }
     private var itemSpacing: CGFloat { spaceS }
     private var columns: CGFloat { 2 }
+    
+    private enum LayoutState {
+        case content
+        case empty
+        case error
+    }
 
     private var viewModel: ViewModel = .init()
     private var items: [CategoryCollectionViewCell.ViewModel] = []
 
     private let titleLabel = Label()
     private let seeAllButton = UIButton(type: .system)
-    private let errorView = MainSectionErrorView()
+    private let errorView = FullScreenCommonErrorView()
     private let emptyLabel = Label()
     private let loadingView = UIActivityIndicatorView(style: .medium)
 
@@ -38,6 +44,9 @@ final class MainCategoriesSectionView: UIView, LayoutScaleProviding {
     }()
 
     private var collectionHeightConstraint: Constraint?
+    private var collectionBottomConstraint: Constraint?
+    private var errorBottomConstraint: Constraint?
+    private var emptyBottomConstraint: Constraint?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -72,12 +81,12 @@ final class MainCategoriesSectionView: UIView, LayoutScaleProviding {
             errorView.apply(errorViewModel)
             emptyLabel.isHidden = true
             collectionView.isHidden = true
-            collectionHeightConstraint?.update(offset: sizeXL)
+            collectionHeightConstraint?.update(offset: 0)
+            applyLayoutState(.error)
             return
         }
 
         errorView.isHidden = true
-        collectionView.isHidden = false
 
         if let emptyText = viewModel.emptyText {
             emptyLabel.isHidden = false
@@ -91,12 +100,18 @@ final class MainCategoriesSectionView: UIView, LayoutScaleProviding {
                     lineBreakMode: .byWordWrapping
                 )
             )
+            collectionView.isHidden = true
+            collectionHeightConstraint?.update(offset: 0)
+            applyLayoutState(.empty)
+            return
         } else {
             emptyLabel.isHidden = true
         }
 
+        collectionView.isHidden = false
         collectionView.reloadData()
         updateCollectionHeight()
+        applyLayoutState(.content)
     }
 }
 
@@ -134,19 +149,23 @@ private extension MainCategoriesSectionView {
         emptyLabel.snp.makeConstraints { make in
             make.top.equalTo(titleLabel.snp.bottom).offset(spaceS)
             make.leading.trailing.equalToSuperview()
+            emptyBottomConstraint = make.bottom.equalToSuperview().constraint
         }
 
         errorView.snp.makeConstraints { make in
             make.top.equalTo(titleLabel.snp.bottom).offset(spaceS)
-            make.leading.trailing.bottom.equalToSuperview()
+            make.leading.trailing.equalToSuperview()
+            errorBottomConstraint = make.bottom.equalToSuperview().constraint
         }
 
         collectionView.snp.makeConstraints { make in
             make.top.equalTo(titleLabel.snp.bottom).offset(spaceS)
             make.leading.trailing.equalToSuperview()
             collectionHeightConstraint = make.height.equalTo(0).constraint
-            make.bottom.equalToSuperview()
+            collectionBottomConstraint = make.bottom.equalToSuperview().constraint
         }
+        
+        applyLayoutState(.content)
     }
 
     @objc
@@ -174,6 +193,21 @@ private extension MainCategoriesSectionView {
 
         let width = floor(availableWidth / columns)
         layout.itemSize = CGSize(width: width, height: itemHeight)
+    }
+    
+    private func applyLayoutState(_ state: LayoutState) {
+        collectionBottomConstraint?.deactivate()
+        errorBottomConstraint?.deactivate()
+        emptyBottomConstraint?.deactivate()
+        
+        switch state {
+        case .content:
+            collectionBottomConstraint?.activate()
+        case .empty:
+            emptyBottomConstraint?.activate()
+        case .error:
+            errorBottomConstraint?.activate()
+        }
     }
 }
 
@@ -211,7 +245,7 @@ extension MainCategoriesSectionView {
         let seeAllCommand: Command
         let isLoading: Bool
         let emptyText: String?
-        let errorViewModel: MainSectionErrorView.ViewModel?
+        let errorViewModel: FullScreenCommonErrorView.ViewModel?
         let items: [CategoryCollectionViewCell.ViewModel]
 
         init(
@@ -220,7 +254,7 @@ extension MainCategoriesSectionView {
             seeAllCommand: Command = .nope,
             isLoading: Bool = false,
             emptyText: String? = nil,
-            errorViewModel: MainSectionErrorView.ViewModel? = nil,
+            errorViewModel: FullScreenCommonErrorView.ViewModel? = nil,
             items: [CategoryCollectionViewCell.ViewModel] = []
         ) {
             self.title = title

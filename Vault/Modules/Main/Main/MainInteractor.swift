@@ -9,6 +9,7 @@ protocol MainBusinessLogic: Sendable {
 protocol MainHandler: AnyObject, Sendable {
     func handleTapSeeAllCategories() async
     func handleTapSeeAllExpenses() async
+    func handleTapRetryBlockingError() async
     func handleTapRetrySummary() async
     func handleTapRetryCategories() async
     func handleTapRetryExpenses() async
@@ -17,11 +18,13 @@ protocol MainHandler: AnyObject, Sendable {
 actor MainInteractor: MainBusinessLogic {
     private let presenter: MainPresentationLogic
     private let router: MainRoutingLogic
+    private let currencyRateProvider: MainCurrencyRateProviding
     private let summaryProvider: MainSummaryProviding
     private let categoriesProvider: MainCategoriesProviding
     private let expensesProvider: MainExpensesProviding
     private let expenseGrouping: MainExpenseGrouping
 
+    private var blockingErrorDescription: String?
     private var summaryState: LoadingStatus = .idle
     private var categoriesState: LoadingStatus = .idle
     private var expensesState: LoadingStatus = .idle
@@ -33,6 +36,7 @@ actor MainInteractor: MainBusinessLogic {
     init(
         presenter: MainPresentationLogic,
         router: MainRoutingLogic,
+        currencyRateProvider: MainCurrencyRateProviding,
         summaryProvider: MainSummaryProviding,
         categoriesProvider: MainCategoriesProviding,
         expensesProvider: MainExpensesProviding,
@@ -40,6 +44,7 @@ actor MainInteractor: MainBusinessLogic {
     ) {
         self.presenter = presenter
         self.router = router
+        self.currencyRateProvider = currencyRateProvider
         self.summaryProvider = summaryProvider
         self.categoriesProvider = categoriesProvider
         self.expensesProvider = expensesProvider
@@ -47,14 +52,37 @@ actor MainInteractor: MainBusinessLogic {
     }
 
     func fetchData() async {
+        guard await validateLaunchCurrencyRate() else {
+            return
+        }
+
+        await loadMainData()
+    }
+}
+
+private extension MainInteractor {
+    func validateLaunchCurrencyRate() async -> Bool {
+        do {
+            try await currencyRateProvider.synchronizeCurrencyRateOnLaunch()
+            blockingErrorDescription = nil
+            return true
+        } catch {
+            resetLoadedData()
+            summaryState = .idle
+            categoriesState = .idle
+            expensesState = .idle
+            blockingErrorDescription = error.localizedDescription
+            await presentFetchedData()
+            return false
+        }
+    }
+
+    func loadMainData() async {
         summaryState = .loading
         categoriesState = .loading
         expensesState = .loading
 
-        summary = nil
-        categories = []
-        expenseGroups = []
-
+        resetLoadedData()
         await presentFetchedData()
 
         async let summaryTask: Void = loadSummary()
@@ -63,9 +91,13 @@ actor MainInteractor: MainBusinessLogic {
 
         _ = await (summaryTask, categoriesTask, expensesTask)
     }
-}
 
-private extension MainInteractor {
+    func resetLoadedData() {
+        summary = nil
+        categories = []
+        expenseGroups = []
+    }
+
     func loadSummary() async {
         do {
             summary = try await summaryProvider.fetchSummary()
@@ -103,6 +135,7 @@ private extension MainInteractor {
     func presentFetchedData() async {
         await presenter.presentFetchedData(
             MainFetchData(
+                blockingErrorDescription: blockingErrorDescription,
                 summaryState: summaryState,
                 categoriesState: categoriesState,
                 expensesState: expensesState,
@@ -116,14 +149,38 @@ private extension MainInteractor {
 
 extension MainInteractor: MainHandler {
     func handleTapSeeAllCategories() async {
+        guard blockingErrorDescription == nil else {
+            return
+        }
+
         await router.openAllCategories()
     }
 
     func handleTapSeeAllExpenses() async {
+        guard blockingErrorDescription == nil else {
+            return
+        }
+
         await router.openAllExpenses()
     }
 
+    func handleTapRetryBlockingError() async {
+        guard blockingErrorDescription != nil else {
+            return
+        }
+
+        guard await validateLaunchCurrencyRate() else {
+            return
+        }
+
+        await loadMainData()
+    }
+
     func handleTapRetrySummary() async {
+        guard blockingErrorDescription == nil else {
+            return
+        }
+
         summaryState = .loading
         summary = nil
 
@@ -132,6 +189,10 @@ extension MainInteractor: MainHandler {
     }
 
     func handleTapRetryCategories() async {
+        guard blockingErrorDescription == nil else {
+            return
+        }
+
         categoriesState = .loading
         categories = []
 
@@ -140,6 +201,10 @@ extension MainInteractor: MainHandler {
     }
 
     func handleTapRetryExpenses() async {
+        guard blockingErrorDescription == nil else {
+            return
+        }
+
         expensesState = .loading
         expenseGroups = []
 

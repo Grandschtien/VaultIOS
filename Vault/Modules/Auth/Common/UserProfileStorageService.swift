@@ -13,6 +13,26 @@ struct UserProfileDefaults: Codable, Equatable, Sendable {
     let name: String
     let currency: String
     let language: String
+    let currencyRate: Double?
+    let currencyRateUpdatedAt: Date?
+
+    init(
+        userId: String,
+        email: String,
+        name: String,
+        currency: String,
+        language: String,
+        currencyRate: Double? = nil,
+        currencyRateUpdatedAt: Date? = nil
+    ) {
+        self.userId = userId
+        self.email = email
+        self.name = name
+        self.currency = currency
+        self.language = language
+        self.currencyRate = currencyRate
+        self.currencyRateUpdatedAt = currencyRateUpdatedAt
+    }
 }
 
 protocol UserProfileStorageServiceProtocol: Sendable {
@@ -53,6 +73,21 @@ extension UserProfileDefaults {
             name: user.name,
             currency: user.currency,
             language: user.preferredLanguage
+        )
+    }
+
+    func withCurrencyRate(
+        _ rate: Double,
+        updatedAt: Date
+    ) -> UserProfileDefaults {
+        UserProfileDefaults(
+            userId: userId,
+            email: email,
+            name: name,
+            currency: currency,
+            language: language,
+            currencyRate: rate,
+            currencyRateUpdatedAt: updatedAt
         )
     }
 }

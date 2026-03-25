@@ -42,5 +42,7 @@ final class MainViewController: UIViewController, HasContentView {
 private extension MainViewController {
     func render(with viewModel: MainViewModel) {
         contentView.configure(with: viewModel)
+        tabBarController?.tabBar.isUserInteractionEnabled = !viewModel.isInteractionBlocked
+        navigationController?.navigationBar.isUserInteractionEnabled = !viewModel.isInteractionBlocked
     }
 }

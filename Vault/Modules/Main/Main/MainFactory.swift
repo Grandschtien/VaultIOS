@@ -9,11 +9,19 @@ final class MainFactory: Screen {
         @SafeInject
         var summaryService: MainSummaryContractServicing
         @SafeInject
+        var currencyRateService: MainCurrencyRateContractServicing
+        @SafeInject
         var categoriesService: MainCategoriesContractServicing
         @SafeInject
         var expensesService: MainExpensesContractServicing
+        @SafeInject
+        var userProfileStorageService: UserProfileStorageServiceProtocol
 
         let dataStoreCache = MainDataStoreCache()
+        let currencyRateProvider = MainCurrencyRateProvider(
+            currencyRateService: currencyRateService,
+            userProfileStorageService: userProfileStorageService
+        )
         let summaryProvider = MainSummaryProvider(summaryService: summaryService)
         let categoriesProvider = MainCategoriesProvider(
             categoriesService: categoriesService,
@@ -30,6 +38,7 @@ final class MainFactory: Screen {
         let interactor = MainInteractor(
             presenter: presenter,
             router: router,
+            currencyRateProvider: currencyRateProvider,
             summaryProvider: summaryProvider,
             categoriesProvider: categoriesProvider,
             expensesProvider: expensesProvider,

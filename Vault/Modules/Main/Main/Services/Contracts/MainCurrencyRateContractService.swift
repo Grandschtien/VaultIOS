@@ -1,4 +1,4 @@
-// Created by Codex on 25.03.2026
+// Created by Egor Shkarin on 25.03.2026
 
 import Foundation
 @preconcurrency import NetworkClient

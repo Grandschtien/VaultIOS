@@ -110,6 +110,39 @@ extension MainPresenterTests {
     }
 }
 
+extension MainPresenterTests {
+    func testPresentFetchedDataWithBlockingErrorBuildsBlockingViewModel() {
+        sut.presentFetchedData(
+            MainFetchData(
+                blockingErrorDescription: L10n.mainOverviewError,
+                summaryState: .idle,
+                categoriesState: .idle,
+                expensesState: .idle
+            )
+        )
+
+        XCTAssertTrue(sut.viewModel.isInteractionBlocked)
+        XCTAssertEqual(sut.viewModel.blockingErrorViewModel?.title.text, L10n.mainOverviewError)
+        XCTAssertEqual(sut.viewModel.blockingErrorViewModel?.subtitle.text, L10n.mainOverviewError)
+        XCTAssertNotEqual(sut.viewModel.blockingErrorViewModel?.retryButton.tapCommand, .nope)
+    }
+}
+
+extension MainPresenterTests {
+    func testPresentFetchedDataWithoutBlockingErrorHidesBlockingViewModel() {
+        sut.presentFetchedData(
+            MainFetchData(
+                summaryState: .loaded,
+                categoriesState: .loaded,
+                expensesState: .loaded
+            )
+        )
+
+        XCTAssertFalse(sut.viewModel.isInteractionBlocked)
+        XCTAssertNil(sut.viewModel.blockingErrorViewModel)
+    }
+}
+
 private final class MainValueFormatterStub: MainValueFormatting, @unchecked Sendable {
     func formatAmount(_ amount: Double, currencyCode: String) -> String {
         "amount-\(amount)-\(currencyCode)"

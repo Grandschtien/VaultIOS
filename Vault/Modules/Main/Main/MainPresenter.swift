@@ -35,6 +35,7 @@ final class MainPresenter: MainPresentationLogic {
 
     func presentFetchedData(_ data: MainFetchData) {
         let categoryMap = Dictionary(uniqueKeysWithValues: data.categories.map { ($0.id, $0) })
+        let blockingErrorViewModel = makeBlockingErrorViewModel(from: data)
 
         viewModel = MainViewModel(
             navigationTitle: .init(
@@ -43,6 +44,8 @@ final class MainPresenter: MainPresentationLogic {
                 textColor: Asset.Colors.textAndIconPrimary.color,
                 alignment: .left
             ),
+            blockingErrorViewModel: blockingErrorViewModel,
+            isInteractionBlocked: blockingErrorViewModel != nil,
             summarySection: makeSummarySectionViewModel(from: data),
             categoriesSection: makeCategoriesSectionViewModel(from: data),
             expensesSection: makeExpensesSectionViewModel(from: data, categories: categoryMap)
@@ -51,6 +54,39 @@ final class MainPresenter: MainPresentationLogic {
 }
 
 private extension MainPresenter {
+    func makeBlockingErrorViewModel(from data: MainFetchData) -> MainBlockingErrorView.ViewModel? {
+        guard let description = data.blockingErrorDescription else {
+            return nil
+        }
+
+        return .init(
+            title: .init(
+                text: L10n.mainOverviewError,
+                font: Typography.typographyBold24,
+                textColor: Asset.Colors.textAndIconPrimary.color,
+                alignment: .center,
+                numberOfLines: 0
+            ),
+            subtitle: .init(
+                text: description,
+                font: Typography.typographyRegular16,
+                textColor: Asset.Colors.textAndIconSecondary.color,
+                alignment: .center,
+                numberOfLines: 0
+            ),
+            retryButton: .init(
+                title: "Retry",
+                titleColor: Asset.Colors.textAndIconPrimaryInverted.color,
+                backgroundColor: Asset.Colors.interactiveElemetsPrimary.color,
+                font: Typography.typographySemibold16,
+                isEnabled: true,
+                tapCommand: Command { [weak handler] in
+                    await handler?.handleTapRetryBlockingError()
+                }
+            )
+        )
+    }
+
     func makeSummarySectionViewModel(from data: MainFetchData) -> MainSummarySectionView.ViewModel {
         switch data.summaryState {
         case .loading:
@@ -305,7 +341,7 @@ private extension MainPresenter {
         )
     }
 
-    func makeSectionErrorViewModel(command: Command) -> MainSectionErrorView.ViewModel {
+    func makeSectionErrorViewModel(command: Command) -> FullScreenCommonErrorView.ViewModel {
         .init(
             title: .init(
                 text: "Failed to load",

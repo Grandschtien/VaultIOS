@@ -7,6 +7,7 @@ final class MainView: UIView, LayoutScaleProviding {
     private let scrollView = UIScrollView()
     private let contentView = UIView()
     private let stackView = UIStackView()
+    private let blockingErrorView = MainBlockingErrorView()
 
     private let summarySectionView = MainSummarySectionView()
     private let categoriesSectionView = MainCategoriesSectionView()
@@ -29,6 +30,14 @@ extension MainView {
         summarySectionView.configure(with: viewModel.summarySection)
         categoriesSectionView.configure(with: viewModel.categoriesSection)
         expensesSectionView.configure(with: viewModel.expensesSection)
+        scrollView.isUserInteractionEnabled = !viewModel.isInteractionBlocked
+
+        if let blockingErrorViewModel = viewModel.blockingErrorViewModel {
+            blockingErrorView.isHidden = false
+            blockingErrorView.configure(with: blockingErrorViewModel)
+        } else {
+            blockingErrorView.isHidden = true
+        }
     }
 }
 
@@ -37,6 +46,7 @@ private extension MainView {
         backgroundColor = Asset.Colors.backgroundPrimary.color
 
         scrollView.showsVerticalScrollIndicator = false
+        blockingErrorView.isHidden = true
 
         stackView.axis = .vertical
         stackView.spacing = spaceM
@@ -44,6 +54,7 @@ private extension MainView {
 
     func setupLayout() {
         addSubview(scrollView)
+        addSubview(blockingErrorView)
         scrollView.addSubview(contentView)
         contentView.addSubview(stackView)
 
@@ -53,6 +64,10 @@ private extension MainView {
 
         scrollView.snp.makeConstraints { make in
             make.edges.equalTo(safeAreaLayoutGuide)
+        }
+
+        blockingErrorView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
         }
 
         contentView.snp.makeConstraints { make in
