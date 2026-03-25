@@ -31,7 +31,7 @@ final class MainRouter: MainRoutingLogic {
         screenRouter.navigate(to: { route in
             route
                 .top(.stack)
-                .push(MainComingSoonFactory(title: L10n.mainOverviewRecentExpenses))
+                .push(ExpesiesListFactory())
         })
     }
 }

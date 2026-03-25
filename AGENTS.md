@@ -32,6 +32,8 @@
 - use LoadingStatus for loading states
 - Use final class by default instead of actors, the exception is interactors and services with container DI object type
 - Use transient object type in Swinject by default, contaianer have to be used only if it is really neccasery or if I ask you to do so
+- use adapters when you use table or collection view. adapters have to incupsulate logic with datasource and delegation for collection or table view. do not add adapters to DI
+- use diffable data source as default datasourcing if any other instruction did not give to you
 
 ## General Engineering Guardrails for coding
 
@@ -75,3 +77,4 @@
 - For `Button`, pass action only via `Button.ViewModel.tapCommand` and never add extra `addTarget` handlers from screen views/controllers.
 - Router MUST contain routing only and MUST navigate through `Nivelir` (`ScreenNavigator`).
 - All calls of Commands MUST be inside child of UIView, not in UIViewController.
+- NEVER call presentFetchedData from init of Presenters
