@@ -11,7 +11,7 @@ final class MainContractsAPITests: XCTestCase {
         XCTAssertEqual(target.method.rawValue, "POST")
         XCTAssertEqual(target.host, "localhost")
         XCTAssertEqual(target.timeoutInterval, 30)
-        XCTAssertEqual(target.url.absoluteString, "http://localhost:8080/categories")
+        XCTAssertEqual(target.url.absoluteString, "https://localhost:8080/categories")
 
         guard case .custonJSON = target.requestType else {
             return XCTFail("Expected custom JSON request type")

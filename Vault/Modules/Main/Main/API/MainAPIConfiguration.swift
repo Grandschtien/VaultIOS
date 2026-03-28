@@ -6,7 +6,7 @@ import Alamofire
 enum MainAPIConfiguration {
     static let host = "localhost"
     static let port = 8080
-    static let scheme = "http"
+    static let scheme = "https"
     static let timeoutInterval: TimeInterval = 30
 
     static func url(path: String) -> URL {

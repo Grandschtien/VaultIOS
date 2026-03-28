@@ -10,10 +10,14 @@ final class MainView: UIView, LayoutScaleProviding {
     private let blockingErrorView = MainBlockingErrorView()
 
     private let summarySectionView = MainSummarySectionView()
-    private let categoriesSectionView = MainCategoriesSectionView()
+    private let categoriesSectionView: MainCategoriesSectionView
     private let expensesSectionView = MainExpensesSectionView()
 
-    override init(frame: CGRect) {
+    init(
+        frame: CGRect = .zero,
+        categoriesCollectionAdapter: CategoryCollectionViewAdapter
+    ) {
+        categoriesSectionView = MainCategoriesSectionView(collectionAdapter: categoriesCollectionAdapter)
         super.init(frame: frame)
         setupViews()
         setupLayout()

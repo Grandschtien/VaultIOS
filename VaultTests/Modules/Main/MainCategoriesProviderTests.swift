@@ -30,7 +30,10 @@ final class MainCategoriesProviderTests: XCTestCase {
                 ])
             )
         )
-        let sut = MainCategoriesProvider(categoriesService: categoriesService)
+        let sut = MainCategoriesProvider(
+            categoriesService: categoriesService,
+            cache: MainDataStoreCache()
+        )
 
         let categories = try await sut.fetchCategories()
 
@@ -57,7 +60,10 @@ extension MainCategoriesProviderTests {
                 ])
             )
         )
-        let sut = MainCategoriesProvider(categoriesService: categoriesService)
+        let sut = MainCategoriesProvider(
+            categoriesService: categoriesService,
+            cache: MainDataStoreCache()
+        )
 
         let categories = try await sut.fetchCategories()
 
@@ -81,7 +87,10 @@ extension MainCategoriesProviderTests {
                 ])
             )
         )
-        let sut = MainCategoriesProvider(categoriesService: categoriesService)
+        let sut = MainCategoriesProvider(
+            categoriesService: categoriesService,
+            cache: MainDataStoreCache()
+        )
 
         let categories = try await sut.fetchCategories()
 
@@ -91,9 +100,51 @@ extension MainCategoriesProviderTests {
 }
 
 extension MainCategoriesProviderTests {
+    func testFetchCategoriesSavesLoadedCategoriesToCache() async throws {
+        let categoriesService = CategoriesServiceSpy(
+            listResult: .success(
+                CategoriesResponseDTO(categories: [
+                    .init(
+                        id: "cat-1",
+                        name: "Food",
+                        icon: "🍴",
+                        color: "light_orange",
+                        totalSpentUsd: 14.7
+                    )
+                ])
+            )
+        )
+        let cache = MainDataStoreCache()
+        let sut = MainCategoriesProvider(
+            categoriesService: categoriesService,
+            cache: cache
+        )
+
+        _ = try await sut.fetchCategories()
+
+        XCTAssertEqual(
+            cache.categories(),
+            [
+                MainCategoryCardModel(
+                    id: "cat-1",
+                    name: "Food",
+                    icon: "🍴",
+                    color: "light_orange",
+                    amount: 14.7,
+                    currency: "USD"
+                )
+            ]
+        )
+    }
+}
+
+extension MainCategoriesProviderTests {
     func testFetchCategoriesWhenServiceFailsRethrowsError() async {
         let categoriesService = CategoriesServiceSpy(listResult: .failure(StubError.any))
-        let sut = MainCategoriesProvider(categoriesService: categoriesService)
+        let sut = MainCategoriesProvider(
+            categoriesService: categoriesService,
+            cache: MainDataStoreCache()
+        )
 
         do {
             _ = try await sut.fetchCategories()

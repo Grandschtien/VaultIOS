@@ -17,19 +17,27 @@ final class MainFactory: Screen {
         @SafeInject
         var userProfileStorageService: UserProfileStorageServiceProtocol
 
+        let dataStoreCache = MainDataStoreCache()
         let currencyRateProvider = MainCurrencyRateProvider(
             currencyRateService: currencyRateService,
             userProfileStorageService: userProfileStorageService
         )
         let summaryProvider = MainSummaryProvider(summaryService: summaryService)
-        let categoriesProvider = MainCategoriesProvider(categoriesService: categoriesService)
+        let categoriesProvider = MainCategoriesProvider(
+            categoriesService: categoriesService,
+            cache: dataStoreCache
+        )
         let expensesProvider = MainExpensesProvider(expensesService: expensesService)
         let expenseGrouping = MainExpenseDateGrouping()
         let formatter = MainValueFormatter()
+        let categoriesCollectionAdapter = CategoryCollectionViewAdapter()
 
         let viewModel = MainViewModel()
         let presenter = MainPresenter(viewModel: viewModel, formatter: formatter)
-        let router = MainRouter(screenRouter: navigator)
+        let router = MainRouter(
+            screenRouter: navigator,
+            dataStoreCache: dataStoreCache
+        )
         let interactor = MainInteractor(
             presenter: presenter,
             router: router,
@@ -48,7 +56,8 @@ final class MainFactory: Screen {
 
         let controller = MainViewController(
             interactor: interactor,
-            viewModelStore: viewModelStore
+            viewModelStore: viewModelStore,
+            categoriesCollectionAdapter: categoriesCollectionAdapter
         )
 
         presenter.handler = interactor

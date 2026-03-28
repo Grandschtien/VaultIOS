@@ -12,18 +12,23 @@ protocol MainRoutingLogic: Sendable {
 
 final class MainRouter: MainRoutingLogic {
     private let screenRouter: ScreenNavigator
+    private let dataStoreCache: MainDataStoreCache
 
     weak var viewController: UIViewController?
 
-    init(screenRouter: ScreenNavigator) {
+    init(
+        screenRouter: ScreenNavigator,
+        dataStoreCache: MainDataStoreCache
+    ) {
         self.screenRouter = screenRouter
+        self.dataStoreCache = dataStoreCache
     }
 
     func openAllCategories() {
         screenRouter.navigate(to: { route in
             route
                 .top(.stack)
-                .push(MainComingSoonFactory(title: L10n.mainOverviewCategories))
+                .push(CategoriesListFactory(dataStoreCache: dataStoreCache))
         })
     }
 
@@ -33,34 +38,5 @@ final class MainRouter: MainRoutingLogic {
                 .top(.stack)
                 .push(ExpesiesListFactory())
         })
-    }
-}
-
-private struct MainComingSoonFactory: Screen {
-    let title: String
-
-    func build(navigator: ScreenNavigator) -> UIViewController {
-        let viewController = UIViewController()
-        viewController.title = title
-        viewController.view.backgroundColor = Asset.Colors.backgroundPrimary.color
-
-        let label = Label()
-        label.apply(
-            .init(
-                text: L10n.mainOverviewComingSoon,
-                font: Typography.typographyMedium16,
-                textColor: Asset.Colors.textAndIconSecondary.color,
-                alignment: .center
-            )
-        )
-
-        viewController.view.addSubview(label)
-        label.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: viewController.view.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: viewController.view.centerYAnchor)
-        ])
-
-        return viewController
     }
 }

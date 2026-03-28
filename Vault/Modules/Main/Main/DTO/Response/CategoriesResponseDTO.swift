@@ -7,7 +7,7 @@ struct CategoryDTO: Codable, Equatable, Sendable {
     let name: String
     let icon: String
     let color: String
-    let totalSpentUsd: Double
+    let totalSpentUsd: Double?
 }
 
 struct CategoryResponseDTO: Codable, Equatable, Sendable {

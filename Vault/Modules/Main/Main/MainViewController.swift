@@ -7,18 +7,21 @@ final class MainViewController: UIViewController, HasContentView {
 
     private let interactor: MainBusinessLogic
     private let viewModelStore: ViewModelStore<MainViewModel>
+    private let categoriesCollectionAdapter: CategoryCollectionViewAdapter
 
     init(
         interactor: MainBusinessLogic,
-        viewModelStore: ViewModelStore<MainViewModel>
+        viewModelStore: ViewModelStore<MainViewModel>,
+        categoriesCollectionAdapter: CategoryCollectionViewAdapter
     ) {
         self.interactor = interactor
         self.viewModelStore = viewModelStore
+        self.categoriesCollectionAdapter = categoriesCollectionAdapter
         super.init(nibName: nil, bundle: nil)
     }
 
     override func loadView() {
-        view = ContentView()
+        view = ContentView(categoriesCollectionAdapter: categoriesCollectionAdapter)
     }
 
     @available(*, unavailable)

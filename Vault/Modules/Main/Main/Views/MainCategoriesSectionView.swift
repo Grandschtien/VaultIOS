@@ -15,7 +15,7 @@ final class MainCategoriesSectionView: UIView, LayoutScaleProviding {
     }
 
     private var viewModel: ViewModel = .init()
-    private var items: [CategoryCollectionViewCell.ViewModel] = []
+    private let collectionAdapter: CategoryCollectionViewAdapter
 
     private let titleLabel = Label()
     private let seeAllButton = UIButton(type: .system)
@@ -33,12 +33,6 @@ final class MainCategoriesSectionView: UIView, LayoutScaleProviding {
         collectionView.backgroundColor = .clear
         collectionView.showsVerticalScrollIndicator = false
         collectionView.isScrollEnabled = false
-        collectionView.dataSource = self
-        collectionView.delegate = self
-        collectionView.register(
-            CategoryCollectionViewCell.self,
-            forCellWithReuseIdentifier: CategoryCollectionViewCell.reuseId
-        )
 
         return collectionView
     }()
@@ -48,7 +42,11 @@ final class MainCategoriesSectionView: UIView, LayoutScaleProviding {
     private var errorBottomConstraint: Constraint?
     private var emptyBottomConstraint: Constraint?
 
-    override init(frame: CGRect) {
+    init(
+        frame: CGRect = .zero,
+        collectionAdapter: CategoryCollectionViewAdapter
+    ) {
+        self.collectionAdapter = collectionAdapter
         super.init(frame: frame)
         setupViews()
         setupLayout()
@@ -66,7 +64,7 @@ final class MainCategoriesSectionView: UIView, LayoutScaleProviding {
 
     func configure(with viewModel: ViewModel) {
         self.viewModel = viewModel
-        self.items = viewModel.items
+        collectionAdapter.configure(items: viewModel.items)
 
         titleLabel.apply(viewModel.title)
         seeAllButton.setTitle(viewModel.seeAllTitle.text, for: .normal)
@@ -118,6 +116,8 @@ final class MainCategoriesSectionView: UIView, LayoutScaleProviding {
 private extension MainCategoriesSectionView {
     func setupViews() {
         backgroundColor = .clear
+        collectionAdapter.output = self
+        collectionAdapter.attach(to: collectionView)
 
         seeAllButton.contentHorizontalAlignment = .right
         seeAllButton.addTarget(self, action: #selector(handleTapSeeAll), for: .touchUpInside)
@@ -174,7 +174,7 @@ private extension MainCategoriesSectionView {
     }
 
     func updateCollectionHeight() {
-        let rowsCount = ceil(CGFloat(items.count) / columns)
+        let rowsCount = ceil(CGFloat(viewModel.items.count) / columns)
         let rowsHeight = rowsCount * itemHeight
         let spacingHeight = max(.zero, rowsCount - 1) * itemSpacing
 
@@ -211,30 +211,13 @@ private extension MainCategoriesSectionView {
     }
 }
 
-extension MainCategoriesSectionView: UICollectionViewDataSource {
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        items.count
-    }
-
-    func collectionView(
-        _ collectionView: UICollectionView,
-        cellForItemAt indexPath: IndexPath
-    ) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: CategoryCollectionViewCell.reuseId,
-            for: indexPath
-        ) as? CategoryCollectionViewCell else {
-            return UICollectionViewCell()
+extension MainCategoriesSectionView: CategoryCollectionViewAdapterOutput {
+    func handleDidSelectCategoryItem(at index: Int) {
+        guard viewModel.items.indices.contains(index) else {
+            return
         }
 
-        cell.configure(with: items[indexPath.item])
-        return cell
-    }
-}
-
-extension MainCategoriesSectionView: UICollectionViewDelegate {
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        items[indexPath.item].tapCommand.execute()
+        viewModel.items[index].tapCommand.execute()
     }
 }
 

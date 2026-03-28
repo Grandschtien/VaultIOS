@@ -56,7 +56,7 @@ enum AuthAPI: ApiTarget, Sendable {
         
         components.host = host
         components.port = 8080
-        components.scheme = "http"
+        components.scheme = "https"
         components.path = path
 
         return components.url!
