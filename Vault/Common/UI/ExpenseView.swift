@@ -4,9 +4,7 @@ import UIKit
 import SnapKit
 import SkeletonView
 
-final class ExpenseCollectionViewCell: UICollectionViewCell, LayoutScaleProviding {
-    static let reuseId = "ExpenseCollectionViewCell"
-
+final class ExpenseView: UIView, LayoutScaleProviding {
     private(set) var viewModel: ViewModel = .init()
 
     private let cardView = UIView()
@@ -51,14 +49,9 @@ final class ExpenseCollectionViewCell: UICollectionViewCell, LayoutScaleProvidin
 
         iconBackgroundView.backgroundColor = viewModel.iconBackgroundColor
     }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        hideSkeleton()
-    }
 }
 
-private extension ExpenseCollectionViewCell {
+private extension ExpenseView {
     func setupViews() {
         backgroundColor = .clear
 
@@ -70,7 +63,8 @@ private extension ExpenseCollectionViewCell {
     }
 
     func setupLayout() {
-        contentView.addSubview(cardView)
+        addSubview(cardView)
+
         [iconBackgroundView, titleLabel, subtitleLabel, amountLabel].forEach {
             cardView.addSubview($0)
         }
@@ -129,7 +123,7 @@ private extension ExpenseCollectionViewCell {
     }
 }
 
-extension ExpenseCollectionViewCell {
+extension ExpenseView {
     struct ViewModel: Equatable {
         let id: String
         let iconText: String

@@ -45,11 +45,11 @@ extension ExpesiesListViewModel {
 
     struct SectionViewModel: Equatable {
         let title: Label.LabelViewModel
-        let items: [ExpenseCollectionViewCell.ViewModel]
+        let items: [ExpenseView.ViewModel]
 
         init(
             title: Label.LabelViewModel = .init(),
-            items: [ExpenseCollectionViewCell.ViewModel] = []
+            items: [ExpenseView.ViewModel] = []
         ) {
             self.title = title
             self.items = items

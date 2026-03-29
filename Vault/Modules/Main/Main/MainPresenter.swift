@@ -261,21 +261,21 @@ private extension MainPresenter {
                         textColor: Asset.Colors.textAndIconPlaceseholder.color,
                         alignment: .left
                     ),
-                    items: (0..<2).map { _ in ExpenseCollectionViewCell.ViewModel(isLoading: true) }
+                    items: (0..<2).map { _ in ExpenseView.ViewModel(isLoading: true) }
                 )
             ]
         case .failed:
             sections = []
         case .loaded:
             sections = data.expenseGroups.prefix(6).map { group in
-                let rows: [ExpenseCollectionViewCell.ViewModel] = group.expenses.map { expense in
+                let rows: [ExpenseView.ViewModel] = group.expenses.map { expense in
                     let category = categories[expense.category]
                     let amountText = formatter.formatExpenseAmount(
                         expense.amount,
                         currencyCode: expense.currency
                     )
 
-                    return ExpenseCollectionViewCell.ViewModel(
+                    return ExpenseView.ViewModel(
                         id: expense.id,
                         iconText: category?.icon ?? "💸",
                         title: .init(

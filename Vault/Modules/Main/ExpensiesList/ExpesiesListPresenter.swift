@@ -90,7 +90,7 @@ private extension ExpesiesListPresenter {
                         alignment: .left
                     ),
                     items: (0..<6).map { _ in
-                        ExpenseCollectionViewCell.ViewModel(isLoading: true)
+                        ExpenseView.ViewModel(isLoading: true)
                     }
                 )
             ]
@@ -98,14 +98,14 @@ private extension ExpesiesListPresenter {
             return []
         case .loaded:
             return data.expenseGroups.map { group in
-                let items: [ExpenseCollectionViewCell.ViewModel] = group.expenses.map { expense in
+                let items: [ExpenseView.ViewModel] = group.expenses.map { expense in
                     let category = categoriesByID[expense.category]
                     let amountText = formatter.formatExpenseAmount(
                         expense.amount,
                         currencyCode: expense.currency
                     )
 
-                    return ExpenseCollectionViewCell.ViewModel(
+                    return ExpenseView.ViewModel(
                         id: expense.id,
                         iconText: category?.icon ?? "💸",
                         title: .init(

@@ -9,6 +9,7 @@ final class CategoryView: UIView, LayoutScaleProviding {
 
     private let errorView = FullScreenCommonErrorView()
     private let emptyLabel = Label()
+    private let loadingView = CategoryLoadingView()
     private let paginationSpinner = UIActivityIndicatorView(style: .medium)
 
     private lazy var tableView: UITableView = {
@@ -62,16 +63,22 @@ extension CategoryView {
         case let .failed(errorViewModel):
             errorView.isHidden = false
             errorView.apply(errorViewModel)
+            loadingView.hideLoading()
+            loadingView.isHidden = true
             tableView.isHidden = true
             emptyLabel.isHidden = true
             paginationSpinner.stopAnimating()
         case .loading:
+            loadingView.isHidden = false
+            loadingView.showLoading()
             errorView.isHidden = true
-            tableView.isHidden = false
+            tableView.isHidden = true
             emptyLabel.isHidden = true
             paginationSpinner.stopAnimating()
         case .loaded:
             errorView.isHidden = true
+            loadingView.hideLoading()
+            loadingView.isHidden = true
             tableView.isHidden = false
             emptyLabel.isHidden = true
 
@@ -82,6 +89,8 @@ extension CategoryView {
             }
         case let .empty(text):
             errorView.isHidden = true
+            loadingView.hideLoading()
+            loadingView.isHidden = true
             tableView.isHidden = false
             emptyLabel.isHidden = false
             emptyLabel.apply(
@@ -119,6 +128,7 @@ private extension CategoryView {
 
         errorView.isHidden = true
         emptyLabel.isHidden = true
+        loadingView.isHidden = true
         paginationSpinner.hidesWhenStopped = true
         paginationSpinner.color = Asset.Colors.interactiveElemetsPrimary.color
     }
@@ -126,6 +136,7 @@ private extension CategoryView {
     func setupLayout() {
         addSubview(tableView)
         addSubview(errorView)
+        addSubview(loadingView)
         addSubview(emptyLabel)
         addSubview(paginationSpinner)
 
@@ -136,6 +147,11 @@ private extension CategoryView {
 
         errorView.snp.makeConstraints { make in
             make.edges.equalTo(tableView)
+        }
+
+        loadingView.snp.makeConstraints { make in
+            make.verticalEdges.equalTo(safeAreaLayoutGuide)
+            make.horizontalEdges.equalToSuperview()
         }
 
         emptyLabel.snp.makeConstraints { make in

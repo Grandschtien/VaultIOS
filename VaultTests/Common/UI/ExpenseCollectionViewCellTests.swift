@@ -5,7 +5,7 @@ import XCTest
 final class ExpenseCollectionViewCellTests: XCTestCase {
     func testConfigureAppliesViewModel() {
         let sut = ExpenseCollectionViewCell(frame: .init(x: 0, y: 0, width: 320, height: 66))
-        let viewModel = ExpenseCollectionViewCell.ViewModel(
+        let viewModel = ExpenseView.ViewModel(
             id: "1",
             iconText: "🍴",
             title: .init(text: "Coffee"),
