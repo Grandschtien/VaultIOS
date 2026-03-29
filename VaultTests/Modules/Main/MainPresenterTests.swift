@@ -1,19 +1,27 @@
 import XCTest
+import UIKit
 @testable import Vault
 
 @MainActor
 final class MainPresenterTests: XCTestCase {
     private var formatter: MainValueFormatterStub!
+    private var colorProvider: CategoryColorProviderStub!
     private var sut: MainPresenter!
 
     override func setUp() {
         super.setUp()
         formatter = MainValueFormatterStub()
-        sut = MainPresenter(viewModel: .init(), formatter: formatter)
+        colorProvider = CategoryColorProviderStub()
+        sut = MainPresenter(
+            viewModel: .init(),
+            formatter: formatter,
+            colorProvider: colorProvider
+        )
     }
 
     override func tearDown() {
         formatter = nil
+        colorProvider = nil
         sut = nil
         super.tearDown()
     }
@@ -81,6 +89,8 @@ extension MainPresenterTests {
         XCTAssertEqual(sut.viewModel.categoriesSection.items.count, 1)
         XCTAssertEqual(sut.viewModel.categoriesSection.items[0].title.text, "Food")
         XCTAssertFalse(sut.viewModel.categoriesSection.items[0].isAmountHidden)
+        XCTAssertEqual(sut.viewModel.categoriesSection.items[0].iconBackgroundColor, .systemTeal)
+        XCTAssertNotEqual(sut.viewModel.categoriesSection.items[0].tapCommand, .nope)
         XCTAssertNotEqual(sut.viewModel.categoriesSection.seeAllCommand, .nope)
 
         XCTAssertEqual(sut.viewModel.expensesSection.sections.count, 1)
@@ -88,6 +98,7 @@ extension MainPresenterTests {
         XCTAssertEqual(sut.viewModel.expensesSection.sections[0].items.count, 1)
         XCTAssertEqual(sut.viewModel.expensesSection.sections[0].items[0].amount.text, "-amount-4.5-USD")
         XCTAssertEqual(sut.viewModel.expensesSection.sections[0].items[0].subtitle.text, "time-1000")
+        XCTAssertEqual(sut.viewModel.expensesSection.sections[0].items[0].iconBackgroundColor, .systemTeal)
         XCTAssertNotEqual(sut.viewModel.expensesSection.seeAllCommand, .nope)
     }
 }
@@ -148,6 +159,10 @@ private final class MainValueFormatterStub: MainValueFormatting, @unchecked Send
         "amount-\(amount)-\(currencyCode)"
     }
 
+    func formatExpenseAmount(_ amount: Double, currencyCode: String) -> String {
+        "-amount-\(amount)-\(currencyCode)"
+    }
+
     func formatSummaryChange(_ percent: Double) -> String {
         "trend-\(percent)"
     }
@@ -158,5 +173,15 @@ private final class MainValueFormatterStub: MainValueFormatting, @unchecked Send
 
     func formatExpenseTime(_ date: Date, now: Date) -> String {
         "time-\(Int(date.timeIntervalSince1970))"
+    }
+}
+
+private final class CategoryColorProviderStub: CategoryColorProviding, @unchecked Sendable {
+    func summaryColor(for value: String) -> UIColor {
+        .systemTeal
+    }
+
+    func accentColor(for value: String) -> UIColor {
+        .systemMint
     }
 }

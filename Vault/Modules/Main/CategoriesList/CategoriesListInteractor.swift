@@ -1,4 +1,4 @@
-// Created by Codex on 27.03.2026
+// Created by Egor Shkarin on 27.03.2026
 
 import Foundation
 
@@ -8,6 +8,7 @@ protocol CategoriesListBusinessLogic: Sendable {
 
 protocol CategoriesListHandler: AnyObject, Sendable {
     func handleTapRetry() async
+    func handleTapCategory(id: String, name: String) async
 }
 
 actor CategoriesListInteractor: CategoriesListBusinessLogic {
@@ -66,5 +67,9 @@ private extension CategoriesListInteractor {
 extension CategoriesListInteractor: CategoriesListHandler {
     func handleTapRetry() async {
         await fetchData()
+    }
+
+    func handleTapCategory(id: String, name: String) async {
+        await router.openCategory(id: id, name: name)
     }
 }

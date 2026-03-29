@@ -17,9 +17,14 @@ final class MainExpensesProvider: MainExpensesProviding {
     }
 
     private let expensesService: MainExpensesContractServicing
+    private let currencyConversionService: UserCurrencyConverting
 
-    init(expensesService: MainExpensesContractServicing) {
+    init(
+        expensesService: MainExpensesContractServicing,
+        currencyConversionService: UserCurrencyConverting
+    ) {
         self.expensesService = expensesService
+        self.currencyConversionService = currencyConversionService
     }
 
     func fetchExpenses() async throws -> [MainExpenseModel] {
@@ -28,12 +33,16 @@ final class MainExpensesProvider: MainExpensesProviding {
         )
 
         return response.expenses.prefix(Constants.visibleExpensesLimit).map { expense in
-            MainExpenseModel(
+            let convertedAmount = currencyConversionService.convertExpense(
+                amount: expense.amount,
+                currency: expense.currency
+            )
+            return MainExpenseModel(
                 id: expense.id,
                 title: expense.title,
                 description: expense.description ?? "",
-                amount: expense.amount,
-                currency: expense.currency,
+                amount: convertedAmount.amount,
+                currency: convertedAmount.currency,
                 category: expense.category,
                 timeOfAdd: expense.timeOfAdd
             )

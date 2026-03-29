@@ -1,4 +1,4 @@
-// Created by Codex on 27.03.2026
+// Created by Egor Shkarin on 27.03.2026
 
 import UIKit
 import SnapKit
@@ -115,8 +115,7 @@ private extension CategoriesListView {
         }
 
         emptyLabel.snp.makeConstraints { make in
-            make.top.equalTo(collectionView.snp.top).offset(spaceS)
-            make.leading.trailing.equalTo(collectionView)
+            make.center.equalToSuperview()
         }
     }
 

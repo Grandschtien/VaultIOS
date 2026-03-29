@@ -8,6 +8,7 @@ import Nivelir
 protocol MainRoutingLogic: Sendable {
     func openAllCategories()
     func openAllExpenses()
+    func openCategory(id: String, name: String)
 }
 
 final class MainRouter: MainRoutingLogic {
@@ -37,6 +38,19 @@ final class MainRouter: MainRoutingLogic {
             route
                 .top(.stack)
                 .push(ExpesiesListFactory())
+        })
+    }
+
+    func openCategory(id: String, name: String) {
+        screenRouter.navigate(to: { route in
+            route
+                .top(.stack)
+                .push(
+                    CategoryFactory(
+                        categoryID: id,
+                        categoryName: name
+                    )
+                )
         })
     }
 }

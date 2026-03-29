@@ -16,13 +16,16 @@ final class MainPresenter: MainPresentationLogic {
     weak var handler: MainHandler?
 
     private let formatter: MainValueFormatting
+    private let colorProvider: CategoryColorProviding
 
     init(
         viewModel: MainViewModel,
-        formatter: MainValueFormatting
+        formatter: MainValueFormatting,
+        colorProvider: CategoryColorProviding
     ) {
         self.viewModel = viewModel
         self.formatter = formatter
+        self.colorProvider = colorProvider
 
         presentFetchedData(
             MainFetchData(
@@ -186,8 +189,13 @@ private extension MainPresenter {
                         alignment: .left
                     ),
                     isAmountHidden: false,
-                    iconBackgroundColor: color(for: category.color),
-                    tapCommand: .nope
+                    iconBackgroundColor: colorProvider.summaryColor(for: category.color),
+                    tapCommand: Command { [weak handler] in
+                        await handler?.handleTapCategory(
+                            id: category.id,
+                            name: category.name
+                        )
+                    }
                 )
             }
         case .loading:
@@ -262,7 +270,10 @@ private extension MainPresenter {
             sections = data.expenseGroups.prefix(6).map { group in
                 let rows: [ExpenseCollectionViewCell.ViewModel] = group.expenses.map { expense in
                     let category = categories[expense.category]
-                    let amountText = "-\(formatter.formatAmount(expense.amount, currencyCode: expense.currency))"
+                    let amountText = formatter.formatExpenseAmount(
+                        expense.amount,
+                        currencyCode: expense.currency
+                    )
 
                     return ExpenseCollectionViewCell.ViewModel(
                         id: expense.id,
@@ -285,7 +296,7 @@ private extension MainPresenter {
                             textColor: .systemRed,
                             alignment: .right
                         ),
-                        iconBackgroundColor: color(for: category?.color ?? ""),
+                        iconBackgroundColor: colorProvider.summaryColor(for: category?.color ?? ""),
                         tapCommand: .nope
                     )
                 }
@@ -353,20 +364,6 @@ private extension MainPresenter {
         )
     }
 
-    func color(for value: String) -> UIColor {
-        switch value {
-        case "light_red", "light_orange":
-            return UIColor(red: 1.0, green: 0.93, blue: 0.84, alpha: 1)
-        case "light_blue":
-            return UIColor(red: 0.86, green: 0.92, blue: 0.99, alpha: 1)
-        case "light_purple":
-            return UIColor(red: 0.91, green: 0.84, blue: 1.0, alpha: 1)
-        case "light_pink":
-            return UIColor(red: 0.99, green: 0.91, blue: 0.95, alpha: 1)
-        default:
-            return Asset.Colors.interactiveInputBackground.color
-        }
-    }
 }
 
 private extension LoadingStatus {

@@ -3,16 +3,16 @@ import UIKit
 @testable import Vault
 
 @MainActor
-final class ExpesiesListPresenterTests: XCTestCase {
+final class CategoryPresenterTests: XCTestCase {
     private var formatter: MainValueFormatterStub!
     private var colorProvider: CategoryColorProviderStub!
-    private var sut: ExpesiesListPresenter!
+    private var sut: CategoryPresenter!
 
     override func setUp() {
         super.setUp()
         formatter = MainValueFormatterStub()
         colorProvider = CategoryColorProviderStub()
-        sut = ExpesiesListPresenter(
+        sut = CategoryPresenter(
             viewModel: .init(),
             formatter: formatter,
             colorProvider: colorProvider
@@ -27,45 +27,53 @@ final class ExpesiesListPresenterTests: XCTestCase {
     }
 }
 
-extension ExpesiesListPresenterTests {
-    func testPresentFetchedDataLoadingBuildsSkeletonRows() {
+extension CategoryPresenterTests {
+    func testPresentFetchedDataLoadingBuildsSkeletonContent() {
         sut.presentFetchedData(
-            .init(loadingState: .loading)
+            .init(
+                navigationTitle: "Food",
+                loadingState: .loading
+            )
         )
 
-        XCTAssertEqual(sut.viewModel.navigationTitle.text, L10n.mainOverviewRecentExpenses)
+        XCTAssertEqual(sut.viewModel.navigationTitle.text, "Food")
+        XCTAssertEqual(sut.viewModel.editButtonTitle, L10n.categoryEditButton)
+        XCTAssertNotEqual(sut.viewModel.editButtonCommand, .nope)
 
-        guard case let .loading(sections) = sut.viewModel.state else {
+        let content = sut.viewModel.content
+        guard case let .loading(sections) = content.state else {
             return XCTFail("Expected loading state")
         }
 
+        XCTAssertTrue(content.summary.isLoading)
         XCTAssertEqual(sections.count, 1)
-        XCTAssertEqual(sections[0].items.count, 6)
+        XCTAssertEqual(sections[0].items.count, 8)
         XCTAssertTrue(sections[0].items.allSatisfy(\.isLoading))
     }
 }
 
-extension ExpesiesListPresenterTests {
-    func testPresentFetchedDataLoadedMapsSectionsAndPaginationState() {
+extension CategoryPresenterTests {
+    func testPresentFetchedDataLoadedMapsSummaryAndDeleteState() {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
 
         sut.presentFetchedData(
             .init(
+                navigationTitle: "Food",
                 loadingState: .loaded,
-                categories: [
-                    .init(
-                        id: "cat-1",
-                        name: "Food",
-                        icon: "🍴",
-                        color: "light_orange"
-                    )
-                ],
+                category: .init(
+                    id: "cat-1",
+                    name: "Food",
+                    icon: "🍴",
+                    color: "light_orange",
+                    amount: 321,
+                    currency: "USD"
+                ),
                 expenseGroups: [
                     .init(
                         date: now,
                         expenses: [
                             .init(
-                                id: "expense-1",
+                                id: "exp-1",
                                 title: "Coffee",
                                 description: "Morning",
                                 amount: 4.5,
@@ -76,38 +84,50 @@ extension ExpesiesListPresenterTests {
                         ]
                     )
                 ],
+                deletingExpenseIDs: ["exp-1"],
                 isLoadingNextPage: true,
                 hasMore: true
             )
         )
 
-        guard case let .loaded(content) = sut.viewModel.state else {
+        let content = sut.viewModel.content
+        guard case let .loaded(sections) = content.state else {
             return XCTFail("Expected loaded state")
         }
 
-        XCTAssertEqual(content.sections.count, 1)
-        XCTAssertEqual(content.sections[0].title.text, "section-1700000000")
-        XCTAssertEqual(content.sections[0].items.count, 1)
-        XCTAssertEqual(content.sections[0].items[0].iconText, "🍴")
-        XCTAssertEqual(content.sections[0].items[0].amount.text, "-amount-4.5-USD")
-        XCTAssertEqual(content.sections[0].items[0].subtitle.text, "time-1700000000")
-        XCTAssertEqual(content.sections[0].items[0].iconBackgroundColor, .systemTeal)
+        XCTAssertEqual(content.summary.iconText, "🍴")
+        XCTAssertEqual(content.summary.amount.text, "amount-321.0-USD")
+        XCTAssertEqual(sections.count, 1)
+        XCTAssertEqual(sections[0].title.text, "section-1700000000")
+        XCTAssertEqual(sections[0].items.count, 1)
+        XCTAssertEqual(sections[0].items[0].amount.text, "-amount-4.5-USD")
+        XCTAssertEqual(sections[0].items[0].subtitle.text, "time-1700000000")
+        XCTAssertTrue(sections[0].items[0].isDeleting)
+        XCTAssertNotEqual(sections[0].items[0].deleteCommand, .nope)
         XCTAssertTrue(content.isLoadingNextPage)
         XCTAssertTrue(content.hasMore)
-        XCTAssertNotEqual(sut.viewModel.loadNextPageCommand, .nope)
     }
 }
 
-extension ExpesiesListPresenterTests {
-    func testPresentFetchedDataLoadedEmptyShowsEmptyMessage() {
+extension CategoryPresenterTests {
+    func testPresentFetchedDataLoadedEmptyBuildsEmptyText() {
         sut.presentFetchedData(
             .init(
+                navigationTitle: "Food",
                 loadingState: .loaded,
+                category: .init(
+                    id: "cat-1",
+                    name: "Food",
+                    icon: "🍴",
+                    color: "light_orange",
+                    amount: 0,
+                    currency: "USD"
+                ),
                 expenseGroups: []
             )
         )
 
-        guard case let .empty(text) = sut.viewModel.state else {
+        guard case let .empty(text) = sut.viewModel.content.state else {
             return XCTFail("Expected empty state")
         }
 
@@ -115,16 +135,17 @@ extension ExpesiesListPresenterTests {
     }
 }
 
-extension ExpesiesListPresenterTests {
-    func testPresentFetchedDataFailedShowsErrorViewModel() {
+extension CategoryPresenterTests {
+    func testPresentFetchedDataFailureBuildsErrorState() {
         sut.presentFetchedData(
             .init(
-                loadingState: .failed(.undelinedError(description: "failed"))
+                navigationTitle: "Food",
+                loadingState: .failed(.undelinedError(description: "error"))
             )
         )
 
-        guard case let .error(errorViewModel) = sut.viewModel.state else {
-            return XCTFail("Expected error state")
+        guard case let .failed(errorViewModel) = sut.viewModel.content.state else {
+            return XCTFail("Expected failed state")
         }
 
         XCTAssertNotEqual(errorViewModel.tapCommand, .nope)

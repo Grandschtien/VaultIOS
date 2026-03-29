@@ -2,7 +2,7 @@ import XCTest
 @testable import Vault
 
 final class MainCategoriesProviderTests: XCTestCase {
-    func testFetchCategoriesMapsTotalSpentUsdIntoAmountForEachCategory() async throws {
+    func testFetchCategoriesConvertsAmountAndUsesProfileCurrency() async throws {
         let categoriesService = CategoriesServiceSpy(
             listResult: .success(
                 CategoriesResponseDTO(categories: [
@@ -30,18 +30,31 @@ final class MainCategoriesProviderTests: XCTestCase {
                 ])
             )
         )
+        let profileStorage = UserProfileStorageSpy(
+            profile: .init(
+                userId: "user-1",
+                email: "user@example.com",
+                name: "Test User",
+                currency: "EUR",
+                language: "en-US",
+                currencyRate: 2.0
+            )
+        )
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
-            cache: MainDataStoreCache()
+            cache: MainDataStoreCache(),
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: profileStorage
+            )
         )
 
         let categories = try await sut.fetchCategories()
 
         XCTAssertEqual(categories.count, 3)
-        XCTAssertEqual(categories[0].amount, 10)
-        XCTAssertEqual(categories[1].amount, 25.4)
+        XCTAssertEqual(categories[0].amount, 5.0)
+        XCTAssertEqual(categories[1].amount, 12.7)
         XCTAssertEqual(categories[2].amount, 0)
-        XCTAssertTrue(categories.allSatisfy { $0.currency == "USD" })
+        XCTAssertTrue(categories.allSatisfy { $0.currency == "EUR" })
     }
 }
 
@@ -60,9 +73,22 @@ extension MainCategoriesProviderTests {
                 ])
             )
         )
+        let profileStorage = UserProfileStorageSpy(
+            profile: .init(
+                userId: "user-1",
+                email: "user@example.com",
+                name: "Test User",
+                currency: "USD",
+                language: "en-US",
+                currencyRate: 1.0
+            )
+        )
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
-            cache: MainDataStoreCache()
+            cache: MainDataStoreCache(),
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: profileStorage
+            )
         )
 
         let categories = try await sut.fetchCategories()
@@ -87,9 +113,13 @@ extension MainCategoriesProviderTests {
                 ])
             )
         )
+        let profileStorage = UserProfileStorageSpy(profile: nil)
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
-            cache: MainDataStoreCache()
+            cache: MainDataStoreCache(),
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: profileStorage
+            )
         )
 
         let categories = try await sut.fetchCategories()
@@ -115,9 +145,22 @@ extension MainCategoriesProviderTests {
             )
         )
         let cache = MainDataStoreCache()
+        let profileStorage = UserProfileStorageSpy(
+            profile: .init(
+                userId: "user-1",
+                email: "user@example.com",
+                name: "Test User",
+                currency: "KZT",
+                language: "ru",
+                currencyRate: 2.0
+            )
+        )
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
-            cache: cache
+            cache: cache,
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: profileStorage
+            )
         )
 
         _ = try await sut.fetchCategories()
@@ -130,8 +173,8 @@ extension MainCategoriesProviderTests {
                     name: "Food",
                     icon: "🍴",
                     color: "light_orange",
-                    amount: 14.7,
-                    currency: "USD"
+                    amount: 7.35,
+                    currency: "KZT"
                 )
             ]
         )
@@ -143,7 +186,10 @@ extension MainCategoriesProviderTests {
         let categoriesService = CategoriesServiceSpy(listResult: .failure(StubError.any))
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
-            cache: MainDataStoreCache()
+            cache: MainDataStoreCache(),
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: UserProfileStorageSpy(profile: nil)
+            )
         )
 
         do {
@@ -182,5 +228,33 @@ private actor CategoriesServiceSpy: MainCategoriesContractServicing {
 
     func deleteCategory(id: String) async throws {
         throw MainCategoriesProviderTests.StubError.any
+    }
+}
+
+private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
+    private let lock = NSLock()
+    private var profile: UserProfileDefaults?
+
+    init(profile: UserProfileDefaults?) {
+        self.profile = profile
+    }
+
+    func saveProfile(_ profile: UserProfileDefaults) {
+        lock.lock()
+        self.profile = profile
+        lock.unlock()
+    }
+
+    func loadProfile() -> UserProfileDefaults? {
+        lock.lock()
+        let value = profile
+        lock.unlock()
+        return value
+    }
+
+    func clearProfile() {
+        lock.lock()
+        profile = nil
+        lock.unlock()
     }
 }

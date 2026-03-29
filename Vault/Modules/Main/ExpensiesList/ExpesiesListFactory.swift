@@ -12,18 +12,24 @@ final class ExpesiesListFactory: Screen {
         var expensesService: MainExpensesContractServicing
         @SafeInject
         var toastPresenter: ToastPresenting
+        @SafeInject
+        var currencyConversionService: UserCurrencyConverting
 
         let viewModel = ExpesiesListViewModel()
         let presenter = ExpesiesListPresenter(
             viewModel: viewModel,
-            formatter: MainValueFormatter()
+            formatter: MainValueFormatter(),
+            colorProvider: CategoryColorProvider()
         )
         let router = ExpesiesListRouter(
             screenRouter: navigator,
             toastPresenter: toastPresenter
         )
         let categoriesProvider = ExpesiesListCategoriesProvider(categoriesService: categoriesService)
-        let expensesProvider = ExpesiesListExpensesProvider(expensesService: expensesService)
+        let expensesProvider = ExpesiesListExpensesProvider(
+            expensesService: expensesService,
+            currencyConversionService: currencyConversionService
+        )
         let interactor = ExpesiesListInteractor(
             presenter: presenter,
             router: router,

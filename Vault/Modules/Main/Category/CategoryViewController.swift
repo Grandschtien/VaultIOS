@@ -1,18 +1,18 @@
-// Created by Egor Shkarin on 27.03.2026
+// Created by Egor Shkarin on 28.03.2026
 
 import UIKit
 
-final class CategoriesListViewController: UIViewController, HasContentView {
-    typealias ContentView = CategoriesListView
+final class CategoryViewController: UIViewController, HasContentView {
+    typealias ContentView = CategoryView
 
-    private let interactor: CategoriesListBusinessLogic
-    private let viewModelStore: ViewModelStore<CategoriesListViewModel>
-    private let collectionAdapter: CategoryCollectionViewAdapter
+    private let interactor: CategoryBusinessLogic
+    private let viewModelStore: ViewModelStore<CategoryViewModel>
+    private let collectionAdapter: CategoryExpensesCollectionViewAdapter
 
     init(
-        interactor: CategoriesListBusinessLogic,
-        viewModelStore: ViewModelStore<CategoriesListViewModel>,
-        collectionAdapter: CategoryCollectionViewAdapter
+        interactor: CategoryBusinessLogic,
+        viewModelStore: ViewModelStore<CategoryViewModel>,
+        collectionAdapter: CategoryExpensesCollectionViewAdapter
     ) {
         self.interactor = interactor
         self.viewModelStore = viewModelStore
@@ -42,8 +42,8 @@ final class CategoriesListViewController: UIViewController, HasContentView {
     }
 }
 
-private extension CategoriesListViewController {
-    func render(with viewModel: CategoriesListViewModel) {
+private extension CategoryViewController {
+    func render(with viewModel: CategoryViewModel) {
         title = viewModel.navigationTitle.text
         contentView.configure(with: viewModel)
     }

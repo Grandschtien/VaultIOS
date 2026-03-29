@@ -1,4 +1,4 @@
-// Created by Codex on 27.03.2026
+// Created by Egor Shkarin on 27.03.2026
 
 import UIKit
 

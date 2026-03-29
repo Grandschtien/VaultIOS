@@ -1,22 +1,27 @@
 import XCTest
+import UIKit
 @testable import Vault
 
 @MainActor
 final class CategoriesListPresenterTests: XCTestCase {
     private var formatter: MainValueFormatterStub!
+    private var colorProvider: CategoryColorProviderStub!
     private var sut: CategoriesListPresenter!
 
     override func setUp() {
         super.setUp()
         formatter = MainValueFormatterStub()
+        colorProvider = CategoryColorProviderStub()
         sut = CategoriesListPresenter(
             viewModel: .init(),
-            formatter: formatter
+            formatter: formatter,
+            colorProvider: colorProvider
         )
     }
 
     override func tearDown() {
         formatter = nil
+        colorProvider = nil
         sut = nil
         super.tearDown()
     }
@@ -64,7 +69,9 @@ extension CategoriesListPresenterTests {
         XCTAssertEqual(items.count, 1)
         XCTAssertEqual(items[0].title.text, "Food")
         XCTAssertEqual(items[0].amount.text, "amount-12.5-USD")
+        XCTAssertEqual(items[0].iconBackgroundColor, .systemTeal)
         XCTAssertFalse(items[0].isAmountHidden)
+        XCTAssertNotEqual(items[0].tapCommand, .nope)
     }
 }
 
@@ -104,6 +111,10 @@ private final class MainValueFormatterStub: MainValueFormatting, @unchecked Send
         "amount-\(amount)-\(currencyCode)"
     }
 
+    func formatExpenseAmount(_ amount: Double, currencyCode: String) -> String {
+        "-amount-\(amount)-\(currencyCode)"
+    }
+
     func formatSummaryChange(_ percent: Double) -> String {
         "trend-\(percent)"
     }
@@ -114,5 +125,15 @@ private final class MainValueFormatterStub: MainValueFormatting, @unchecked Send
 
     func formatExpenseTime(_ date: Date, now: Date) -> String {
         "time-\(Int(date.timeIntervalSince1970))"
+    }
+}
+
+private final class CategoryColorProviderStub: CategoryColorProviding, @unchecked Sendable {
+    func summaryColor(for value: String) -> UIColor {
+        .systemTeal
+    }
+
+    func accentColor(for value: String) -> UIColor {
+        .systemMint
     }
 }

@@ -63,7 +63,6 @@ private extension ExpenseCollectionViewCell {
         backgroundColor = .clear
 
         cardView.isSkeletonable = true
-
         cardView.backgroundColor = Asset.Colors.interactiveInputBackground.color
         cardView.layer.cornerRadius = sizeL
 

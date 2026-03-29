@@ -16,6 +16,8 @@ final class MainFactory: Screen {
         var expensesService: MainExpensesContractServicing
         @SafeInject
         var userProfileStorageService: UserProfileStorageServiceProtocol
+        @SafeInject
+        var currencyConversionService: UserCurrencyConverting
 
         let dataStoreCache = MainDataStoreCache()
         let currencyRateProvider = MainCurrencyRateProvider(
@@ -25,15 +27,24 @@ final class MainFactory: Screen {
         let summaryProvider = MainSummaryProvider(summaryService: summaryService)
         let categoriesProvider = MainCategoriesProvider(
             categoriesService: categoriesService,
-            cache: dataStoreCache
+            cache: dataStoreCache,
+            currencyConversionService: currencyConversionService
         )
-        let expensesProvider = MainExpensesProvider(expensesService: expensesService)
+        let expensesProvider = MainExpensesProvider(
+            expensesService: expensesService,
+            currencyConversionService: currencyConversionService
+        )
         let expenseGrouping = MainExpenseDateGrouping()
         let formatter = MainValueFormatter()
+        let colorProvider = CategoryColorProvider()
         let categoriesCollectionAdapter = CategoryCollectionViewAdapter()
 
         let viewModel = MainViewModel()
-        let presenter = MainPresenter(viewModel: viewModel, formatter: formatter)
+        let presenter = MainPresenter(
+            viewModel: viewModel,
+            formatter: formatter,
+            colorProvider: colorProvider
+        )
         let router = MainRouter(
             screenRouter: navigator,
             dataStoreCache: dataStoreCache

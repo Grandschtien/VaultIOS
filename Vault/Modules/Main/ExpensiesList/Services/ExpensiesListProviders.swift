@@ -1,4 +1,4 @@
-// Created by Codex on 25.03.2026
+// Created by Egor Shkarin on 25.03.2026
 
 import Foundation
 
@@ -21,9 +21,14 @@ protocol ExpesiesListCategoriesProviding: Sendable {
 
 final class ExpesiesListExpensesProvider: ExpesiesListExpensesProviding {
     private let expensesService: MainExpensesContractServicing
+    private let currencyConversionService: UserCurrencyConverting
 
-    init(expensesService: MainExpensesContractServicing) {
+    init(
+        expensesService: MainExpensesContractServicing,
+        currencyConversionService: UserCurrencyConverting
+    ) {
         self.expensesService = expensesService
+        self.currencyConversionService = currencyConversionService
     }
 
     func fetchExpensesPage(
@@ -39,12 +44,16 @@ final class ExpesiesListExpensesProvider: ExpesiesListExpensesProviding {
 
         return ExpesiesListExpensesPage(
             expenses: response.expenses.map { expense in
-                MainExpenseModel(
+                let convertedAmount = currencyConversionService.convertExpense(
+                    amount: expense.amount,
+                    currency: expense.currency
+                )
+                return MainExpenseModel(
                     id: expense.id,
                     title: expense.title,
                     description: expense.description ?? "",
-                    amount: expense.amount,
-                    currency: expense.currency,
+                    amount: convertedAmount.amount,
+                    currency: convertedAmount.currency,
                     category: expense.category,
                     timeOfAdd: expense.timeOfAdd
                 )

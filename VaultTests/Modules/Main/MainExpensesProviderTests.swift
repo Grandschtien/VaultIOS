@@ -12,8 +12,23 @@ final class MainExpensesProviderTests: XCTestCase {
                 )
             )
         )
+        let profileStorage = UserProfileStorageSpy(
+            profile: .init(
+                userId: "user-1",
+                email: "user@example.com",
+                name: "Test User",
+                currency: "EUR",
+                language: "en-US",
+                currencyRate: 2.0
+            )
+        )
 
-        let sut = MainExpensesProvider(expensesService: expensesService)
+        let sut = MainExpensesProvider(
+            expensesService: expensesService,
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: profileStorage
+            )
+        )
 
         let expenses = try await sut.fetchExpenses()
         let requestedParameters = await expensesService.requestedParameters()
@@ -21,6 +36,8 @@ final class MainExpensesProviderTests: XCTestCase {
         XCTAssertEqual(requestedParameters, [.init(limit: 5)])
         XCTAssertEqual(expenses.count, 5)
         XCTAssertEqual(expenses.map(\.id), ["expense-1", "expense-2", "expense-3", "expense-4", "expense-5"])
+        XCTAssertEqual(expenses.first?.amount, 0.5)
+        XCTAssertEqual(expenses.first?.currency, "EUR")
     }
 }
 
@@ -46,7 +63,12 @@ extension MainExpensesProviderTests {
             )
         )
 
-        let sut = MainExpensesProvider(expensesService: expensesService)
+        let sut = MainExpensesProvider(
+            expensesService: expensesService,
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: UserProfileStorageSpy(profile: nil)
+            )
+        )
 
         let expenses = try await sut.fetchExpenses()
         XCTAssertEqual(expenses.first?.description, "")
@@ -97,4 +119,32 @@ private actor ExpensesServiceSpy: MainExpensesContractServicing {
 
 private enum StubError: Error {
     case any
+}
+
+private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
+    private let lock = NSLock()
+    private var profile: UserProfileDefaults?
+
+    init(profile: UserProfileDefaults?) {
+        self.profile = profile
+    }
+
+    func saveProfile(_ profile: UserProfileDefaults) {
+        lock.lock()
+        self.profile = profile
+        lock.unlock()
+    }
+
+    func loadProfile() -> UserProfileDefaults? {
+        lock.lock()
+        let value = profile
+        lock.unlock()
+        return value
+    }
+
+    func clearProfile() {
+        lock.lock()
+        profile = nil
+        lock.unlock()
+    }
 }

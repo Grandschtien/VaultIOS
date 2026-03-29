@@ -18,7 +18,10 @@ final class CategoriesListCategoriesProviderTests: XCTestCase {
 
         let sut = CategoriesListCategoriesProvider(
             categoriesService: CategoriesServiceSpy(listResult: .failure(StubError.any)),
-            cache: cache
+            cache: cache,
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: UserProfileStorageSpy(profile: nil)
+            )
         )
 
         XCTAssertEqual(sut.cachedCategories(), cachedCategories)
@@ -48,16 +51,30 @@ extension CategoriesListCategoriesProviderTests {
             )
         )
         let cache = MainDataStoreCache()
+        let profileStorage = UserProfileStorageSpy(
+            profile: .init(
+                userId: "user-1",
+                email: "user@example.com",
+                name: "Test User",
+                currency: "EUR",
+                language: "en-US",
+                currencyRate: 2.0
+            )
+        )
         let sut = CategoriesListCategoriesProvider(
             categoriesService: categoriesService,
-            cache: cache
+            cache: cache,
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: profileStorage
+            )
         )
 
         let categories = try await sut.fetchCategories()
 
         XCTAssertEqual(categories.count, 2)
-        XCTAssertEqual(categories[0].amount, 18.5)
+        XCTAssertEqual(categories[0].amount, 9.25)
         XCTAssertEqual(categories[1].amount, .zero)
+        XCTAssertTrue(categories.allSatisfy { $0.currency == "EUR" })
         XCTAssertEqual(categories[1].name, "Прочее")
         XCTAssertEqual(cache.categories(), categories)
     }
@@ -67,7 +84,10 @@ extension CategoriesListCategoriesProviderTests {
     func testFetchCategoriesWhenServiceFailsRethrowsError() async {
         let sut = CategoriesListCategoriesProvider(
             categoriesService: CategoriesServiceSpy(listResult: .failure(StubError.any)),
-            cache: MainDataStoreCache()
+            cache: MainDataStoreCache(),
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: UserProfileStorageSpy(profile: nil)
+            )
         )
 
         do {
@@ -106,5 +126,33 @@ private actor CategoriesServiceSpy: MainCategoriesContractServicing {
 
     func deleteCategory(id: String) async throws {
         throw CategoriesListCategoriesProviderTests.StubError.any
+    }
+}
+
+private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
+    private let lock = NSLock()
+    private var profile: UserProfileDefaults?
+
+    init(profile: UserProfileDefaults?) {
+        self.profile = profile
+    }
+
+    func saveProfile(_ profile: UserProfileDefaults) {
+        lock.lock()
+        self.profile = profile
+        lock.unlock()
+    }
+
+    func loadProfile() -> UserProfileDefaults? {
+        lock.lock()
+        let value = profile
+        lock.unlock()
+        return value
+    }
+
+    func clearProfile() {
+        lock.lock()
+        profile = nil
+        lock.unlock()
     }
 }

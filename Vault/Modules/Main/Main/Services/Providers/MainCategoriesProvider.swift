@@ -8,31 +8,34 @@ protocol MainCategoriesProviding: Sendable {
 
 final class MainCategoriesProvider: MainCategoriesProviding {
     private enum Constants {
-        static let defaultCurrency = "USD"
         static let unmappedBackendName = "Unmapped"
     }
 
     private let categoriesService: MainCategoriesContractServicing
     private let cache: MainDataStoreCache
+    private let currencyConversionService: UserCurrencyConverting
 
     init(
         categoriesService: MainCategoriesContractServicing,
-        cache: MainDataStoreCache
+        cache: MainDataStoreCache,
+        currencyConversionService: UserCurrencyConverting
     ) {
         self.categoriesService = categoriesService
         self.cache = cache
+        self.currencyConversionService = currencyConversionService
     }
 
     func fetchCategories() async throws -> [MainCategoryCardModel] {
         let categoriesResponse = try await categoriesService.listCategories()
         let categories = categoriesResponse.categories.map { category in
+            let convertedAmount = currencyConversionService.convertUsdAmount(category.totalSpentUsd ?? .zero)
             return MainCategoryCardModel(
                 id: category.id,
                 name: localizedCategoryName(from: category.name),
                 icon: category.icon,
                 color: category.color,
-                amount: category.totalSpentUsd ?? .zero,
-                currency: Constants.defaultCurrency
+                amount: convertedAmount.amount,
+                currency: convertedAmount.currency
             )
         }
 

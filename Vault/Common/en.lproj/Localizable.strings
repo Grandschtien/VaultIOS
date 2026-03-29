@@ -66,3 +66,8 @@
 "main_overview_yesterday" = "Yesterday";
 "main_overview_coming_soon" = "Coming soon";
 "other" = "Other";
+"category_edit_button" = "Edit";
+"category_monthly_spent" = "MONTHLY SPENT";
+"category_delete" = "DELETE";
+"category_edit_title" = "Edit %@";
+"category_edit_subtitle" = "Category ID: %@";

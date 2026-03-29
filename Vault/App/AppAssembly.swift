@@ -130,6 +130,17 @@ private extension AppAssembly {
         }
         .inObjectScope(.transient)
 
+        container.register(UserCurrencyConverting.self) { resolver in
+            guard let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self) else {
+                fatalError("Failed to resolve UserProfileStorageService for UserCurrencyConversionService")
+            }
+
+            return UserCurrencyConversionService(
+                userProfileStorageService: userProfileStorageService
+            )
+        }
+        .inObjectScope(.transient)
+
         container.register(ToastPresenting.self) { _ in
             ToastPresenter()
         }

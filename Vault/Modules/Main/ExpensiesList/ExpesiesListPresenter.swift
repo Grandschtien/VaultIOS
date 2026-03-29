@@ -16,13 +16,16 @@ final class ExpesiesListPresenter: ExpesiesListPresentationLogic {
 
     weak var handler: ExpesiesListHandler?
     private let formatter: MainValueFormatting
+    private let colorProvider: CategoryColorProviding
 
     init(
         viewModel: ExpesiesListViewModel,
-        formatter: MainValueFormatting
+        formatter: MainValueFormatting,
+        colorProvider: CategoryColorProviding
     ) {
         self.viewModel = viewModel
         self.formatter = formatter
+        self.colorProvider = colorProvider
     }
 
     func presentFetchedData(_ data: ExpesiesListFetchData) {
@@ -97,7 +100,10 @@ private extension ExpesiesListPresenter {
             return data.expenseGroups.map { group in
                 let items: [ExpenseCollectionViewCell.ViewModel] = group.expenses.map { expense in
                     let category = categoriesByID[expense.category]
-                    let amountText = "-\(formatter.formatAmount(expense.amount, currencyCode: expense.currency))"
+                    let amountText = formatter.formatExpenseAmount(
+                        expense.amount,
+                        currencyCode: expense.currency
+                    )
 
                     return ExpenseCollectionViewCell.ViewModel(
                         id: expense.id,
@@ -120,7 +126,7 @@ private extension ExpesiesListPresenter {
                             textColor: .systemRed,
                             alignment: .right
                         ),
-                        iconBackgroundColor: color(for: category?.color ?? ""),
+                        iconBackgroundColor: colorProvider.summaryColor(for: category?.color ?? ""),
                         tapCommand: .nope
                     )
                 }
@@ -152,18 +158,4 @@ private extension ExpesiesListPresenter {
         )
     }
 
-    func color(for value: String) -> UIColor {
-        switch value {
-        case "light_red", "light_orange":
-            return UIColor(red: 1.0, green: 0.93, blue: 0.84, alpha: 1)
-        case "light_blue":
-            return UIColor(red: 0.86, green: 0.92, blue: 0.99, alpha: 1)
-        case "light_purple":
-            return UIColor(red: 0.91, green: 0.84, blue: 1.0, alpha: 1)
-        case "light_pink":
-            return UIColor(red: 0.99, green: 0.91, blue: 0.95, alpha: 1)
-        default:
-            return Asset.Colors.interactiveInputBackground.color
-        }
-    }
 }

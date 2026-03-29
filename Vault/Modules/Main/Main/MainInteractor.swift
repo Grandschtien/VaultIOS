@@ -9,6 +9,7 @@ protocol MainBusinessLogic: Sendable {
 protocol MainHandler: AnyObject, Sendable {
     func handleTapSeeAllCategories() async
     func handleTapSeeAllExpenses() async
+    func handleTapCategory(id: String, name: String) async
     func handleTapRetryBlockingError() async
     func handleTapRetrySummary() async
     func handleTapRetryCategories() async
@@ -162,6 +163,14 @@ extension MainInteractor: MainHandler {
         }
 
         await router.openAllExpenses()
+    }
+
+    func handleTapCategory(id: String, name: String) async {
+        guard blockingErrorDescription == nil else {
+            return
+        }
+
+        await router.openCategory(id: id, name: name)
     }
 
     func handleTapRetryBlockingError() async {

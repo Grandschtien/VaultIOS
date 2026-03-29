@@ -34,6 +34,9 @@
 - Use transient object type in Swinject by default, contaianer have to be used only if it is really neccasery or if I ask you to do so
 - use adapters when you use table or collection view. adapters have to incupsulate logic with datasource and delegation for collection or table view. do not add adapters to DI
 - use diffable data source as default datasourcing if any other instruction did not give to you
+- When you add new string, never add it into code directly. Add it into EN Localization
+- If you see uppercase never use it in localization. Always capitalize strings
+- When view contains collection view make state in ViewModel with loading, error, loaded, empty states
 
 ## General Engineering Guardrails for coding
 

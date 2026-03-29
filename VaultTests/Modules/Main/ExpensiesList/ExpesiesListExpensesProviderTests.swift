@@ -12,7 +12,12 @@ final class ExpesiesListExpensesProviderTests: XCTestCase {
                 )
             )
         )
-        let sut = ExpesiesListExpensesProvider(expensesService: service)
+        let sut = ExpesiesListExpensesProvider(
+            expensesService: service,
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: UserProfileStorageSpy(profile: nil)
+            )
+        )
 
         let page = try await sut.fetchExpensesPage(cursor: "cursor-1", limit: 20)
         let requestedParameters = await service.requestedParameters()
@@ -34,12 +39,29 @@ extension ExpesiesListExpensesProviderTests {
                 )
             )
         )
-        let sut = ExpesiesListExpensesProvider(expensesService: service)
+        let profileStorage = UserProfileStorageSpy(
+            profile: .init(
+                userId: "user-1",
+                email: "user@example.com",
+                name: "Test User",
+                currency: "EUR",
+                language: "en-US",
+                currencyRate: 2.0
+            )
+        )
+        let sut = ExpesiesListExpensesProvider(
+            expensesService: service,
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: profileStorage
+            )
+        )
 
         let page = try await sut.fetchExpensesPage(cursor: nil, limit: 20)
 
         XCTAssertEqual(page.expenses.count, 1)
         XCTAssertEqual(page.expenses.first?.description, "")
+        XCTAssertEqual(page.expenses.first?.amount, 2.25)
+        XCTAssertEqual(page.expenses.first?.currency, "EUR")
         XCTAssertNil(page.nextCursor)
         XCTAssertFalse(page.hasMore)
     }
@@ -48,7 +70,12 @@ extension ExpesiesListExpensesProviderTests {
         let service = ExpesiesListExpensesServiceSpy(
             listResult: .failure(StubError.any)
         )
-        let sut = ExpesiesListExpensesProvider(expensesService: service)
+        let sut = ExpesiesListExpensesProvider(
+            expensesService: service,
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: UserProfileStorageSpy(profile: nil)
+            )
+        )
 
         do {
             _ = try await sut.fetchExpensesPage(cursor: nil, limit: 20)
@@ -101,4 +128,32 @@ private actor ExpesiesListExpensesServiceSpy: MainExpensesContractServicing {
 
 private enum StubError: Error {
     case any
+}
+
+private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
+    private let lock = NSLock()
+    private var profile: UserProfileDefaults?
+
+    init(profile: UserProfileDefaults?) {
+        self.profile = profile
+    }
+
+    func saveProfile(_ profile: UserProfileDefaults) {
+        lock.lock()
+        self.profile = profile
+        lock.unlock()
+    }
+
+    func loadProfile() -> UserProfileDefaults? {
+        lock.lock()
+        let value = profile
+        lock.unlock()
+        return value
+    }
+
+    func clearProfile() {
+        lock.lock()
+        profile = nil
+        lock.unlock()
+    }
 }

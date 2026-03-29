@@ -4,6 +4,7 @@ import Foundation
 
 protocol MainValueFormatting: Sendable {
     func formatAmount(_ amount: Double, currencyCode: String) -> String
+    func formatExpenseAmount(_ amount: Double, currencyCode: String) -> String
     func formatSummaryChange(_ percent: Double) -> String
     func formatSectionDate(_ date: Date, now: Date) -> String
     func formatExpenseTime(_ date: Date, now: Date) -> String
@@ -19,6 +20,11 @@ struct MainValueFormatter: MainValueFormatting {
 
         return formatter.string(from: NSNumber(value: amount))
             ?? "\(currencyCode) \(amount)"
+    }
+
+    func formatExpenseAmount(_ amount: Double, currencyCode: String) -> String {
+        let formattedAmount = formatAmount(amount, currencyCode: currencyCode)
+        return "-\(formattedAmount)"
     }
 
     func formatSummaryChange(_ percent: Double) -> String {

@@ -104,6 +104,26 @@ extension CategoriesListInteractorTests {
     }
 }
 
+extension CategoriesListInteractorTests {
+    func testHandleTapCategoryRoutesToCategoryScreen() async {
+        let router = CategoriesListRouterSpy()
+        let sut = CategoriesListInteractor(
+            presenter: CategoriesListPresenterSpy(),
+            router: router,
+            categoriesProvider: CategoriesListProviderStub(
+                cachedCategories: nil,
+                fetchResult: .success([])
+            )
+        )
+
+        await sut.handleTapCategory(id: "cat-1", name: "Food")
+
+        XCTAssertEqual(router.openCategoryCalls.count, 1)
+        XCTAssertEqual(router.openCategoryCalls.first?.id, "cat-1")
+        XCTAssertEqual(router.openCategoryCalls.first?.name, "Food")
+    }
+}
+
 private extension CategoriesListInteractorTests {
     enum StubError: Error {
         case any
@@ -134,7 +154,13 @@ private final class CategoriesListPresenterSpy: CategoriesListPresentationLogic 
 }
 
 @MainActor
-private final class CategoriesListRouterSpy: CategoriesListRoutingLogic {}
+private final class CategoriesListRouterSpy: CategoriesListRoutingLogic {
+    private(set) var openCategoryCalls: [(id: String, name: String)] = []
+
+    func openCategory(id: String, name: String) {
+        openCategoryCalls.append((id, name))
+    }
+}
 
 private final class CategoriesListProviderStub: CategoriesListCategoriesProviding, @unchecked Sendable {
     private let cachedValue: [MainCategoryCardModel]?

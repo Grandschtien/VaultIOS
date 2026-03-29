@@ -16,3 +16,8 @@
 "main_overview_today" = "Бүгін";
 "main_overview_yesterday" = "Кеше";
 "main_overview_coming_soon" = "Жақында";
+"category_edit_button" = "Өңдеу";
+"category_monthly_spent" = "АЙЛЫҚ ШЫҒЫН";
+"category_delete" = "ЖОЮ";
+"category_edit_title" = "%@ өңдеу";
+"category_edit_subtitle" = "Санат ID: %@";

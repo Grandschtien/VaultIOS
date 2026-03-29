@@ -1,4 +1,4 @@
-// Created by Codex on 27.03.2026
+// Created by Egor Shkarin on 27.03.2026
 
 import UIKit
 import Nivelir
@@ -14,17 +14,22 @@ final class CategoriesListFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
         var categoriesService: MainCategoriesContractServicing
+        @SafeInject
+        var currencyConversionService: UserCurrencyConverting
 
         let categoriesProvider = CategoriesListCategoriesProvider(
             categoriesService: categoriesService,
-            cache: dataStoreCache
+            cache: dataStoreCache,
+            currencyConversionService: currencyConversionService
         )
         let formatter = MainValueFormatter()
+        let colorProvider = CategoryColorProvider()
 
         let viewModel = CategoriesListViewModel()
         let presenter = CategoriesListPresenter(
             viewModel: viewModel,
-            formatter: formatter
+            formatter: formatter,
+            colorProvider: colorProvider
         )
         let router = CategoriesListRouter(screenRouter: navigator)
         let interactor = CategoriesListInteractor(

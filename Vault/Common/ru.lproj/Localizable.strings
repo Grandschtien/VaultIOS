@@ -16,3 +16,7 @@
 "main_overview_today" = "Сегодня";
 "main_overview_yesterday" = "Вчера";
 "main_overview_coming_soon" = "Скоро";
+"category_edit_button" = "Изменить";
+"category_monthly_spent" = "РАСХОДЫ ЗА МЕСЯЦ";
+"category_edit_title" = "Изменить %@";
+"category_edit_subtitle" = "ID категории: %@";

@@ -434,7 +434,29 @@ extension MainInteractorTests {
 
         XCTAssertEqual(router.openCategoriesCount, 1)
         XCTAssertEqual(router.openExpensesCount, 1)
+        XCTAssertEqual(router.openCategoryCalls.count, 0)
         XCTAssertEqual(presenter.presentedData.count, updatesCount)
+    }
+}
+
+extension MainInteractorTests {
+    func testHandleTapCategoryCallsRouterWithIDAndName() async {
+        let router = MainRouterSpy()
+        let sut = makeSut(
+            presenter: MainPresenterSpy(),
+            router: router,
+            summaryProvider: MainSummaryProviderStub(result: .success(
+                .init(totalAmount: 0, currency: "USD", changePercent: 0)
+            )),
+            categoriesProvider: MainCategoriesProviderStub(result: .success([])),
+            expensesProvider: MainExpensesProviderStub(result: .success([]))
+        )
+
+        await sut.handleTapCategory(id: "cat-1", name: "Food")
+
+        XCTAssertEqual(router.openCategoryCalls.count, 1)
+        XCTAssertEqual(router.openCategoryCalls.first?.id, "cat-1")
+        XCTAssertEqual(router.openCategoryCalls.first?.name, "Food")
     }
 }
 
@@ -506,6 +528,7 @@ private final class MainPresenterSpy: MainPresentationLogic, @unchecked Sendable
 private final class MainRouterSpy: MainRoutingLogic, @unchecked Sendable {
     private(set) var openCategoriesCount: Int = .zero
     private(set) var openExpensesCount: Int = .zero
+    private(set) var openCategoryCalls: [(id: String, name: String)] = []
 
     func openAllCategories() {
         openCategoriesCount += 1
@@ -513,6 +536,10 @@ private final class MainRouterSpy: MainRoutingLogic, @unchecked Sendable {
 
     func openAllExpenses() {
         openExpensesCount += 1
+    }
+
+    func openCategory(id: String, name: String) {
+        openCategoryCalls.append((id, name))
     }
 }
 
