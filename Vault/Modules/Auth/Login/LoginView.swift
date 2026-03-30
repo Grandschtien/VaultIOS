@@ -61,7 +61,7 @@ private extension LoginView {
         formStackView.spacing = spaceS
 
         footerStackView.axis = .horizontal
-        footerStackView.spacing = spaceL
+        footerStackView.spacing = spaceS
         footerStackView.alignment = .center
         footerStackView.distribution = .fillProportionally
 
