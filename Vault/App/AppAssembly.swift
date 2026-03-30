@@ -130,6 +130,15 @@ private extension AppAssembly {
         }
         .inObjectScope(.transient)
 
+        container.register(ProfileContractServicing.self) { resolver in
+            guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
+                fatalError("Failed to resolve AsyncNetworkClient for ProfileContractService")
+            }
+
+            return ProfileContractService(networkClient: networkClient)
+        }
+        .inObjectScope(.transient)
+
         container.register(UserCurrencyConverting.self) { resolver in
             guard let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self) else {
                 fatalError("Failed to resolve UserProfileStorageService for UserCurrencyConversionService")
