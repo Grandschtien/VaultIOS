@@ -261,7 +261,7 @@ private extension MainPresenter {
                         textColor: Asset.Colors.textAndIconPlaceseholder.color,
                         alignment: .left
                     ),
-                    items: (0..<2).map { _ in ExpenseView.ViewModel(isLoading: true) }
+                    items: (0..<2).map { _ in ExpenseView.ViewModel() }
                 )
             ]
         case .failed:

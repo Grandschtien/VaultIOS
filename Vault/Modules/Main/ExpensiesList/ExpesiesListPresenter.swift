@@ -90,7 +90,7 @@ private extension ExpesiesListPresenter {
                         alignment: .left
                     ),
                     items: (0..<6).map { _ in
-                        ExpenseView.ViewModel(isLoading: true)
+                        ExpenseView.ViewModel()
                     }
                 )
             ]

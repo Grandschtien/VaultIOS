@@ -8,7 +8,7 @@
 import UIKit
 import SnapKit
 
-final class CategorySummaryTableViewCell: UITableViewCell {
+final class CategorySummaryTableViewCell: UITableViewCell, Reusable {
     private let summaryView = CategorySummaryView()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {

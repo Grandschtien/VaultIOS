@@ -21,10 +21,7 @@ final class ExpesiesListCollectionViewAdapter: NSObject {
     func attach(to collectionView: UICollectionView) {
         collectionView.dataSource = self
         collectionView.delegate = self
-        collectionView.register(
-            ExpenseCollectionViewCell.self,
-            forCellWithReuseIdentifier: ExpenseCollectionViewCell.reuseId
-        )
+        collectionView.register(BaseCollectionViewCellWrapper<ExpenseView>.self)
         collectionView.register(
             ExpesiesListSectionHeaderView.self,
             forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
@@ -74,13 +71,7 @@ extension ExpesiesListCollectionViewAdapter: UICollectionViewDataSource {
         _ collectionView: UICollectionView,
         cellForItemAt indexPath: IndexPath
     ) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: ExpenseCollectionViewCell.reuseId,
-            for: indexPath
-        ) as? ExpenseCollectionViewCell else {
-            return UICollectionViewCell()
-        }
-
+        let cell = collectionView.dequeueReusableCell(BaseCollectionViewCellWrapper<ExpenseView>.self, for: indexPath)
         cell.configure(with: sections[indexPath.section].items[indexPath.item])
         return cell
     }

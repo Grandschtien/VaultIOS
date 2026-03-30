@@ -41,7 +41,6 @@ extension ExpesiesListPresenterTests {
 
         XCTAssertEqual(sections.count, 1)
         XCTAssertEqual(sections[0].items.count, 6)
-        XCTAssertTrue(sections[0].items.allSatisfy(\.isLoading))
     }
 }
 

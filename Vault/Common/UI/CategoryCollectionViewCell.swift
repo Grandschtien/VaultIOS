@@ -4,9 +4,7 @@ import UIKit
 import SnapKit
 import SkeletonView
 
-final class CategoryCollectionViewCell: UICollectionViewCell, LayoutScaleProviding {
-    static let reuseId = "CategoryCollectionViewCell"
-
+final class CategoryCollectionViewCell: UICollectionViewCell, LayoutScaleProviding, Reusable {
     private(set) var viewModel: ViewModel = .init()
 
     private let cardView = UIView()

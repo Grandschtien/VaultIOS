@@ -41,10 +41,7 @@ final class MainExpensesSectionView: UIView, LayoutScaleProviding {
         collectionView.isScrollEnabled = false
         collectionView.dataSource = self
         collectionView.delegate = self
-        collectionView.register(
-            ExpenseCollectionViewCell.self,
-            forCellWithReuseIdentifier: ExpenseCollectionViewCell.reuseId
-        )
+        collectionView.register(BaseCollectionViewCellWrapper<ExpenseView>.self)
         collectionView.register(
             MainExpensesSectionHeaderView.self,
             forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
@@ -239,13 +236,7 @@ extension MainExpensesSectionView: UICollectionViewDataSource {
         _ collectionView: UICollectionView,
         cellForItemAt indexPath: IndexPath
     ) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: ExpenseCollectionViewCell.reuseId,
-            for: indexPath
-        ) as? ExpenseCollectionViewCell else {
-            return UICollectionViewCell()
-        }
-
+        let cell = collectionView.dequeueReusableCell(BaseCollectionViewCellWrapper<ExpenseView>.self, for: indexPath)
         cell.configure(with: viewModel.sections[indexPath.section].items[indexPath.item])
         return cell
     }

@@ -3,9 +3,7 @@
 import UIKit
 import SnapKit
 
-final class RegistrationCurrencyCell: UITableViewCell, LayoutScaleProviding {
-    static let reuseId = "RegistrationCurrencyCell"
-
+final class RegistrationCurrencyCell: UITableViewCell, LayoutScaleProviding, Reusable {
     private let cardView = UIView()
     private let iconContainerView = UIView()
     private let iconLabel = Label()

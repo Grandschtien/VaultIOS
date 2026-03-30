@@ -58,10 +58,7 @@ private extension RegistrationCurrencyStepView {
     func setupViews() {
         errorLabel.isHidden = true
 
-        tableView.register(
-            RegistrationCurrencyCell.self,
-            forCellReuseIdentifier: RegistrationCurrencyCell.reuseId
-        )
+        tableView.register(RegistrationCurrencyCell.self)
         tableView.separatorStyle = .none
         tableView.backgroundColor = .clear
         tableView.showsVerticalScrollIndicator = false
@@ -109,14 +106,7 @@ extension RegistrationCurrencyStepView: UITableViewDataSource {
         _ tableView: UITableView,
         cellForRowAt indexPath: IndexPath
     ) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(
-            withIdentifier: RegistrationCurrencyCell.reuseId,
-            for: indexPath
-        ) as? RegistrationCurrencyCell
-        else {
-            return UITableViewCell()
-        }
-
+        let cell = tableView.dequeueReusableCell(RegistrationCurrencyCell.self, for: indexPath)
         cell.configure(with: sections[indexPath.section].rows[indexPath.row])
 
         return cell

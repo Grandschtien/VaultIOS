@@ -2,7 +2,6 @@
 
 import UIKit
 import SnapKit
-import SkeletonView
 
 final class ExpenseView: UIView, LayoutScaleProviding {
     private(set) var viewModel: ViewModel = .init()
@@ -28,13 +27,6 @@ final class ExpenseView: UIView, LayoutScaleProviding {
     func configure(with viewModel: ViewModel) {
         self.viewModel = viewModel
 
-        if viewModel.isLoading {
-            showSkeleton()
-            return
-        }
-
-        hideSkeleton()
-
         iconLabel.apply(
             .init(
                 text: viewModel.iconText,
@@ -55,7 +47,6 @@ private extension ExpenseView {
     func setupViews() {
         backgroundColor = .clear
 
-        cardView.isSkeletonable = true
         cardView.backgroundColor = Asset.Colors.interactiveInputBackground.color
         cardView.layer.cornerRadius = sizeL
 
@@ -103,24 +94,6 @@ private extension ExpenseView {
         }
     }
 
-    func showSkeleton() {
-        iconLabel.isHidden = true
-        titleLabel.isHidden = true
-        subtitleLabel.isHidden = true
-        amountLabel.isHidden = true
-
-        cardView.skeletonCornerRadius = Float(cardView.layer.cornerRadius)
-        cardView.showAnimatedGradientSkeleton()
-    }
-
-    func hideSkeleton() {
-        iconLabel.isHidden = false
-        titleLabel.isHidden = false
-        subtitleLabel.isHidden = false
-        amountLabel.isHidden = false
-
-        cardView.hideSkeleton()
-    }
 }
 
 extension ExpenseView {
@@ -132,7 +105,6 @@ extension ExpenseView {
         let amount: Label.LabelViewModel
         let iconBackgroundColor: UIColor
         let tapCommand: Command
-        let isLoading: Bool
 
         init(
             id: String = "",
@@ -141,8 +113,7 @@ extension ExpenseView {
             subtitle: Label.LabelViewModel = .init(),
             amount: Label.LabelViewModel = .init(),
             iconBackgroundColor: UIColor = Asset.Colors.interactiveInputBackground.color,
-            tapCommand: Command = .nope,
-            isLoading: Bool = false
+            tapCommand: Command = .nope
         ) {
             self.id = id
             self.iconText = iconText
@@ -151,7 +122,8 @@ extension ExpenseView {
             self.amount = amount
             self.iconBackgroundColor = iconBackgroundColor
             self.tapCommand = tapCommand
-            self.isLoading = isLoading
         }
     }
 }
+
+extension ExpenseView: ConfigurableCellWrappedView {}

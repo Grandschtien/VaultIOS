@@ -9,7 +9,6 @@ protocol CategoryExpensesCollectionViewAdapterOutput: AnyObject {
 
 final class CategoryExpensesCollectionViewAdapter: NSObject, LayoutScaleProviding {
     private enum Constants {
-        static let summaryCellReuseId = "CategorySummaryTableViewCell"
         static let summarySectionID = "category-summary-section"
         static let summaryItemID = "category-summary-item"
     }
@@ -35,14 +34,8 @@ final class CategoryExpensesCollectionViewAdapter: NSObject, LayoutScaleProvidin
     func attach(to tableView: UITableView) {
         self.tableView = tableView
 
-        tableView.register(
-            CategorySummaryTableViewCell.self,
-            forCellReuseIdentifier: Constants.summaryCellReuseId
-        )
-        tableView.register(
-            ExpenseCellWithDeletion.self,
-            forCellReuseIdentifier: ExpenseCellWithDeletion.reuseId
-        )
+        tableView.register(CategorySummaryTableViewCell.self)
+        tableView.register(BaseTableViewCellWrapper<ExpenseView>.self)
         tableView.delegate = self
 
         dataSource = UITableViewDiffableDataSource<String, String>(
@@ -55,24 +48,12 @@ final class CategoryExpensesCollectionViewAdapter: NSObject, LayoutScaleProvidin
 
                 switch itemKind {
                 case let .summary(summaryViewModel):
-                    guard let cell = tableView.dequeueReusableCell(
-                        withIdentifier: Constants.summaryCellReuseId,
-                        for: indexPath
-                    ) as? CategorySummaryTableViewCell else {
-                        return UITableViewCell()
-                    }
-
+                    let cell = tableView.dequeueReusableCell(CategorySummaryTableViewCell.self, for: indexPath)
                     cell.configure(with: summaryViewModel)
                     return cell
 
                 case let .expense(expenseViewModel):
-                    guard let cell = tableView.dequeueReusableCell(
-                        withIdentifier: ExpenseCellWithDeletion.reuseId,
-                        for: indexPath
-                    ) as? ExpenseCellWithDeletion else {
-                        return UITableViewCell()
-                    }
-
+                    let cell = tableView.dequeueReusableCell(BaseTableViewCellWrapper<ExpenseView>.self, for: indexPath)
                     cell.configure(with: self.makeExpenseCellViewModel(from: expenseViewModel))
                     return cell
                 }
@@ -142,8 +123,7 @@ private extension CategoryExpensesCollectionViewAdapter {
             subtitle: viewModel.subtitle,
             amount: viewModel.amount,
             iconBackgroundColor: viewModel.iconBackgroundColor,
-            tapCommand: .nope,
-            isLoading: viewModel.isLoading
+            tapCommand: .nope
         )
     }
 

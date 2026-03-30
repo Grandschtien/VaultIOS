@@ -14,10 +14,7 @@ final class CategoryCollectionViewAdapter: NSObject {
     func attach(to collectionView: UICollectionView) {
         collectionView.dataSource = self
         collectionView.delegate = self
-        collectionView.register(
-            CategoryCollectionViewCell.self,
-            forCellWithReuseIdentifier: CategoryCollectionViewCell.reuseId
-        )
+        collectionView.register(CategoryCollectionViewCell.self)
     }
 
     func configure(items: [CategoryCollectionViewCell.ViewModel]) {
@@ -34,13 +31,7 @@ extension CategoryCollectionViewAdapter: UICollectionViewDataSource {
         _ collectionView: UICollectionView,
         cellForItemAt indexPath: IndexPath
     ) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: CategoryCollectionViewCell.reuseId,
-            for: indexPath
-        ) as? CategoryCollectionViewCell else {
-            return UICollectionViewCell()
-        }
-
+        let cell = collectionView.dequeueReusableCell(CategoryCollectionViewCell.self, for: indexPath)
         cell.configure(with: items[indexPath.item])
         return cell
     }
