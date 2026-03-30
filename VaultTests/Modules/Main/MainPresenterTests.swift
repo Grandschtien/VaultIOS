@@ -40,7 +40,7 @@ extension MainPresenterTests {
         XCTAssertEqual(sut.viewModel.navigationTitle.text, L10n.mainOverviewTitle)
         XCTAssertEqual(sut.viewModel.summarySection.amount.text, L10n.mainOverviewLoading)
         XCTAssertTrue(sut.viewModel.categoriesSection.isLoading)
-        XCTAssertTrue(sut.viewModel.expensesSection.isLoading)
+        XCTAssertTrue(isExpensesState(sut.viewModel.expensesSection.state, .loading))
     }
 }
 
@@ -93,12 +93,20 @@ extension MainPresenterTests {
         XCTAssertNotEqual(sut.viewModel.categoriesSection.items[0].tapCommand, .nope)
         XCTAssertNotEqual(sut.viewModel.categoriesSection.seeAllCommand, .nope)
 
-        XCTAssertEqual(sut.viewModel.expensesSection.sections.count, 1)
-        XCTAssertEqual(sut.viewModel.expensesSection.sections[0].title.text, "section-1000")
-        XCTAssertEqual(sut.viewModel.expensesSection.sections[0].items.count, 1)
-        XCTAssertEqual(sut.viewModel.expensesSection.sections[0].items[0].amount.text, "-amount-4.5-USD")
-        XCTAssertEqual(sut.viewModel.expensesSection.sections[0].items[0].subtitle.text, "time-1000")
-        XCTAssertEqual(sut.viewModel.expensesSection.sections[0].items[0].iconBackgroundColor, .systemTeal)
+        let expensesSections: [MainExpensesSectionView.SectionViewModel]
+        if case let .loaded(content) = sut.viewModel.expensesSection.state {
+            expensesSections = content
+        } else {
+            XCTFail("Expected loaded expenses state")
+            return
+        }
+
+        XCTAssertEqual(expensesSections.count, 1)
+        XCTAssertEqual(expensesSections[0].title.text, "section-1000")
+        XCTAssertEqual(expensesSections[0].items.count, 1)
+        XCTAssertEqual(expensesSections[0].items[0].amount.text, "-amount-4.5-USD")
+        XCTAssertEqual(expensesSections[0].items[0].subtitle.text, "time-1000")
+        XCTAssertEqual(expensesSections[0].items[0].iconBackgroundColor, .systemTeal)
         XCTAssertNotEqual(sut.viewModel.expensesSection.seeAllCommand, .nope)
     }
 }
@@ -115,9 +123,8 @@ extension MainPresenterTests {
 
         XCTAssertNotNil(sut.viewModel.summarySection.errorViewModel)
         XCTAssertNotNil(sut.viewModel.categoriesSection.errorViewModel)
-        XCTAssertNotNil(sut.viewModel.expensesSection.errorViewModel)
+        XCTAssertTrue(isExpensesState(sut.viewModel.expensesSection.state, .error))
         XCTAssertTrue(sut.viewModel.categoriesSection.items.isEmpty)
-        XCTAssertTrue(sut.viewModel.expensesSection.sections.isEmpty)
     }
 }
 
@@ -183,5 +190,26 @@ private final class CategoryColorProviderStub: CategoryColorProviding, @unchecke
 
     func accentColor(for value: String) -> UIColor {
         .systemMint
+    }
+}
+
+private extension MainPresenterTests {
+    enum MainExpensesStateCase {
+        case loading
+        case empty
+        case loaded
+        case error
+    }
+
+    func isExpensesState(
+        _ state: MainExpensesSectionView.State,
+        _ expected: MainExpensesStateCase
+    ) -> Bool {
+        switch (state, expected) {
+        case (.loading, .loading), (.empty, .empty), (.loaded, .loaded), (.error, .error):
+            return true
+        default:
+            return false
+        }
     }
 }

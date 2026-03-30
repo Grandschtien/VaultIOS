@@ -249,25 +249,21 @@ private extension MainPresenter {
         from data: MainFetchData,
         categories: [String: MainCategoryCardModel]
     ) -> MainExpensesSectionView.ViewModel {
-        let sections: [MainExpensesSectionView.SectionViewModel]
+        let state: MainExpensesSectionView.State
         
         switch data.expensesState {
         case .loading, .idle:
-            sections = [
-                .init(
-                    title: .init(
-                        text: "",
-                        font: Typography.typographyBold12,
-                        textColor: Asset.Colors.textAndIconPlaceseholder.color,
-                        alignment: .left
-                    ),
-                    items: (0..<2).map { _ in ExpenseView.ViewModel() }
-                )
-            ]
+            state = .loading
         case .failed:
-            sections = []
+            state = .error(
+                makeSectionErrorViewModel(
+                    command: Command { [weak handler] in
+                        await handler?.handleTapRetryExpenses()
+                    }
+                )
+            )
         case .loaded:
-            sections = data.expenseGroups.prefix(6).map { group in
+            let sections = data.expenseGroups.prefix(6).map { group in
                 let rows: [ExpenseView.ViewModel] = group.expenses.map { expense in
                     let category = categories[expense.category]
                     let amountText = formatter.formatExpenseAmount(
@@ -311,16 +307,12 @@ private extension MainPresenter {
                     items: rows
                 )
             }
-        }
 
-        let emptyMessage: String?
-        switch data.expensesState {
-        case .idle, .loading:
-            emptyMessage = nil
-        case .loaded:
-            emptyMessage = sections.isEmpty ? L10n.mainOverviewEmptyExpenses : nil
-        case .failed:
-            emptyMessage = nil
+            if sections.isEmpty {
+                state = .empty(text: L10n.mainOverviewEmptyExpenses)
+            } else {
+                state = .loaded(content: sections)
+            }
         }
 
         return .init(
@@ -339,16 +331,7 @@ private extension MainPresenter {
             seeAllCommand: Command { [weak handler] in
                 await handler?.handleTapSeeAllExpenses()
             },
-            isLoading: data.expensesState.isLoading,
-            emptyText: emptyMessage,
-            errorViewModel: data.expensesState.isFailed
-                ? makeSectionErrorViewModel(
-                    command: Command { [weak handler] in
-                        await handler?.handleTapRetryExpenses()
-                    }
-                )
-                : nil,
-            sections: sections
+            state: state
         )
     }
 

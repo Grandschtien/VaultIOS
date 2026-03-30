@@ -8,7 +8,8 @@ final class MainExpensesSectionView: UIView, LayoutScaleProviding {
         static let headerReuseId = "MainExpensesSectionHeaderView"
     }
     
-    private enum LayoutState {
+    private enum ContentState {
+        case loading
         case content
         case empty
         case error
@@ -23,9 +24,10 @@ final class MainExpensesSectionView: UIView, LayoutScaleProviding {
 
     private let titleLabel = Label()
     private let seeAllButton = UIButton(type: .system)
+    private let contentStackView = UIStackView()
     private let errorView = FullScreenCommonErrorView()
     private let emptyLabel = Label()
-    private let loadingView = UIActivityIndicatorView(style: .medium)
+    private let loadingView = MainExpensesLoadingView()
 
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -52,9 +54,6 @@ final class MainExpensesSectionView: UIView, LayoutScaleProviding {
     }()
 
     private var collectionHeightConstraint: Constraint?
-    private var collectionBottomConstraint: Constraint?
-    private var errorBottomConstraint: Constraint?
-    private var emptyBottomConstraint: Constraint?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -80,23 +79,18 @@ final class MainExpensesSectionView: UIView, LayoutScaleProviding {
         seeAllButton.titleLabel?.font = viewModel.seeAllTitle.font
         seeAllButton.setTitleColor(viewModel.seeAllTitle.textColor, for: .normal)
 
-        loadingView.isHidden = true
-        loadingView.stopAnimating()
-
-        if let errorViewModel = viewModel.errorViewModel {
-            errorView.isHidden = false
-            errorView.apply(errorViewModel)
-            emptyLabel.isHidden = true
-            collectionView.isHidden = true
+        switch viewModel.state {
+        case .loading:
+            loadingView.showLoading()
+            applyState(.loading)
             collectionHeightConstraint?.update(offset: 0)
-            applyLayoutState(.error)
-            return
-        }
-
-        errorView.isHidden = true
-
-        if let emptyText = viewModel.emptyText {
-            emptyLabel.isHidden = false
+        case let .error(errorViewModel):
+            loadingView.hideLoading()
+            errorView.apply(errorViewModel)
+            applyState(.error)
+            collectionHeightConstraint?.update(offset: 0)
+        case let .empty(emptyText):
+            loadingView.hideLoading()
             emptyLabel.apply(
                 .init(
                     text: emptyText,
@@ -107,37 +101,38 @@ final class MainExpensesSectionView: UIView, LayoutScaleProviding {
                     lineBreakMode: .byWordWrapping
                 )
             )
-            collectionView.isHidden = true
+            applyState(.empty)
             collectionHeightConstraint?.update(offset: 0)
-            applyLayoutState(.empty)
-            return
-        } else {
-            emptyLabel.isHidden = true
+        case .loaded:
+            loadingView.hideLoading()
+            applyState(.content)
+            collectionView.reloadData()
+            updateCollectionHeight()
         }
-
-        collectionView.isHidden = false
-        collectionView.reloadData()
-        updateCollectionHeight()
-        applyLayoutState(.content)
     }
 }
 
 private extension MainExpensesSectionView {
     func setupViews() {
         backgroundColor = .clear
+        contentStackView.axis = .vertical
+        contentStackView.alignment = .fill
+        contentStackView.distribution = .fill
+        contentStackView.spacing = .zero
 
         seeAllButton.contentHorizontalAlignment = .right
         seeAllButton.addTarget(self, action: #selector(handleTapSeeAll), for: .touchUpInside)
 
         errorView.isHidden = true
         emptyLabel.isHidden = true
-        loadingView.hidesWhenStopped = true
+        loadingView.isHidden = true
     }
 
     func setupLayout() {
-        [titleLabel, seeAllButton, loadingView, emptyLabel, collectionView, errorView].forEach {
-            addSubview($0)
-        }
+        addSubview(titleLabel)
+        addSubview(seeAllButton)
+        addSubview(contentStackView)
+        [loadingView, emptyLabel, collectionView, errorView].forEach { contentStackView.addArrangedSubview($0) }
 
         titleLabel.snp.makeConstraints { make in
             make.top.leading.equalToSuperview()
@@ -148,31 +143,16 @@ private extension MainExpensesSectionView {
             make.trailing.equalToSuperview()
         }
 
-        loadingView.snp.makeConstraints { make in
+        contentStackView.snp.makeConstraints { make in
             make.top.equalTo(titleLabel.snp.bottom).offset(spaceS)
-            make.leading.equalToSuperview()
-        }
-
-        emptyLabel.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(spaceS)
-            make.leading.trailing.equalToSuperview()
-            emptyBottomConstraint = make.bottom.equalToSuperview().constraint
-        }
-
-        errorView.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(spaceS)
-            make.leading.trailing.equalToSuperview()
-            errorBottomConstraint = make.bottom.equalToSuperview().constraint
+            make.leading.trailing.bottom.equalToSuperview()
         }
 
         collectionView.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(spaceS)
-            make.leading.trailing.equalToSuperview()
             collectionHeightConstraint = make.height.equalTo(0).constraint
-            collectionBottomConstraint = make.bottom.equalToSuperview().constraint
         }
         
-        applyLayoutState(.content)
+        applyState(.content)
     }
 
     @objc
@@ -207,18 +187,28 @@ private extension MainExpensesSectionView {
         layout.itemSize = CGSize(width: width, height: itemHeight)
     }
     
-    private func applyLayoutState(_ state: LayoutState) {
-        collectionBottomConstraint?.deactivate()
-        errorBottomConstraint?.deactivate()
-        emptyBottomConstraint?.deactivate()
-        
+    private func applyState(_ state: ContentState) {
         switch state {
+        case .loading:
+            loadingView.isHidden = false
+            errorView.isHidden = true
+            emptyLabel.isHidden = true
+            collectionView.isHidden = true
         case .content:
-            collectionBottomConstraint?.activate()
+            loadingView.isHidden = true
+            errorView.isHidden = true
+            emptyLabel.isHidden = true
+            collectionView.isHidden = false
         case .empty:
-            emptyBottomConstraint?.activate()
+            loadingView.isHidden = true
+            errorView.isHidden = true
+            emptyLabel.isHidden = false
+            collectionView.isHidden = true
         case .error:
-            errorBottomConstraint?.activate()
+            loadingView.isHidden = true
+            errorView.isHidden = false
+            emptyLabel.isHidden = true
+            collectionView.isHidden = true
         }
     }
 }
@@ -268,6 +258,13 @@ extension MainExpensesSectionView: UICollectionViewDelegate {
 }
 
 extension MainExpensesSectionView {
+    enum State: Equatable {
+        case loading
+        case empty(text: String)
+        case loaded(content: [SectionViewModel])
+        case error(FullScreenCommonErrorView.ViewModel)
+    }
+
     struct SectionViewModel: Equatable {
         let title: Label.LabelViewModel
         let items: [ExpenseView.ViewModel]
@@ -285,28 +282,29 @@ extension MainExpensesSectionView {
         let title: Label.LabelViewModel
         let seeAllTitle: Label.LabelViewModel
         let seeAllCommand: Command
-        let isLoading: Bool
-        let emptyText: String?
-        let errorViewModel: FullScreenCommonErrorView.ViewModel?
-        let sections: [SectionViewModel]
+        let state: State
 
         init(
             title: Label.LabelViewModel = .init(),
             seeAllTitle: Label.LabelViewModel = .init(),
             seeAllCommand: Command = .nope,
-            isLoading: Bool = false,
-            emptyText: String? = nil,
-            errorViewModel: FullScreenCommonErrorView.ViewModel? = nil,
-            sections: [SectionViewModel] = []
+            state: State = .loading
         ) {
             self.title = title
             self.seeAllTitle = seeAllTitle
             self.seeAllCommand = seeAllCommand
-            self.isLoading = isLoading
-            self.emptyText = emptyText
-            self.errorViewModel = errorViewModel
-            self.sections = sections
+            self.state = state
         }
+    }
+}
+
+private extension MainExpensesSectionView.ViewModel {
+    var sections: [MainExpensesSectionView.SectionViewModel] {
+        if case let .loaded(content) = state {
+            return content
+        }
+
+        return []
     }
 }
 
