@@ -5,7 +5,7 @@
 "email_placeholder" = "name@example.com";
 "enter_your_name" = "Enter Your Name";
 "forgot" = "Forgot?";
-"get_started" = "Get started";
+"get_started" = "Get Started";
 "insightful_analytics" = "Insightful Analytics";
 "join_vault_to_start_tracking_effortlessly" = "Join Vault to start tracking effortlessly.";
 "name" = "Name";
@@ -34,16 +34,16 @@
 
 "common_fill_field" = "Please, fill this field";
 
-"step_number" = "STEP %@ OF %@";
+"step_number" = "Step %@ of %@";
 "account_step_registration_sutitle" = "Use a strong password to keep your data safe";
 "name_step_registration_sutitle" = "Join Vault to start tracking effortlessly";
 "registration_back" = "Back";
 "registration_confirm_password" = "Confirm Password";
-"registration_name_placeholder" = "Egor";
+"registration_name_placeholder" = "Name";
 "registration_select_base_currency" = "Select Base Currency";
 "registration_search_currency_placeholder" = "Search currency...";
-"registration_popular_currencies" = "POPULAR CURRENCIES";
-"registration_other_currencies" = "OTHER CURRENCIES";
+"registration_popular_currencies" = "Popular Currencies";
+"registration_other_currencies" = "Other Currencies";
 "registration_error_invalid_email" = "Please enter a valid email";
 "registration_error_password_mismatch" = "Passwords do not match";
 "registration_error_select_currency" = "Please select currency";
@@ -54,8 +54,8 @@
 "main_profile_accessibility_label" = "Profile";
 "main_overview_title" = "Overview";
 "main_overview_total_spending" = "Total Spending";
-"main_overview_categories" = "CATEGORIES";
-"main_overview_recent_expenses" = "RECENT EXPENSES";
+"main_overview_categories" = "Categories";
+"main_overview_recent_expenses" = "Recent Expenses";
 "main_overview_see_all" = "See All";
 "main_overview_from_last_month" = "%@ from last month";
 "main_overview_loading" = "Loading...";
@@ -67,7 +67,7 @@
 "main_overview_coming_soon" = "Coming soon";
 "other" = "Other";
 "category_edit_button" = "Edit";
-"category_monthly_spent" = "MONTHLY SPENT";
-"category_delete" = "DELETE";
+"category_monthly_spent" = "Monthly Spent";
+"category_delete" = "Delete";
 "category_edit_title" = "Edit %@";
 "category_edit_subtitle" = "Category ID: %@";

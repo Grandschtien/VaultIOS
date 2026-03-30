@@ -115,8 +115,18 @@ private extension MainFlowRootViewController {
             for: .normal
         )
         button.accessibilityLabel = L10n.mainProfileAccessibilityLabel
+        button.addTarget(self, action: #selector(handleTapProfileButton), for: .touchUpInside)
 
         return button
+    }
+
+    @objc
+    func handleTapProfileButton() {
+        screenNavigator.navigate(to: { route in
+            route
+                .top(.stack)
+                .push(ProfileFactory())
+        })
     }
 }
 
