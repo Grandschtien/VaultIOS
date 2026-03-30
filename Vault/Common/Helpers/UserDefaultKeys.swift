@@ -9,4 +9,5 @@ import Foundation
 
 enum UserDefaultKeys: String {
     case isOnboardingCompleted
+    case isFirstRun
 }

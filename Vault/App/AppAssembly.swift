@@ -46,6 +46,11 @@ private extension AppAssembly {
         }
         .inObjectScope(.transient)
 
+        container.register(FirstRunKeychainCleanupServiceProtocol.self) { _ in
+            FirstRunKeychainCleanupService()
+        }
+        .inObjectScope(.transient)
+
         container.register(UserProfileStorageServiceProtocol.self) { _ in
             UserProfileStorageService()
         }

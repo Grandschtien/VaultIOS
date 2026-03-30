@@ -12,6 +12,7 @@ public protocol KeychainClientProtocol {
     func set(_ data: Data, forAccount account: String, service: String)
     func getData(forAccount account: String, service: String) -> Data?
     func removeData(forAccount account: String, service: String)
+    func removeAll()
 }
 
 public final class KeychainClient: KeychainClientProtocol {
@@ -42,6 +43,21 @@ public final class KeychainClient: KeychainClientProtocol {
     public func removeData(forAccount account: String, service: String) {
         let baseQuery = query(forAccount: account, service: service)
         SecItemDelete(baseQuery as CFDictionary)
+    }
+
+    public func removeAll() {
+        let secItemClasses = [
+            kSecClassGenericPassword,
+            kSecClassInternetPassword,
+            kSecClassCertificate,
+            kSecClassKey,
+            kSecClassIdentity
+        ]
+
+        secItemClasses.forEach { secClass in
+            let query: [CFString: Any] = [kSecClass: secClass]
+            SecItemDelete(query as CFDictionary)
+        }
     }
 }
 

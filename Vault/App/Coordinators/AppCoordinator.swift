@@ -28,6 +28,8 @@ final class AppCoordinator {
 
     func start() {
         appAssebler.apply(assembly: AppAssembly())
+        appAssebler.resolver.resolve(FirstRunKeychainCleanupServiceProtocol.self)?
+            .clearKeychainIfNeeded()
         observeLogoutEvents()
 
         Task { [weak self] in
