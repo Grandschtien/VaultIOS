@@ -50,7 +50,8 @@ extension DeleteTableViewCellWrapperTests {
         sut.triggerDeleteIfPossible()
 
         wait(for: [expectation], timeout: 1)
-        XCTAssertTrue(sut.hasTriggeredDelete)
+        XCTAssertEqual(sut.deleteViewModel.state, .idle)
+        XCTAssertGreaterThan(sut.currentRevealOffset, .zero)
     }
 }
 
@@ -71,13 +72,13 @@ extension DeleteTableViewCellWrapperTests {
         sut.triggerDeleteIfPossible()
 
         XCTAssertGreaterThan(sut.currentRevealOffset, .zero)
-        XCTAssertTrue(sut.hasTriggeredDelete)
+        XCTAssertEqual(sut.deleteViewModel.state, .idle)
 
         sut.prepareForReuse()
 
         XCTAssertEqual(sut.currentRevealOffset, .zero)
-        XCTAssertFalse(sut.hasTriggeredDelete)
         XCTAssertEqual(sut.deleteViewModel.id, "")
+        XCTAssertEqual(sut.deleteViewModel.state, .idle)
     }
 }
 

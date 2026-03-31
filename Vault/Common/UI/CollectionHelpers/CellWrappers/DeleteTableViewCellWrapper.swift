@@ -1,4 +1,4 @@
-// Created by Codex on 30.03.2026
+// Created by Egor Shkarin on 30.03.2026
 
 import UIKit
 import SnapKit
@@ -7,6 +7,7 @@ final class DeleteTableViewCellWrapper<
     WrappedView: UIView & ConfigurableCellWrappedView
 >: BaseTableViewCellWrapper<WrappedView> {
     private let animationDuration: TimeInterval = 0.2
+    private let fullSwipeVelocityThreshold: CGFloat = 900
 
     private enum SwipeState {
         case closed
@@ -100,12 +101,15 @@ final class DeleteTableViewCellWrapper<
     }
 
     func triggerDeleteIfPossible() {
-        guard deleteViewModel.state != .deleting else {
+        guard deleteViewModel.state == .idle,
+              swipeState != .deleting,
+              deleteViewModel.deleteCommand != .nope
+        else {
             return
         }
 
         swipeState = .deleting
-        setRevealOffset(maxRevealOffset, animated: true)
+        setRevealOffset(fullSwipeOffset, animated: true)
         deleteViewModel.deleteCommand.execute()
     }
 
@@ -116,11 +120,14 @@ final class DeleteTableViewCellWrapper<
 
     @objc
     func handlePan(_ gestureRecognizer: UIPanGestureRecognizer) {
-        guard deleteViewModel.state != .deleting else {
+        guard deleteViewModel.state == .idle,
+              swipeState != .deleting
+        else {
             return
         }
 
         let translation = gestureRecognizer.translation(in: contentView)
+        let velocity = gestureRecognizer.velocity(in: contentView)
 
         switch gestureRecognizer.state {
         case .began:
@@ -129,7 +136,7 @@ final class DeleteTableViewCellWrapper<
             let rawOffset = panStartOffset - translation.x
             setRevealOffset(rawOffset, animated: false)
         case .ended, .cancelled, .failed:
-            settleSwipePosition()
+            settleSwipePosition(horizontalVelocity: velocity.x)
         default:
             break
         }
@@ -146,7 +153,7 @@ final class DeleteTableViewCellWrapper<
 }
 
 private extension DeleteTableViewCellWrapper {
-    var maxRevealOffset: CGFloat {
+    var revealOffset: CGFloat {
         sizeXL + spaceS
     }
 
@@ -154,8 +161,13 @@ private extension DeleteTableViewCellWrapper {
         sizeS
     }
 
-    var fullSwipeThreshold: CGFloat {
-        sizeXXL
+    var fullSwipeOffset: CGFloat {
+        let visibleWidth = max(contentView.bounds.width - spaceXS, .zero)
+        return max(visibleWidth, revealOffset)
+    }
+
+    var fullSwipeDistanceThreshold: CGFloat {
+        fullSwipeOffset * 0.65
     }
 
     func applyDeleteViewModel(_ viewModel: DeleteViewModel) {
@@ -170,6 +182,11 @@ private extension DeleteTableViewCellWrapper {
             deleteIconView.image = nil
             deleteIconView.isHidden = true
         }
+
+        if viewModel.state == .deleting {
+            swipeState = .deleting
+            setRevealOffset(fullSwipeOffset, animated: true)
+        }
     }
 
     func resetSwipeState(animated: Bool) {
@@ -178,13 +195,13 @@ private extension DeleteTableViewCellWrapper {
     }
 
     func setRevealOffset(_ offset: CGFloat, animated: Bool) {
-        let boundedOffset = min(max(offset, .zero), maxRevealOffset)
+        let boundedOffset = min(max(offset, .zero), fullSwipeOffset)
         currentRevealOffset = boundedOffset
 
         let updateOffsets = {
             self.wrappedViewLeadingConstraint?.update(offset: -boundedOffset)
             self.wrappedViewTrailingConstraint?.update(offset: -boundedOffset)
-            self.contentView.layoutIfNeeded()
+            self.contentView.setNeedsLayout()
         }
 
         if animated {
@@ -194,15 +211,17 @@ private extension DeleteTableViewCellWrapper {
         }
     }
 
-    func settleSwipePosition() {
-        if currentRevealOffset >= fullSwipeThreshold {
+    func settleSwipePosition(horizontalVelocity: CGFloat) {
+        let isFastLeftSwipe = horizontalVelocity <= -fullSwipeVelocityThreshold
+        let passedDistanceThreshold = currentRevealOffset >= fullSwipeDistanceThreshold
+        if passedDistanceThreshold || (isFastLeftSwipe && currentRevealOffset >= revealThreshold) {
             triggerDeleteIfPossible()
             return
         }
 
         if currentRevealOffset >= revealThreshold {
             swipeState = .revealed
-            setRevealOffset(maxRevealOffset, animated: true)
+            setRevealOffset(revealOffset, animated: true)
         } else {
             resetSwipeState(animated: true)
         }

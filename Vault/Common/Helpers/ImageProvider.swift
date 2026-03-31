@@ -2,7 +2,7 @@
 //  ImageProvider.swift
 //  Vault
 //
-//  Created by Codex on 31.03.2026.
+//  Created by Egor Shkarin on 31.03.2026.
 //
 
 import UIKit
