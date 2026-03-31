@@ -5,11 +5,13 @@ import SnapKit
 
 class BaseTableViewCellWrapper<
     WrappedView: UIView & ConfigurableCellWrappedView
->: UITableViewCell, Reusable {
+>: UITableViewCell, Reusable, LayoutScaleProviding, ImageProviding {
     typealias ViewModel = WrappedView.ViewModel
 
     let wrappedView = WrappedView(frame: .zero)
     private(set) var viewModel: ViewModel!
+    
+    let height: CGFloat = 72
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -41,6 +43,7 @@ class BaseTableViewCellWrapper<
     func setupWrappedViewConstraints() {
         wrappedView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
+            make.height.equalTo(height)
         }
     }
 }

@@ -178,11 +178,17 @@ private extension CategoryPresenter {
                         amount: .init(
                             text: amountText,
                             font: Typography.typographyBold14,
-                            textColor: .systemRed,
+                            textColor: Asset.Colors.errorColor.color,
                             alignment: .right
                         ),
                         isLoading: false,
-                        isDeleting: data.deletingExpenseIDs.contains(expense.id),
+                        deleteLabel: .init(
+                            text: L10n.categoryDelete,
+                            font: Typography.typographyBold10,
+                            textColor: .white,
+                            alignment: .center
+                        ),
+                        deleteState: data.deletingExpenseIDs.contains(expense.id) ? .deleting : .idle,
                         deleteCommand: Command { [weak handler] in
                             await handler?.handleDeleteExpense(id: expense.id)
                         }

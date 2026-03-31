@@ -1,7 +1,7 @@
 import UIKit
 import SnapKit
 
-final class MainTabBarView: UIView, LayoutScaleProviding {
+final class MainTabBarView: UIView, LayoutScaleProviding, ImageProviding {
     private(set) var viewModel: ViewModel = .init()
     private let centerActionButton = UIButton(type: .system)
 
@@ -97,10 +97,7 @@ private extension MainTabBarView {
         centerActionButton.layer.shadowOffset = CGSize(width: .zero, height: spaceXS)
         centerActionButton.layer.shadowRadius = sizeS
         centerActionButton.setImage(
-            UIImage(
-                systemName: "plus",
-                withConfiguration: UIImage.SymbolConfiguration(pointSize: centerActionSymbolSize, weight: .medium)
-            ),
+            plusImage(pointSize: centerActionSymbolSize, weight: .medium),
             for: .normal
         )
         centerActionButton.addTarget(self, action: #selector(handleTapCenterActionButton), for: .touchUpInside)

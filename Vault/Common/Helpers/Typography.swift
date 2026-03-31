@@ -144,6 +144,7 @@ enum Typography {
     static let typographyBold16: UIFont = bold(size: 16)
     static let typographyBold14: UIFont = bold(size: 14)
     static let typographyBold12: UIFont = bold(size: 12)
+    static let typographyBold10: UIFont = bold(size: 10)
 
     private static func normalizedSize(_ rawSize: CGFloat) -> CGFloat {
         let clamped = min(max(rawSize, minimumSize), maximumSize)

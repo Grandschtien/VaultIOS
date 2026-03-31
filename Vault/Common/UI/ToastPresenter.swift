@@ -284,7 +284,7 @@ private extension ToastState {
     var backgroundColor: UIColor {
         switch self {
         case .error:
-            return .systemRed
+            return Asset.Colors.errorColor.color
         case .success:
             return .systemGreen
         case .neutral, .neuteral:

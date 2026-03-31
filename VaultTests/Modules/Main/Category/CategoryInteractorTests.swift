@@ -152,11 +152,19 @@ extension CategoryInteractorTests {
         )
 
         await sut.fetchData()
+        let updatesBeforeDelete = presenter.presentedData.count
         await sut.handleDeleteExpense(id: "exp-1")
 
         guard let last = presenter.presentedData.last else {
             return XCTFail("Expected presenter update")
         }
+
+        let deleteUpdates = Array(presenter.presentedData.dropFirst(updatesBeforeDelete))
+        XCTAssertEqual(deleteUpdates.count, 2)
+        XCTAssertEqual(expenseIDs(from: deleteUpdates[0]), [])
+        XCTAssertTrue(deleteUpdates[0].deletingExpenseIDs.contains("exp-1"))
+        XCTAssertEqual(expenseIDs(from: deleteUpdates[1]), [])
+        XCTAssertTrue(deleteUpdates[1].deletingExpenseIDs.isEmpty)
 
         XCTAssertTrue(last.expenseGroups.isEmpty)
         XCTAssertTrue(last.deletingExpenseIDs.isEmpty)
@@ -190,11 +198,19 @@ extension CategoryInteractorTests {
         )
 
         await sut.fetchData()
+        let updatesBeforeDelete = presenter.presentedData.count
         await sut.handleDeleteExpense(id: "exp-1")
 
         guard let last = presenter.presentedData.last else {
             return XCTFail("Expected presenter update")
         }
+
+        let deleteUpdates = Array(presenter.presentedData.dropFirst(updatesBeforeDelete))
+        XCTAssertEqual(deleteUpdates.count, 2)
+        XCTAssertEqual(expenseIDs(from: deleteUpdates[0]), [])
+        XCTAssertTrue(deleteUpdates[0].deletingExpenseIDs.contains("exp-1"))
+        XCTAssertEqual(expenseIDs(from: deleteUpdates[1]), ["exp-1"])
+        XCTAssertTrue(deleteUpdates[1].deletingExpenseIDs.isEmpty)
 
         XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 1)
         XCTAssertTrue(last.deletingExpenseIDs.isEmpty)
@@ -276,6 +292,10 @@ private extension CategoryInteractorTests {
             amount: amount,
             currency: "USD"
         )
+    }
+
+    func expenseIDs(from data: CategoryFetchData) -> [String] {
+        data.expenseGroups.flatMap(\.expenses).map(\.id)
     }
 
     func assertStatus(

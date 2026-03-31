@@ -36,7 +36,6 @@ actor CategoryInteractor: CategoryBusinessLogic {
     private var category: MainCategoryCardModel?
     private var expenses: [MainExpenseModel] = []
     private var expenseGroups: [MainExpenseGroupModel] = []
-    private var deletingExpenseIDs: Set<String> = []
     private var pendingDeletedExpenses: [String: PendingDeletedExpenseContext] = [:]
     private var isLoadingNextPage: Bool = false
 
@@ -67,7 +66,6 @@ actor CategoryInteractor: CategoryBusinessLogic {
         category = nil
         expenses = []
         expenseGroups = []
-        deletingExpenseIDs = []
         pendingDeletedExpenses = [:]
         isLoadingNextPage = false
 
@@ -127,7 +125,7 @@ private extension CategoryInteractor {
                 loadingState: loadingState,
                 category: category,
                 expenseGroups: expenseGroups,
-                deletingExpenseIDs: deletingExpenseIDs,
+                deletingExpenseIDs: Set(pendingDeletedExpenses.keys),
                 isLoadingNextPage: isLoadingNextPage,
                 hasMore: pager.hasMorePages()
             )
@@ -193,11 +191,11 @@ extension CategoryInteractor: CategoryHandler {
             return
         }
 
-        guard let removedIndex = expenses.firstIndex(where: { $0.id == id }) else {
+        guard pendingDeletedExpenses[id] == nil else {
             return
         }
 
-        guard pendingDeletedExpenses[id] == nil else {
+        guard let removedIndex = expenses.firstIndex(where: { $0.id == id }) else {
             return
         }
 

@@ -123,7 +123,7 @@ private extension ExpesiesListPresenter {
                         amount: .init(
                             text: amountText,
                             font: Typography.typographyBold14,
-                            textColor: .systemRed,
+                            textColor: Asset.Colors.errorColor.color,
                             alignment: .right
                         ),
                         iconBackgroundColor: colorProvider.summaryColor(for: category?.color ?? ""),

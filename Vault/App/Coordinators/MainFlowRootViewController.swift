@@ -8,7 +8,7 @@
 import UIKit
 import Nivelir
 
-final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleProviding {
+final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleProviding, ImageProviding {
     private enum Constants {
         static let homeTabIndex: Int = 0
         static let centerActionTabIndex: Int = 1
@@ -56,14 +56,14 @@ private extension MainFlowRootViewController {
 
         homeController.tabBarItem = UITabBarItem(
             title: L10n.mainTabHome,
-            image: UIImage(systemName: "house"),
-            selectedImage: UIImage(systemName: "house.fill")
+            image: houseImage,
+            selectedImage: houseFillImage
         )
 
         statsController.tabBarItem = UITabBarItem(
             title: L10n.mainTabStats,
-            image: UIImage(systemName: "chart.pie"),
-            selectedImage: UIImage(systemName: "chart.pie.fill")
+            image: chartPieImage,
+            selectedImage: chartPieFillImage
         )
 
         viewControllers = [
@@ -108,10 +108,7 @@ private extension MainFlowRootViewController {
         button.backgroundColor = Asset.Colors.interactiveInputBackground.color
         button.tintColor = Asset.Colors.textAndIconSecondary.color
         button.setImage(
-            UIImage(
-                systemName: "person.crop.circle",
-                withConfiguration: UIImage.SymbolConfiguration(pointSize: profileIconSize, weight: .regular)
-            ),
+            personCropCircleImage(pointSize: profileIconSize, weight: .regular),
             for: .normal
         )
         button.accessibilityLabel = L10n.mainProfileAccessibilityLabel

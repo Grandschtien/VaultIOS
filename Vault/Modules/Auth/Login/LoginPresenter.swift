@@ -9,7 +9,7 @@ protocol LoginPresentationLogic: Sendable {
     func presentFetchedData(_ data: LoginFetchData)
 }
 
-final class LoginPresenter: LoginPresentationLogic {
+final class LoginPresenter: LoginPresentationLogic, ImageProviding {
 
     @Published
     private(set) var viewModel: LoginViewModel
@@ -63,9 +63,9 @@ final class LoginPresenter: LoginPresentationLogic {
                 placeholder: L10n.emailPlaceholder,
                 titleText: L10n.emailAddress,
                 additionalLabelText: L10n.signUp,
-                leftIcon: UIImage(systemName: "envelope"),
+                leftIcon: envelopeImage,
                 helpText: errorEmailMessage,
-                helpTextColor: .systemRed,
+                helpTextColor: Asset.Colors.errorColor.color,
                 onTextDidChanged: CommandOf { [weak handler] email in
                     await handler?.handleEmailDidChange(email)
                 },
@@ -79,9 +79,9 @@ final class LoginPresenter: LoginPresentationLogic {
                 isSecureTextEntry: true,
                 titleText: L10n.password,
                 additionalLabelText: L10n.forgot,
-                leftIcon: UIImage(systemName: "lock"),
+                leftIcon: lockImage,
                 helpText: errorPasswordMessage,
-                helpTextColor: .systemRed,
+                helpTextColor: Asset.Colors.errorColor.color,
                 onTextDidChanged: CommandOf { [weak handler] password in
                     await handler?.handlePasswordDidChange(password)
                 },

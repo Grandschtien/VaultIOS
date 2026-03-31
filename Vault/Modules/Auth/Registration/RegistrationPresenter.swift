@@ -9,7 +9,7 @@ protocol RegistrationPresentationLogic: Sendable {
     func presentFetchedData(_ data: RegistrationFetchData)
 }
 
-final class RegistrationPresenter: RegistrationPresentationLogic {
+final class RegistrationPresenter: RegistrationPresentationLogic, ImageProviding {
     @Published
     private(set) var viewModel: RegistrationViewModel
 
@@ -105,9 +105,9 @@ private extension RegistrationPresenter {
                         text: data.email,
                         placeholder: L10n.emailPlaceholder,
                         titleText: L10n.emailAddress,
-                        leftIcon: UIImage(systemName: "envelope"),
+                        leftIcon: envelopeImage,
                         helpText: data.emailErrorMessage,
-                        helpTextColor: .systemRed,
+                        helpTextColor: Asset.Colors.errorColor.color,
                         onTextDidChanged: CommandOf { [weak handler] email in
                             await handler?.handleEmailDidChange(email)
                         }
@@ -117,9 +117,9 @@ private extension RegistrationPresenter {
                         placeholder: L10n.passwordPlaceholder,
                         isSecureTextEntry: true,
                         titleText: L10n.password,
-                        leftIcon: UIImage(systemName: "lock"),
+                        leftIcon: lockImage,
                         helpText: data.passwordErrorMessage,
-                        helpTextColor: .systemRed,
+                        helpTextColor: Asset.Colors.errorColor.color,
                         onTextDidChanged: CommandOf { [weak handler] password in
                             await handler?.handlePasswordDidChange(password)
                         },
@@ -132,9 +132,9 @@ private extension RegistrationPresenter {
                         placeholder: L10n.passwordPlaceholder,
                         isSecureTextEntry: true,
                         titleText: L10n.registrationConfirmPassword,
-                        leftIcon: UIImage(systemName: "lock.rotation"),
+                        leftIcon: lockRotationImage,
                         helpText: data.confirmPasswordErrorMessage,
-                        helpTextColor: .systemRed,
+                        helpTextColor: Asset.Colors.errorColor.color,
                         onTextDidChanged: CommandOf { [weak handler] confirmPassword in
                             await handler?.handleConfirmPasswordDidChange(confirmPassword)
                         },
@@ -168,9 +168,9 @@ private extension RegistrationPresenter {
                         text: data.name,
                         placeholder: L10n.registrationNamePlaceholder,
                         titleText: L10n.name,
-                        leftIcon: UIImage(systemName: "person"),
+                        leftIcon: personImage,
                         helpText: data.nameErrorMessage,
-                        helpTextColor: .systemRed,
+                        helpTextColor: Asset.Colors.errorColor.color,
                         onTextDidChanged: CommandOf { [weak handler] name in
                             await handler?.handleNameDidChange(name)
                         },
@@ -198,7 +198,7 @@ private extension RegistrationPresenter {
                     searchField: .init(
                         text: data.searchQuery,
                         placeholder: L10n.registrationSearchCurrencyPlaceholder,
-                        leftIcon: UIImage(systemName: "magnifyingglass"),
+                        leftIcon: magnifyingglassImage,
                         onTextDidChanged: CommandOf { [weak handler] query in
                             await handler?.handleSearchQueryDidChange(query)
                         }
@@ -207,7 +207,7 @@ private extension RegistrationPresenter {
                         .init(
                             text: $0,
                             font: Typography.typographyMedium14,
-                            textColor: .systemRed,
+                            textColor: Asset.Colors.errorColor.color,
                             alignment: .left,
                             numberOfLines: .zero,
                             lineBreakMode: .byWordWrapping

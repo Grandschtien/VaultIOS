@@ -99,6 +99,11 @@ extension CategoryViewModel {
     }
 
     struct ExpenseItemViewModel: Equatable {
+        enum DeleteState: Equatable {
+            case idle
+            case deleting
+        }
+
         let id: String
         let iconText: String
         let iconBackgroundColor: UIColor
@@ -106,7 +111,8 @@ extension CategoryViewModel {
         let subtitle: Label.LabelViewModel
         let amount: Label.LabelViewModel
         let isLoading: Bool
-        let isDeleting: Bool
+        let deleteLabel: Label.LabelViewModel
+        let deleteState: DeleteState
         let deleteCommand: Command
 
         init(
@@ -117,7 +123,8 @@ extension CategoryViewModel {
             subtitle: Label.LabelViewModel = .init(),
             amount: Label.LabelViewModel = .init(),
             isLoading: Bool = false,
-            isDeleting: Bool = false,
+            deleteLabel: Label.LabelViewModel = .init(),
+            deleteState: DeleteState = .idle,
             deleteCommand: Command = .nope
         ) {
             self.id = id
@@ -127,7 +134,8 @@ extension CategoryViewModel {
             self.subtitle = subtitle
             self.amount = amount
             self.isLoading = isLoading
-            self.isDeleting = isDeleting
+            self.deleteLabel = deleteLabel
+            self.deleteState = deleteState
             self.deleteCommand = deleteCommand
         }
     }

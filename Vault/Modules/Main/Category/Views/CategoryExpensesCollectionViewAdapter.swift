@@ -7,7 +7,7 @@ protocol CategoryExpensesCollectionViewAdapterOutput: AnyObject {
     func handleNeedLoadNextPage()
 }
 
-final class CategoryExpensesCollectionViewAdapter: NSObject, LayoutScaleProviding {
+final class CategoryExpensesCollectionViewAdapter: NSObject, LayoutScaleProviding, ImageProviding {
     private enum Constants {
         static let summarySectionID = "category-summary-section"
         static let summaryItemID = "category-summary-item"
@@ -35,7 +35,7 @@ final class CategoryExpensesCollectionViewAdapter: NSObject, LayoutScaleProvidin
         self.tableView = tableView
 
         tableView.register(CategorySummaryTableViewCell.self)
-        tableView.register(BaseTableViewCellWrapper<ExpenseView>.self)
+        tableView.register(DeleteTableViewCellWrapper<ExpenseView>.self)
         tableView.delegate = self
 
         dataSource = UITableViewDiffableDataSource<String, String>(
@@ -53,8 +53,13 @@ final class CategoryExpensesCollectionViewAdapter: NSObject, LayoutScaleProvidin
                     return cell
 
                 case let .expense(expenseViewModel):
-                    let cell = tableView.dequeueReusableCell(BaseTableViewCellWrapper<ExpenseView>.self, for: indexPath)
-                    cell.configure(with: self.makeExpenseCellViewModel(from: expenseViewModel))
+                    let cell = tableView.dequeueReusableCell(DeleteTableViewCellWrapper<ExpenseView>.self, for: indexPath)
+                    cell.configure(
+                        with: .init(
+                            wrappedViewModel: self.makeExpenseCellViewModel(from: expenseViewModel),
+                            deleteViewModel: self.makeDeleteViewModel(from: expenseViewModel)
+                        )
+                    )
                     return cell
                 }
             }
@@ -125,6 +130,29 @@ private extension CategoryExpensesCollectionViewAdapter {
             iconBackgroundColor: viewModel.iconBackgroundColor,
             tapCommand: .nope
         )
+    }
+
+    func makeDeleteViewModel(
+        from viewModel: CategoryViewModel.ExpenseItemViewModel
+    ) -> DeleteTableViewCellWrapper<ExpenseView>.DeleteViewModel {
+        .init(
+            id: viewModel.id,
+            title: viewModel.deleteLabel,
+            icon: trashImage,
+            state: deleteState(from: viewModel.deleteState),
+            deleteCommand: viewModel.deleteCommand
+        )
+    }
+
+    func deleteState(
+        from state: CategoryViewModel.ExpenseItemViewModel.DeleteState
+    ) -> DeleteTableViewCellWrapper<ExpenseView>.DeleteViewModel.State {
+        switch state {
+        case .idle:
+            return .idle
+        case .deleting:
+            return .deleting
+        }
     }
 
     func sectionIdentifier(for section: Int) -> String? {
@@ -211,12 +239,7 @@ extension CategoryExpensesCollectionViewAdapter: UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        guard let sectionID = sectionIdentifier(for: indexPath.section),
-              sectionID != Constants.summarySectionID else {
-            return UITableView.automaticDimension
-        }
-
-        return sizeXL
+        return UITableView.automaticDimension
     }
 
     func tableView(

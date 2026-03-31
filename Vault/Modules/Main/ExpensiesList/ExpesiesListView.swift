@@ -4,7 +4,7 @@ import UIKit
 import SnapKit
 
 final class ExpesiesListView: UIView, LayoutScaleProviding {
-    private var itemHeight: CGFloat { sizeXL }
+    private var itemHeight: CGFloat { 72 }
     private var itemSpacing: CGFloat { spaceS }
     private var sectionHeaderHeight: CGFloat { sizeM }
 
@@ -13,6 +13,7 @@ final class ExpesiesListView: UIView, LayoutScaleProviding {
 
     private let errorView = FullScreenCommonErrorView()
     private let emptyLabel = Label()
+    private let loadingView = ExpensiesListLoadingView()
     private let paginationSpinner = UIActivityIndicatorView(style: .medium)
 
     private lazy var collectionView: UICollectionView = {
@@ -59,6 +60,8 @@ extension ExpesiesListView {
 
         switch viewModel.state {
         case let .error(errorViewModel):
+            loadingView.hideLoading()
+            loadingView.isHidden = true
             errorView.isHidden = false
             errorView.apply(errorViewModel)
             collectionView.isHidden = true
@@ -70,18 +73,22 @@ extension ExpesiesListView {
                 isLoadingNextPage: false
             )
 
-        case let .loading(sections):
+        case .loading:
+            loadingView.isHidden = false
+            loadingView.showLoading()
             errorView.isHidden = true
-            collectionView.isHidden = false
+            collectionView.isHidden = true
             emptyLabel.isHidden = true
             paginationSpinner.stopAnimating()
             collectionAdapter.configure(
-                sections: sections,
+                sections: [],
                 hasMore: false,
                 isLoadingNextPage: false
             )
 
         case let .empty(text):
+            loadingView.hideLoading()
+            loadingView.isHidden = true
             errorView.isHidden = true
             collectionView.isHidden = false
             emptyLabel.isHidden = false
@@ -102,6 +109,8 @@ extension ExpesiesListView {
             )
 
         case let .loaded(content):
+            loadingView.hideLoading()
+            loadingView.isHidden = true
             errorView.isHidden = true
             collectionView.isHidden = false
             emptyLabel.isHidden = true
@@ -130,12 +139,14 @@ private extension ExpesiesListView {
         collectionAdapter.attach(to: collectionView)
         errorView.isHidden = true
         emptyLabel.isHidden = true
+        loadingView.isHidden = true
         paginationSpinner.hidesWhenStopped = true
         paginationSpinner.color = Asset.Colors.interactiveElemetsPrimary.color
     }
 
     func setupLayout() {
         addSubview(collectionView)
+        addSubview(loadingView)
         addSubview(errorView)
         addSubview(emptyLabel)
         addSubview(paginationSpinner)
@@ -146,6 +157,10 @@ private extension ExpesiesListView {
         }
 
         errorView.snp.makeConstraints { make in
+            make.edges.equalTo(collectionView)
+        }
+
+        loadingView.snp.makeConstraints { make in
             make.edges.equalTo(collectionView)
         }
 

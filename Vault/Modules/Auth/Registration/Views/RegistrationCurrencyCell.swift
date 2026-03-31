@@ -3,7 +3,7 @@
 import UIKit
 import SnapKit
 
-final class RegistrationCurrencyCell: UITableViewCell, LayoutScaleProviding, Reusable {
+final class RegistrationCurrencyCell: UITableViewCell, LayoutScaleProviding, ImageProviding, Reusable {
     private let cardView = UIView()
     private let iconContainerView = UIView()
     private let iconLabel = Label()
@@ -38,12 +38,12 @@ final class RegistrationCurrencyCell: UITableViewCell, LayoutScaleProviding, Reu
         if viewModel.isSelected {
             cardView.layer.borderWidth = 2
             cardView.layer.borderColor = Asset.Colors.interactiveElemetsPrimary.color.cgColor
-            checkmarkImageView.image = UIImage(systemName: "checkmark.circle.fill")
+            checkmarkImageView.image = checkmarkCircleFillImage
             checkmarkImageView.tintColor = Asset.Colors.interactiveElemetsPrimary.color
         } else {
             cardView.layer.borderWidth = 0
             cardView.layer.borderColor = UIColor.clear.cgColor
-            checkmarkImageView.image = UIImage(systemName: "circle")
+            checkmarkImageView.image = circleImage
             checkmarkImageView.tintColor = Asset.Colors.textAndIconPlaceseholder.color.withAlphaComponent(0.6)
         }
     }

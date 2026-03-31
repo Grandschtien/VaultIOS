@@ -15,7 +15,7 @@ final class MainExpensesSectionView: UIView, LayoutScaleProviding {
         case error
     }
     
-    private var itemHeight: CGFloat { sizeXL }
+    private var itemHeight: CGFloat { 72 }
     private var itemSpacing: CGFloat { spaceS }
     private var sectionHeaderHeight: CGFloat { sizeM }
     private var sectionSpacing: CGFloat { spaceS }
