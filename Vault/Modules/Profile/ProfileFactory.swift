@@ -6,10 +6,28 @@ import Foundation
 
 final class ProfileFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
+        @SafeInject
+        var profileService: ProfileContractServicing
+        @SafeInject
+        var currencyRateService: MainCurrencyRateContractServicing
+        @SafeInject
+        var userProfileStorageService: UserProfileStorageServiceProtocol
+        @SafeInject
+        var toastPresenter: ToastPresenting
+
         let viewModel = ProfileViewModel()
         let presenter = ProfilePresenter(viewModel: viewModel)
-        let router = ProfileRouter(screenRouter: navigator)
-        let interactor = ProfileInteractor(presenter: presenter, router: router)
+        let router = ProfileRouter(
+            screenRouter: navigator,
+            toastPresenter: toastPresenter
+        )
+        let interactor = ProfileInteractor(
+            presenter: presenter,
+            router: router,
+            profileService: profileService,
+            currencyRateService: currencyRateService,
+            userProfileStorageService: userProfileStorageService
+        )
 
         let viewModelStore = ViewModelStore(
             viewModel: presenter.viewModel,

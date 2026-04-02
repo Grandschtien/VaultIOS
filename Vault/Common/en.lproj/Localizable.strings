@@ -71,3 +71,18 @@
 "category_delete" = "Delete";
 "category_edit_title" = "Edit %@";
 "category_edit_subtitle" = "Category ID: %@";
+
+"profile_settings_title" = "Settings";
+"profile_member" = "Member";
+"profile_member_status" = "%@ Member";
+"profile_plan" = "Plan";
+"profile_valid_until" = "Valid until %@";
+"profile_valid_until_unknown" = "Valid until -";
+"profile_general" = "General";
+"profile_currency" = "Currency";
+"profile_language" = "Language";
+"profile_logout" = "Log Out";
+"profile_version" = "Version %@ (Build %@)";
+"profile_error" = "Something went wrong";
+"profile_select_currency_title" = "Select Currency";
+"profile_currency_update_failed" = "Unable to update currency";

@@ -2,4 +2,30 @@
 
 import Foundation
 
-struct ProfileFetchData: Sendable {}
+struct ProfileFetchData: Sendable {
+    let navigationTitle: String
+    let loadingState: LoadingStatus
+    let profile: ProfileResponseDTO?
+    let selectedCurrencyCode: String?
+    let isSavingCurrency: Bool
+    let appVersion: String
+    let appBuild: String
+
+    init(
+        navigationTitle: String = L10n.profileSettingsTitle,
+        loadingState: LoadingStatus = .idle,
+        profile: ProfileResponseDTO? = nil,
+        selectedCurrencyCode: String? = nil,
+        isSavingCurrency: Bool = false,
+        appVersion: String = "",
+        appBuild: String = ""
+    ) {
+        self.navigationTitle = navigationTitle
+        self.loadingState = loadingState
+        self.profile = profile
+        self.selectedCurrencyCode = selectedCurrencyCode
+        self.isSavingCurrency = isSavingCurrency
+        self.appVersion = appVersion
+        self.appBuild = appBuild
+    }
+}
