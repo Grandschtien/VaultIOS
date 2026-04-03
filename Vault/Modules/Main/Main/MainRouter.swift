@@ -13,23 +13,23 @@ protocol MainRoutingLogic: Sendable {
 
 final class MainRouter: MainRoutingLogic {
     private let screenRouter: ScreenNavigator
-    private let dataStoreCache: MainDataStoreCache
+    private let context: MainFlowContext
 
     weak var viewController: UIViewController?
 
     init(
         screenRouter: ScreenNavigator,
-        dataStoreCache: MainDataStoreCache
+        context: MainFlowContext
     ) {
         self.screenRouter = screenRouter
-        self.dataStoreCache = dataStoreCache
+        self.context = context
     }
 
     func openAllCategories() {
         screenRouter.navigate(to: { route in
             route
                 .top(.stack)
-                .push(CategoriesListFactory(dataStoreCache: dataStoreCache))
+                .push(CategoriesListFactory(context: context))
         })
     }
 
@@ -37,7 +37,7 @@ final class MainRouter: MainRoutingLogic {
         screenRouter.navigate(to: { route in
             route
                 .top(.stack)
-                .push(ExpesiesListFactory())
+                .push(ExpesiesListFactory(context: context))
         })
     }
 
@@ -48,7 +48,8 @@ final class MainRouter: MainRoutingLogic {
                 .push(
                     CategoryFactory(
                         categoryID: id,
-                        categoryName: name
+                        categoryName: name,
+                        context: context
                     )
                 )
         })

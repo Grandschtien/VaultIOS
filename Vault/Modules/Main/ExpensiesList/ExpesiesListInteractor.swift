@@ -12,83 +12,107 @@ protocol ExpesiesListHandler: AnyObject, Sendable {
 }
 
 actor ExpesiesListInteractor: ExpesiesListBusinessLogic {
-    private enum Constants {
-        static let pageLimit: Int = 20
-    }
-
     private let presenter: ExpesiesListPresentationLogic
     private let router: ExpesiesListRoutingLogic
-    private let expensesProvider: ExpesiesListExpensesProviding
-    private let categoriesProvider: ExpesiesListCategoriesProviding
-    private let pager: PagerLogic
-    private let expenseGrouping: MainExpenseGrouping
+    private let repository: MainFlowDomainRepositoryProtocol
+    private let observer: MainFlowDomainObserverProtocol
 
     private var loadingState: LoadingStatus = .idle
     private var categories: [MainCategoryModel] = []
-    private var expenses: [MainExpenseModel] = []
     private var expenseGroups: [MainExpenseGroupModel] = []
     private var isLoadingNextPage: Bool = false
+    private var hasMore: Bool = false
+    private var observationTask: Task<Void, Never>?
 
     init(
         presenter: ExpesiesListPresentationLogic,
         router: ExpesiesListRoutingLogic,
-        expensesProvider: ExpesiesListExpensesProviding,
-        categoriesProvider: ExpesiesListCategoriesProviding,
-        pager: PagerLogic,
-        expenseGrouping: MainExpenseGrouping
+        repository: MainFlowDomainRepositoryProtocol,
+        observer: MainFlowDomainObserverProtocol
     ) {
         self.presenter = presenter
         self.router = router
-        self.expensesProvider = expensesProvider
-        self.categoriesProvider = categoriesProvider
-        self.pager = pager
-        self.expenseGrouping = expenseGrouping
+        self.repository = repository
+        self.observer = observer
+    }
+
+    deinit {
+        observationTask?.cancel()
     }
 
     func fetchData() async {
-        pager.reset()
+        startObservingIfNeeded()
 
         loadingState = .loading
         categories = []
-        expenses = []
         expenseGroups = []
         isLoadingNextPage = false
+        hasMore = false
 
         await presentFetchedData()
 
-        await loadInitialPage()
+        async let categoriesRefresh: Void = refreshCategoriesIfPossible()
+
+        do {
+            try await repository.refreshExpensesFirstPage()
+            _ = await categoriesRefresh
+            syncFromObserver()
+            loadingState = .loaded
+        } catch {
+            _ = await categoriesRefresh
+            syncFromObserver()
+
+            if expenseGroups.isEmpty {
+                loadingState = .failed(.undelinedError(description: error.localizedDescription))
+            } else {
+                loadingState = .loaded
+            }
+        }
+
+        await presentFetchedData()
     }
 }
 
 private extension ExpesiesListInteractor {
-    func loadInitialPage() async {
-        guard let request = pager.beginNextPageIfPossible() else {
+    func startObservingIfNeeded() {
+        guard observationTask == nil else {
             return
         }
 
-        do {
-            let page = try await expensesProvider.fetchExpensesPage(
-                cursor: request.cursor,
-                limit: Constants.pageLimit
-            )
-            expenses = page.expenses
-            expenseGroups = expenseGrouping.groupExpenses(expenses)
-            loadingState = .loaded
-            pager.commitPage(
-                nextCursor: page.nextCursor,
-                hasMore: page.hasMore
-            )
-        } catch {
-            loadingState = .failed(.undelinedError(description: error.localizedDescription))
-            pager.rollbackAfterError()
-        }
+        let stream = observer.subscribeExpensesList()
+        observationTask = Task { [weak self] in
+            for await snapshot in stream {
+                guard let self else {
+                    return
+                }
 
-        await presentFetchedData()
+                await self.handleSnapshot(snapshot)
+            }
+        }
+    }
+
+    func refreshCategoriesIfPossible() async {
+        try? await repository.refreshCategories()
+    }
+
+    func syncFromObserver() {
+        let snapshot = observer.currentExpensesListSnapshot()
+        categories = snapshot.categories
+        expenseGroups = snapshot.expenseGroups
+        hasMore = snapshot.hasMore
+    }
+
+    func handleSnapshot(_ snapshot: MainFlowExpensesListSnapshot) async {
+        categories = snapshot.categories
+        expenseGroups = snapshot.expenseGroups
+        hasMore = snapshot.hasMore
+
+        if loadingState == .loaded || !snapshot.expenseGroups.isEmpty {
+            await presentFetchedData()
+        }
     }
 
     func presentFetchedData() async {
-        let hasMore = pager.hasMorePages()
-
         await presenter.presentFetchedData(
             ExpesiesListFetchData(
                 loadingState: loadingState,
@@ -101,15 +125,9 @@ private extension ExpesiesListInteractor {
     }
 }
 
-extension ExpesiesListInteractor: ExpesiesListHandler {}
-
-extension ExpesiesListInteractor {
+extension ExpesiesListInteractor: ExpesiesListHandler {
     func handleLoadNextPage() async {
-        guard case .loaded = loadingState else {
-            return
-        }
-
-        guard let request = pager.beginNextPageIfPossible() else {
+        guard loadingState == .loaded, hasMore else {
             return
         }
 
@@ -117,21 +135,12 @@ extension ExpesiesListInteractor {
         await presentFetchedData()
 
         do {
-            let page = try await expensesProvider.fetchExpensesPage(
-                cursor: request.cursor,
-                limit: Constants.pageLimit
-            )
-            expenses.append(contentsOf: page.expenses)
-            expenseGroups = expenseGrouping.groupExpenses(expenses)
+            try await repository.loadNextExpensesPage()
+            syncFromObserver()
             isLoadingNextPage = false
-
-            pager.commitPage(
-                nextCursor: page.nextCursor,
-                hasMore: page.hasMore
-            )
         } catch {
+            syncFromObserver()
             isLoadingNextPage = false
-            pager.rollbackAfterError()
             await router.presentError(with: L10n.mainOverviewError)
         }
 

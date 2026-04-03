@@ -41,7 +41,8 @@ final class CategoryProvidersTests: XCTestCase {
         XCTAssertEqual(category.color, "light_orange")
         XCTAssertEqual(category.amount, 61.7)
         XCTAssertEqual(category.currency, "EUR")
-        XCTAssertEqual(await service.requestedCategoryIDs(), ["cat-1"])
+        let requestedCategoryIDs = await service.requestedCategoryIDs()
+        XCTAssertEqual(requestedCategoryIDs, ["cat-1"])
     }
 }
 
@@ -125,8 +126,9 @@ extension CategoryProvidersTests {
         XCTAssertEqual(page.expenses.first?.currency, "EUR")
         XCTAssertEqual(page.nextCursor, "next-1")
         XCTAssertTrue(page.hasMore)
+        let requestedParameters = await service.requestedListParameters()
         XCTAssertEqual(
-            await service.requestedListParameters(),
+            requestedParameters,
             [.init(category: "cat-1", cursor: "cursor-1", limit: 20)]
         )
     }
@@ -153,7 +155,8 @@ extension CategoryProvidersTests {
 
         try await sut.deleteExpense(id: "exp-1")
 
-        XCTAssertEqual(await service.requestedDeleteIDs(), ["exp-1"])
+        let requestedDeleteIDs = await service.requestedDeleteIDs()
+        XCTAssertEqual(requestedDeleteIDs, ["exp-1"])
     }
 }
 

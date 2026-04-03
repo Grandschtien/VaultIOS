@@ -100,11 +100,9 @@ private extension AppCoordinator {
     }
 
     func showMainFlow() {
-        let root = MainFlowRootViewController(screenNavigator: screenNavigator)
-
         screenNavigator.navigate { route in
             route
-                .setRoot(to: root)
+                .setRoot(to: MainFlowRootFactory())
                 .makeKeyAndVisible()
         }
     }

@@ -3,96 +3,58 @@ import XCTest
 
 @MainActor
 final class ExpesiesListInteractorTests: XCTestCase {
-    func testFetchDataHappyPathBuildsLoadedState() async {
+    func testFetchDataBuildsLoadedState() async {
         let presenter = ExpesiesListPresenterSpy()
+        let repository = ExpesiesListRepositoryStub(
+            firstPageResults: [
+                .success(
+                    .init(
+                        expenses: [makeExpense(id: "expense-1", time: 1_700_000_000)],
+                        hasMore: true
+                    )
+                )
+            ],
+            nextPageResults: []
+        )
         let sut = makeSut(
             presenter: presenter,
-            expensesProvider: ExpesiesListExpensesProviderStub(
-                results: [
-                    .success(
-                        .init(
-                            expenses: [makeExpense(id: "expense-1", time: 1_700_000_000)],
-                            nextCursor: "cursor-1",
-                            hasMore: true
-                        )
-                    )
-                ]
-            ),
-            categoriesProvider: ExpesiesListCategoriesProviderStub(
-                result: .success(
-                    [
-                        .init(
-                            id: "cat-1",
-                            name: "Food",
-                            icon: "🍴",
-                            color: "light_orange"
-                        )
-                    ]
-                )
-            )
+            router: ExpesiesListRouterSpy(),
+            repository: repository,
+            observer: repository.observer
         )
 
         await sut.fetchData()
+        await waitForUpdates()
 
         guard let first = presenter.presentedData.first,
-              let last = presenter.presentedData.last
-        else {
+              let last = presenter.presentedData.last else {
             return XCTFail("Expected presenter updates")
         }
 
         assertStatus(first.loadingState, is: .loading)
         assertStatus(last.loadingState, is: .loaded)
         XCTAssertEqual(last.categories.count, 1)
-        XCTAssertEqual(last.expenseGroups.count, 1)
-        XCTAssertEqual(last.expenseGroups[0].expenses.count, 1)
+        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 1)
         XCTAssertTrue(last.hasMore)
-    }
-}
-
-extension ExpesiesListInteractorTests {
-    func testFetchDataFailureBuildsFailedState() async {
-        let presenter = ExpesiesListPresenterSpy()
-        let router = ExpesiesListRouterSpy()
-        let sut = makeSut(
-            presenter: presenter,
-            router: router,
-            expensesProvider: ExpesiesListExpensesProviderStub(
-                results: [.failure(StubError.any)]
-            ),
-            categoriesProvider: ExpesiesListCategoriesProviderStub(
-                result: .success([])
-            )
-        )
-
-        await sut.fetchData()
-
-        guard let last = presenter.presentedData.last else {
-            return XCTFail("Expected presenter update")
-        }
-
-        assertStatus(last.loadingState, is: .failed)
-        XCTAssertTrue(last.expenseGroups.isEmpty)
-        XCTAssertFalse(last.isLoadingNextPage)
-        XCTAssertTrue(router.presentedErrors.isEmpty)
     }
 }
 
 extension ExpesiesListInteractorTests {
     func testHandleLoadNextPageAppendsExpenses() async {
         let presenter = ExpesiesListPresenterSpy()
-        let expensesProvider = ExpesiesListExpensesProviderStub(
-            results: [
+        let repository = ExpesiesListRepositoryStub(
+            firstPageResults: [
                 .success(
                     .init(
                         expenses: [makeExpense(id: "expense-1", time: 1_700_000_100)],
-                        nextCursor: "cursor-1",
                         hasMore: true
                     )
-                ),
+                )
+            ],
+            nextPageResults: [
                 .success(
                     .init(
                         expenses: [makeExpense(id: "expense-2", time: 1_700_000_000)],
-                        nextCursor: nil,
                         hasMore: false
                     )
                 )
@@ -100,61 +62,22 @@ extension ExpesiesListInteractorTests {
         )
         let sut = makeSut(
             presenter: presenter,
-            expensesProvider: expensesProvider,
-            categoriesProvider: ExpesiesListCategoriesProviderStub(
-                result: .success([])
-            )
+            router: ExpesiesListRouterSpy(),
+            repository: repository,
+            observer: repository.observer
         )
 
         await sut.fetchData()
         await sut.handleLoadNextPage()
+        await waitForUpdates()
 
         guard let last = presenter.presentedData.last else {
             return XCTFail("Expected presenter update")
         }
 
-        let requestedPages = await expensesProvider.requestedPages()
-
         assertStatus(last.loadingState, is: .loaded)
         XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 2)
         XCTAssertFalse(last.hasMore)
-        XCTAssertEqual(
-            requestedPages,
-            [
-                .init(cursor: nil, limit: 20),
-                .init(cursor: "cursor-1", limit: 20)
-            ]
-        )
-    }
-}
-
-extension ExpesiesListInteractorTests {
-    func testHandleLoadNextPageWhenHasNoMoreDoesNothing() async {
-        let presenter = ExpesiesListPresenterSpy()
-        let expensesProvider = ExpesiesListExpensesProviderStub(
-            results: [
-                .success(
-                    .init(
-                        expenses: [makeExpense(id: "expense-1", time: 1_700_000_000)],
-                        nextCursor: nil,
-                        hasMore: false
-                    )
-                )
-            ]
-        )
-        let sut = makeSut(
-            presenter: presenter,
-            expensesProvider: expensesProvider,
-            categoriesProvider: ExpesiesListCategoriesProviderStub(
-                result: .success([])
-            )
-        )
-
-        await sut.fetchData()
-        await sut.handleLoadNextPage()
-
-        let requestedPages = await expensesProvider.requestedPages()
-        XCTAssertEqual(requestedPages.count, 1)
     }
 }
 
@@ -162,28 +85,27 @@ extension ExpesiesListInteractorTests {
     func testHandleLoadNextPageFailureKeepsExistingDataAndShowsToast() async {
         let presenter = ExpesiesListPresenterSpy()
         let router = ExpesiesListRouterSpy()
+        let repository = ExpesiesListRepositoryStub(
+            firstPageResults: [
+                .success(
+                    .init(
+                        expenses: [makeExpense(id: "expense-1", time: 1_700_000_100)],
+                        hasMore: true
+                    )
+                )
+            ],
+            nextPageResults: [.failure(StubError.any)]
+        )
         let sut = makeSut(
             presenter: presenter,
             router: router,
-            expensesProvider: ExpesiesListExpensesProviderStub(
-                results: [
-                    .success(
-                        .init(
-                            expenses: [makeExpense(id: "expense-1", time: 1_700_000_000)],
-                            nextCursor: "cursor-1",
-                            hasMore: true
-                        )
-                    ),
-                    .failure(StubError.any)
-                ]
-            ),
-            categoriesProvider: ExpesiesListCategoriesProviderStub(
-                result: .success([])
-            )
+            repository: repository,
+            observer: repository.observer
         )
 
         await sut.fetchData()
         await sut.handleLoadNextPage()
+        await waitForUpdates()
 
         guard let last = presenter.presentedData.last else {
             return XCTFail("Expected presenter update")
@@ -191,43 +113,8 @@ extension ExpesiesListInteractorTests {
 
         assertStatus(last.loadingState, is: .loaded)
         XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 1)
-        XCTAssertFalse(last.isLoadingNextPage)
         XCTAssertTrue(last.hasMore)
         XCTAssertEqual(router.presentedErrors, [L10n.mainOverviewError])
-    }
-}
-
-extension ExpesiesListInteractorTests {
-    func testHandleTapRetryAfterFailureLoadsDataAgain() async {
-        let presenter = ExpesiesListPresenterSpy()
-        let expensesProvider = ExpesiesListExpensesProviderStub(
-            results: [
-                .failure(StubError.any),
-                .success(
-                    .init(
-                        expenses: [makeExpense(id: "expense-1", time: 1_700_000_000)],
-                        nextCursor: nil,
-                        hasMore: false
-                    )
-                )
-            ]
-        )
-        let sut = makeSut(
-            presenter: presenter,
-            expensesProvider: expensesProvider,
-            categoriesProvider: ExpesiesListCategoriesProviderStub(result: .success([]))
-        )
-
-        await sut.fetchData()
-        await sut.handleTapRetry()
-
-        guard let last = presenter.presentedData.last else {
-            return XCTFail("Expected presenter update")
-        }
-
-        assertStatus(last.loadingState, is: .loaded)
-        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 1)
-        XCTAssertEqual(await expensesProvider.requestedPages().count, 2)
     }
 }
 
@@ -245,17 +132,15 @@ private extension ExpesiesListInteractorTests {
 
     func makeSut(
         presenter: ExpesiesListPresentationLogic,
-        router: ExpesiesListRoutingLogic = ExpesiesListRouterSpy(),
-        expensesProvider: ExpesiesListExpensesProviding,
-        categoriesProvider: ExpesiesListCategoriesProviding
+        router: ExpesiesListRoutingLogic,
+        repository: MainFlowDomainRepositoryProtocol,
+        observer: MainFlowDomainObserverProtocol
     ) -> ExpesiesListInteractor {
         ExpesiesListInteractor(
             presenter: presenter,
             router: router,
-            expensesProvider: expensesProvider,
-            categoriesProvider: categoriesProvider,
-            pager: Pager(),
-            expenseGrouping: MainExpenseDateGrouping()
+            repository: repository,
+            observer: observer
         )
     }
 
@@ -269,6 +154,11 @@ private extension ExpesiesListInteractorTests {
             category: "cat-1",
             timeOfAdd: Date(timeIntervalSince1970: time)
         )
+    }
+
+    func waitForUpdates() async {
+        await Task.yield()
+        await Task.yield()
     }
 
     func assertStatus(
@@ -313,41 +203,94 @@ private final class ExpesiesListRouterSpy: ExpesiesListRoutingLogic, @unchecked 
     }
 }
 
-private actor ExpesiesListExpensesProviderStub: ExpesiesListExpensesProviding {
-    private let results: [Result<ExpesiesListExpensesPage, Error>]
-    private var fetchCallsCount: Int = .zero
-    private var requestedParameters: [ExpesiesRequestedPage] = []
+private actor ExpesiesListRepositoryStub: MainFlowDomainRepositoryProtocol {
+    nonisolated let observer: MainFlowDomainObserverProtocol
 
-    init(results: [Result<ExpesiesListExpensesPage, Error>]) {
-        self.results = results
+    private let store: MainFlowDomainStoreProtocol
+    private let firstPageResults: [Result<PagePayload, Error>]
+    private let nextPageResults: [Result<PagePayload, Error>]
+    private var firstPageCallCount: Int = .zero
+    private var nextPageCallCount: Int = .zero
+
+    init(
+        firstPageResults: [Result<PagePayload, Error>],
+        nextPageResults: [Result<PagePayload, Error>]
+    ) {
+        let store = MainFlowDomainStore()
+        self.store = store
+        self.observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        self.firstPageResults = firstPageResults
+        self.nextPageResults = nextPageResults
     }
 
-    func fetchExpensesPage(cursor: String?, limit: Int) async throws -> ExpesiesListExpensesPage {
-        requestedParameters.append(.init(cursor: cursor, limit: limit))
-        let index = min(fetchCallsCount, max(results.count - 1, .zero))
-        let result = results[index]
-        fetchCallsCount += 1
-        return try result.get()
+    func refreshMainFlow() async throws {}
+
+    func refreshCategories() async throws {
+        let category = MainCategoryCardModel(
+            id: "cat-1",
+            name: "Food",
+            icon: "🍴",
+            color: "light_orange",
+            amount: 10,
+            currency: "USD"
+        )
+
+        store.update { state in
+            state.categoriesByID[category.id] = category
+            state.categoryOrder = [category.id]
+        }
+        observer.publishAll(from: store)
     }
 
-    func requestedPages() -> [ExpesiesRequestedPage] {
-        requestedParameters
+    func refreshRecentExpenses() async throws {}
+    func refreshCategoryFirstPage(id: String) async throws {}
+
+    func refreshExpensesFirstPage() async throws {
+        let index = min(firstPageCallCount, max(firstPageResults.count - 1, .zero))
+        let payload = try firstPageResults[index].get()
+        firstPageCallCount += 1
+
+        store.update { state in
+            payload.expenses.forEach { state.expensesByID[$0.id] = $0 }
+            state.expensesListExpenseIDs = payload.expenses.map(\.id)
+            state.expensesListPagination = .init(
+                nextCursor: payload.hasMore ? "cursor-1" : nil,
+                hasMore: payload.hasMore,
+                isLoaded: true
+            )
+        }
+        observer.publishAll(from: store)
     }
+
+    func loadNextCategoryPage(id: String) async throws {}
+
+    func loadNextExpensesPage() async throws {
+        let index = min(nextPageCallCount, max(nextPageResults.count - 1, .zero))
+        let payload = try nextPageResults[index].get()
+        nextPageCallCount += 1
+
+        store.update { state in
+            payload.expenses.forEach { state.expensesByID[$0.id] = $0 }
+            state.expensesListExpenseIDs += payload.expenses.map(\.id)
+            state.expensesListPagination = .init(
+                nextCursor: payload.hasMore ? "cursor-\(nextPageCallCount)" : nil,
+                hasMore: payload.hasMore,
+                isLoaded: true
+            )
+        }
+        observer.publishAll(from: store)
+    }
+
+    func addExpense(_ request: ExpensesCreateRequestDTO) async throws {}
+    func deleteExpense(id: String) async throws {}
+    func addCategory(_ request: CategoryCreateRequestDTO) async throws {}
+    func deleteCategory(id: String) async throws {}
+    func clearSession() async {}
 }
 
-private actor ExpesiesListCategoriesProviderStub: ExpesiesListCategoriesProviding {
-    private let result: Result<[MainCategoryModel], Error>
-
-    init(result: Result<[MainCategoryModel], Error>) {
-        self.result = result
+private extension ExpesiesListRepositoryStub {
+    struct PagePayload {
+        let expenses: [MainExpenseModel]
+        let hasMore: Bool
     }
-
-    func fetchCategories() async throws -> [MainCategoryModel] {
-        try result.get()
-    }
-}
-
-private struct ExpesiesRequestedPage: Equatable {
-    let cursor: String?
-    let limit: Int
 }

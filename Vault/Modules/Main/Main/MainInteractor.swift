@@ -21,9 +21,8 @@ actor MainInteractor: MainBusinessLogic {
     private let router: MainRoutingLogic
     private let currencyRateProvider: MainCurrencyRateProviding
     private let summaryProvider: MainSummaryProviding
-    private let categoriesProvider: MainCategoriesProviding
-    private let expensesProvider: MainExpensesProviding
-    private let expenseGrouping: MainExpenseGrouping
+    private let repository: MainFlowDomainRepositoryProtocol
+    private let observer: MainFlowDomainObserverProtocol
 
     private var blockingErrorDescription: String?
     private var summaryState: LoadingStatus = .idle
@@ -33,23 +32,26 @@ actor MainInteractor: MainBusinessLogic {
     private var summary: MainSummaryModel?
     private var categories: [MainCategoryCardModel] = []
     private var expenseGroups: [MainExpenseGroupModel] = []
+    private var observationTask: Task<Void, Never>?
 
     init(
         presenter: MainPresentationLogic,
         router: MainRoutingLogic,
         currencyRateProvider: MainCurrencyRateProviding,
         summaryProvider: MainSummaryProviding,
-        categoriesProvider: MainCategoriesProviding,
-        expensesProvider: MainExpensesProviding,
-        expenseGrouping: MainExpenseGrouping
+        repository: MainFlowDomainRepositoryProtocol,
+        observer: MainFlowDomainObserverProtocol
     ) {
         self.presenter = presenter
         self.router = router
         self.currencyRateProvider = currencyRateProvider
         self.summaryProvider = summaryProvider
-        self.categoriesProvider = categoriesProvider
-        self.expensesProvider = expensesProvider
-        self.expenseGrouping = expenseGrouping
+        self.repository = repository
+        self.observer = observer
+    }
+
+    deinit {
+        observationTask?.cancel()
     }
 
     func fetchData() async {
@@ -57,11 +59,29 @@ actor MainInteractor: MainBusinessLogic {
             return
         }
 
+        startObservingIfNeeded()
         await loadMainData()
     }
 }
 
 private extension MainInteractor {
+    func startObservingIfNeeded() {
+        guard observationTask == nil else {
+            return
+        }
+
+        let stream = observer.subscribeOverview()
+        observationTask = Task { [weak self] in
+            for await snapshot in stream {
+                guard let self else {
+                    return
+                }
+
+                await self.handleOverviewSnapshot(snapshot)
+            }
+        }
+    }
+
     func validateLaunchCurrencyRate() async -> Bool {
         do {
             try await currencyRateProvider.synchronizeCurrencyRateOnLaunch()
@@ -104,7 +124,16 @@ private extension MainInteractor {
             summary = try await summaryProvider.fetchSummary()
             summaryState = .loaded
         } catch {
-            summaryState = .failed(.undelinedError(description: error.localizedDescription))
+            if let overviewSummary = observer.currentOverviewSnapshot().summary {
+                summary = MainSummaryModel(
+                    totalAmount: overviewSummary.totalAmount,
+                    currency: overviewSummary.currency,
+                    changePercent: summary?.changePercent ?? overviewSummary.changePercent
+                )
+                summaryState = .loaded
+            } else {
+                summaryState = .failed(.undelinedError(description: error.localizedDescription))
+            }
         }
 
         await presentFetchedData()
@@ -112,10 +141,17 @@ private extension MainInteractor {
 
     func loadCategories() async {
         do {
-            categories = try await categoriesProvider.fetchCategories()
+            try await repository.refreshCategories()
+            categories = observer.currentOverviewSnapshot().categories
             categoriesState = .loaded
         } catch {
-            categoriesState = .failed(.undelinedError(description: error.localizedDescription))
+            categories = observer.currentOverviewSnapshot().categories
+
+            if categories.isEmpty {
+                categoriesState = .failed(.undelinedError(description: error.localizedDescription))
+            } else {
+                categoriesState = .loaded
+            }
         }
 
         await presentFetchedData()
@@ -123,11 +159,37 @@ private extension MainInteractor {
 
     func loadExpenses() async {
         do {
-            let expenses = try await expensesProvider.fetchExpenses()
-            expenseGroups = expenseGrouping.groupExpenses(expenses)
+            try await repository.refreshRecentExpenses()
+            expenseGroups = observer.currentOverviewSnapshot().expenseGroups
             expensesState = .loaded
         } catch {
-            expensesState = .failed(.undelinedError(description: error.localizedDescription))
+            expenseGroups = observer.currentOverviewSnapshot().expenseGroups
+
+            if expenseGroups.isEmpty {
+                expensesState = .failed(.undelinedError(description: error.localizedDescription))
+            } else {
+                expensesState = .loaded
+            }
+        }
+
+        await presentFetchedData()
+    }
+
+    func handleOverviewSnapshot(_ snapshot: MainFlowOverviewSnapshot) async {
+        if let snapshotSummary = snapshot.summary {
+            summary = MainSummaryModel(
+                totalAmount: snapshotSummary.totalAmount,
+                currency: snapshotSummary.currency,
+                changePercent: summary?.changePercent ?? snapshotSummary.changePercent
+            )
+            summaryState = .loaded
+        }
+
+        categories = snapshot.categories
+        expenseGroups = snapshot.expenseGroups
+
+        guard summaryState == .loaded || categoriesState == .loaded || expensesState == .loaded else {
+            return
         }
 
         await presentFetchedData()

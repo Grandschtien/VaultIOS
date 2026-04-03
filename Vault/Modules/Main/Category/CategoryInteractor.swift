@@ -14,107 +14,105 @@ protocol CategoryHandler: AnyObject, Sendable {
 }
 
 actor CategoryInteractor: CategoryBusinessLogic {
-    private enum Constants {
-        static let pageLimit: Int = 20
-    }
-
-    private struct PendingDeletedExpenseContext {
-        let expense: MainExpenseModel
-        let index: Int
-    }
-
     private let categoryID: String
     private let categoryName: String?
     private let presenter: CategoryPresentationLogic
     private let router: CategoryRoutingLogic
-    private let summaryProvider: CategorySummaryProviding
-    private let expensesProvider: CategoryExpensesProviding
-    private let pager: PagerLogic
-    private let expenseGrouping: MainExpenseGrouping
+    private let repository: MainFlowDomainRepositoryProtocol
+    private let observer: MainFlowDomainObserverProtocol
 
     private var loadingState: LoadingStatus = .idle
     private var category: MainCategoryCardModel?
-    private var expenses: [MainExpenseModel] = []
     private var expenseGroups: [MainExpenseGroupModel] = []
-    private var pendingDeletedExpenses: [String: PendingDeletedExpenseContext] = [:]
+    private var deletingExpenseIDs: Set<String> = []
     private var isLoadingNextPage: Bool = false
+    private var hasMore: Bool = false
+    private var observationTask: Task<Void, Never>?
 
     init(
         categoryID: String,
         categoryName: String?,
         presenter: CategoryPresentationLogic,
         router: CategoryRoutingLogic,
-        summaryProvider: CategorySummaryProviding,
-        expensesProvider: CategoryExpensesProviding,
-        pager: PagerLogic,
-        expenseGrouping: MainExpenseGrouping
+        repository: MainFlowDomainRepositoryProtocol,
+        observer: MainFlowDomainObserverProtocol
     ) {
         self.categoryID = categoryID
         self.categoryName = categoryName
         self.presenter = presenter
         self.router = router
-        self.summaryProvider = summaryProvider
-        self.expensesProvider = expensesProvider
-        self.pager = pager
-        self.expenseGrouping = expenseGrouping
+        self.repository = repository
+        self.observer = observer
+    }
+
+    deinit {
+        observationTask?.cancel()
     }
 
     func fetchData() async {
-        pager.reset()
+        startObservingIfNeeded()
 
         loadingState = .loading
         category = nil
-        expenses = []
         expenseGroups = []
-        pendingDeletedExpenses = [:]
+        deletingExpenseIDs = []
         isLoadingNextPage = false
+        hasMore = false
 
         await presentFetchedData()
-        await loadInitialData()
+
+        do {
+            try await repository.refreshCategoryFirstPage(id: categoryID)
+            syncFromObserver()
+            loadingState = .loaded
+        } catch {
+            syncFromObserver()
+
+            if category == nil && expenseGroups.isEmpty {
+                loadingState = .failed(.undelinedError(description: error.localizedDescription))
+            } else {
+                loadingState = .loaded
+            }
+        }
+
+        await presentFetchedData()
     }
 }
 
 private extension CategoryInteractor {
-    func loadInitialData() async {
-        guard let request = pager.beginNextPageIfPossible() else {
-            loadingState = .loaded
-            await presentFetchedData()
+    func startObservingIfNeeded() {
+        guard observationTask == nil else {
             return
         }
 
-        do {
-            async let categoryTask = summaryProvider.fetchCategory(id: categoryID)
-            async let expensesTask = expensesProvider.fetchExpensesPage(
-                categoryID: categoryID,
-                cursor: request.cursor,
-                limit: Constants.pageLimit
-            )
+        let stream = observer.subscribeCategory(id: categoryID)
+        observationTask = Task { [weak self] in
+            for await snapshot in stream {
+                guard let self else {
+                    return
+                }
 
-            let loadedCategory = try await categoryTask
-            let page = try await expensesTask
-
-            category = loadedCategory
-            expenses = page.expenses
-            expenseGroups = expenseGrouping.groupExpenses(expenses)
-            loadingState = .loaded
-
-            pager.commitPage(
-                nextCursor: page.nextCursor,
-                hasMore: page.hasMore
-            )
-        } catch {
-            loadingState = .failed(.undelinedError(description: error.localizedDescription))
-            pager.rollbackAfterError()
+                await self.handleSnapshot(snapshot)
+            }
         }
-
-        await presentFetchedData()
     }
 
-    func refreshSummaryAfterDeletionIfNeeded() async {
-        do {
-            category = try await summaryProvider.fetchCategory(id: categoryID)
-        } catch {
-            await router.presentError(with: L10n.mainOverviewError)
+    func syncFromObserver() {
+        let snapshot = observer.currentCategorySnapshot(id: categoryID)
+        category = snapshot.category
+        expenseGroups = snapshot.expenseGroups
+        deletingExpenseIDs = snapshot.deletingExpenseIDs
+        hasMore = snapshot.hasMore
+    }
+
+    func handleSnapshot(_ snapshot: MainFlowCategorySnapshot) async {
+        category = snapshot.category
+        expenseGroups = snapshot.expenseGroups
+        deletingExpenseIDs = snapshot.deletingExpenseIDs
+        hasMore = snapshot.hasMore
+
+        if loadingState == .loaded || snapshot.hasContent || !snapshot.deletingExpenseIDs.isEmpty {
+            await presentFetchedData()
         }
     }
 
@@ -125,9 +123,9 @@ private extension CategoryInteractor {
                 loadingState: loadingState,
                 category: category,
                 expenseGroups: expenseGroups,
-                deletingExpenseIDs: Set(pendingDeletedExpenses.keys),
+                deletingExpenseIDs: deletingExpenseIDs,
                 isLoadingNextPage: isLoadingNextPage,
-                hasMore: pager.hasMorePages()
+                hasMore: hasMore
             )
         )
     }
@@ -151,11 +149,7 @@ extension CategoryInteractor: CategoryHandler {
     }
 
     func handleLoadNextPage() async {
-        guard case .loaded = loadingState else {
-            return
-        }
-
-        guard let request = pager.beginNextPageIfPossible() else {
+        guard loadingState == .loaded, hasMore else {
             return
         }
 
@@ -163,23 +157,12 @@ extension CategoryInteractor: CategoryHandler {
         await presentFetchedData()
 
         do {
-            let page = try await expensesProvider.fetchExpensesPage(
-                categoryID: categoryID,
-                cursor: request.cursor,
-                limit: Constants.pageLimit
-            )
-
-            expenses.append(contentsOf: page.expenses)
-            expenseGroups = expenseGrouping.groupExpenses(expenses)
+            try await repository.loadNextCategoryPage(id: categoryID)
+            syncFromObserver()
             isLoadingNextPage = false
-
-            pager.commitPage(
-                nextCursor: page.nextCursor,
-                hasMore: page.hasMore
-            )
         } catch {
+            syncFromObserver()
             isLoadingNextPage = false
-            pager.rollbackAfterError()
             await router.presentError(with: L10n.mainOverviewError)
         }
 
@@ -187,40 +170,16 @@ extension CategoryInteractor: CategoryHandler {
     }
 
     func handleDeleteExpense(id: String) async {
-        guard case .loaded = loadingState else {
+        guard loadingState == .loaded else {
             return
         }
-
-        guard pendingDeletedExpenses[id] == nil else {
-            return
-        }
-
-        guard let removedIndex = expenses.firstIndex(where: { $0.id == id }) else {
-            return
-        }
-
-        let removedExpense = expenses.remove(at: removedIndex)
-        pendingDeletedExpenses[id] = .init(
-            expense: removedExpense,
-            index: removedIndex
-        )
-        expenseGroups = expenseGrouping.groupExpenses(expenses)
-        await presentFetchedData()
 
         do {
-            try await expensesProvider.deleteExpense(id: id)
-            pendingDeletedExpenses[id] = nil
-
-            await refreshSummaryAfterDeletionIfNeeded()
+            try await repository.deleteExpense(id: id)
+            syncFromObserver()
             await presentFetchedData()
         } catch {
-            if let pendingContext = pendingDeletedExpenses[id] {
-                pendingDeletedExpenses[id] = nil
-                let insertIndex = min(pendingContext.index, expenses.count)
-                expenses.insert(pendingContext.expense, at: insertIndex)
-                expenseGroups = expenseGrouping.groupExpenses(expenses)
-            }
-
+            syncFromObserver()
             await presentFetchedData()
             await router.presentError(with: L10n.mainOverviewError)
         }

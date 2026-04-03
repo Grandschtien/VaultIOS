@@ -5,23 +5,13 @@ import Nivelir
 import Foundation
 
 final class CategoriesListFactory: Screen {
-    private let dataStoreCache: MainDataStoreCache
+    private let context: MainFlowContext
 
-    init(dataStoreCache: MainDataStoreCache) {
-        self.dataStoreCache = dataStoreCache
+    init(context: MainFlowContext) {
+        self.context = context
     }
 
     func build(navigator: ScreenNavigator) -> UIViewController {
-        @SafeInject
-        var categoriesService: MainCategoriesContractServicing
-        @SafeInject
-        var currencyConversionService: UserCurrencyConverting
-
-        let categoriesProvider = CategoriesListCategoriesProvider(
-            categoriesService: categoriesService,
-            cache: dataStoreCache,
-            currencyConversionService: currencyConversionService
-        )
         let formatter = MainValueFormatter()
         let colorProvider = CategoryColorProvider()
 
@@ -31,11 +21,15 @@ final class CategoriesListFactory: Screen {
             formatter: formatter,
             colorProvider: colorProvider
         )
-        let router = CategoriesListRouter(screenRouter: navigator)
+        let router = CategoriesListRouter(
+            screenRouter: navigator,
+            context: context
+        )
         let interactor = CategoriesListInteractor(
             presenter: presenter,
             router: router,
-            categoriesProvider: categoriesProvider
+            repository: context.repository,
+            observer: context.observer
         )
 
         let viewModelStore = ViewModelStore(

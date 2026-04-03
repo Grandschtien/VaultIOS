@@ -7,24 +7,21 @@ import Foundation
 final class CategoryFactory: Screen {
     private let categoryID: String
     private let categoryName: String?
+    private let context: MainFlowContext
 
     init(
         categoryID: String,
-        categoryName: String?
+        categoryName: String?,
+        context: MainFlowContext
     ) {
         self.categoryID = categoryID
         self.categoryName = categoryName
+        self.context = context
     }
 
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
-        var categoriesService: MainCategoriesContractServicing
-        @SafeInject
-        var expensesService: MainExpensesContractServicing
-        @SafeInject
         var toastPresenter: ToastPresenting
-        @SafeInject
-        var currencyConversionService: UserCurrencyConverting
 
         let viewModel = CategoryViewModel()
         let presenter = CategoryPresenter(
@@ -41,16 +38,8 @@ final class CategoryFactory: Screen {
             categoryName: categoryName,
             presenter: presenter,
             router: router,
-            summaryProvider: CategorySummaryProvider(
-                categoriesService: categoriesService,
-                currencyConversionService: currencyConversionService
-            ),
-            expensesProvider: CategoryExpensesProvider(
-                expensesService: expensesService,
-                currencyConversionService: currencyConversionService
-            ),
-            pager: Pager(),
-            expenseGrouping: MainExpenseDateGrouping()
+            repository: context.repository,
+            observer: context.observer
         )
 
         let viewModelStore = ViewModelStore(

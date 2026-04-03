@@ -15,7 +15,9 @@ final class MainCurrencyRateProviderTests: XCTestCase {
                 currencyRateUpdatedAt: Date(timeIntervalSince1970: 1_742_999_000)
             )
         )
-        let service = CurrencyRateServiceSpy(result: .success(.init(currency: "USD", rate: 2.0)))
+        let service = CurrencyRateServiceSpy(
+            result: .success(.init(currency: "USD", rateToUsd: 2.0, asOf: ""))
+        )
         let sut = MainCurrencyRateProvider(
             currencyRateService: service,
             userProfileStorageService: profileStorage,
@@ -44,7 +46,9 @@ extension MainCurrencyRateProviderTests {
                 currencyRateUpdatedAt: Date(timeIntervalSince1970: 1_742_800_000)
             )
         )
-        let service = CurrencyRateServiceSpy(result: .success(.init(currency: "USD", rate: 2.0)))
+        let service = CurrencyRateServiceSpy(
+            result: .success(.init(currency: "USD", rateToUsd: 2.0, asOf: ""))
+        )
         let sut = MainCurrencyRateProvider(
             currencyRateService: service,
             userProfileStorageService: profileStorage,

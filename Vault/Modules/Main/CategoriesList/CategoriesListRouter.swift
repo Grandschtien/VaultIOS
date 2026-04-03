@@ -11,11 +11,16 @@ protocol CategoriesListRoutingLogic: Sendable {
 
 final class CategoriesListRouter: CategoriesListRoutingLogic {
     private let screenRouter: ScreenNavigator
+    private let context: MainFlowContext
 
     weak var viewController: UIViewController?
 
-    init(screenRouter: ScreenNavigator) {
+    init(
+        screenRouter: ScreenNavigator,
+        context: MainFlowContext
+    ) {
         self.screenRouter = screenRouter
+        self.context = context
     }
 
     func openCategory(id: String, name: String) {
@@ -25,7 +30,8 @@ final class CategoriesListRouter: CategoriesListRoutingLogic {
                 .push(
                     CategoryFactory(
                         categoryID: id,
-                        categoryName: name
+                        categoryName: name,
+                        context: context
                     )
                 )
         })

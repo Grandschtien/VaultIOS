@@ -5,36 +5,25 @@ import Nivelir
 import Foundation
 
 final class MainFactory: Screen {
+    private let context: MainFlowContext
+
+    init(context: MainFlowContext) {
+        self.context = context
+    }
+
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
         var summaryService: MainSummaryContractServicing
         @SafeInject
         var currencyRateService: MainCurrencyRateContractServicing
         @SafeInject
-        var categoriesService: MainCategoriesContractServicing
-        @SafeInject
-        var expensesService: MainExpensesContractServicing
-        @SafeInject
         var userProfileStorageService: UserProfileStorageServiceProtocol
-        @SafeInject
-        var currencyConversionService: UserCurrencyConverting
 
-        let dataStoreCache = MainDataStoreCache()
         let currencyRateProvider = MainCurrencyRateProvider(
             currencyRateService: currencyRateService,
             userProfileStorageService: userProfileStorageService
         )
         let summaryProvider = MainSummaryProvider(summaryService: summaryService)
-        let categoriesProvider = MainCategoriesProvider(
-            categoriesService: categoriesService,
-            cache: dataStoreCache,
-            currencyConversionService: currencyConversionService
-        )
-        let expensesProvider = MainExpensesProvider(
-            expensesService: expensesService,
-            currencyConversionService: currencyConversionService
-        )
-        let expenseGrouping = MainExpenseDateGrouping()
         let formatter = MainValueFormatter()
         let colorProvider = CategoryColorProvider()
         let categoriesCollectionAdapter = CategoryCollectionViewAdapter()
@@ -47,16 +36,15 @@ final class MainFactory: Screen {
         )
         let router = MainRouter(
             screenRouter: navigator,
-            dataStoreCache: dataStoreCache
+            context: context
         )
         let interactor = MainInteractor(
             presenter: presenter,
             router: router,
             currencyRateProvider: currencyRateProvider,
             summaryProvider: summaryProvider,
-            categoriesProvider: categoriesProvider,
-            expensesProvider: expensesProvider,
-            expenseGrouping: expenseGrouping
+            repository: context.repository,
+            observer: context.observer
         )
 
         let viewModelStore = ViewModelStore(

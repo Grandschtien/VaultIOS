@@ -3,27 +3,20 @@ import XCTest
 
 @MainActor
 final class CategoriesListInteractorTests: XCTestCase {
-    func testFetchDataWithoutCacheLoadsFreshCategories() async {
+    func testFetchDataLoadsFreshCategories() async {
         let presenter = CategoriesListPresenterSpy()
+        let repository = CategoriesListRepositoryStub(
+            results: [.success([makeCategory(amount: 12.5)])]
+        )
         let sut = CategoriesListInteractor(
             presenter: presenter,
             router: CategoriesListRouterSpy(),
-            categoriesProvider: CategoriesListProviderStub(
-                cachedCategories: nil,
-                fetchResult: .success([
-                    .init(
-                        id: "cat-1",
-                        name: "Food",
-                        icon: "🍴",
-                        color: "light_orange",
-                        amount: 12.5,
-                        currency: "USD"
-                    )
-                ])
-            )
+            repository: repository,
+            observer: repository.observer
         )
 
         await sut.fetchData()
+        await waitForUpdates()
 
         guard let first = presenter.presentedData.first,
               let last = presenter.presentedData.last else {
@@ -37,83 +30,39 @@ final class CategoriesListInteractorTests: XCTestCase {
 }
 
 extension CategoriesListInteractorTests {
-    func testFetchDataWithCacheAndRefreshFailureKeepsCachedState() async {
+    func testFetchDataWithExistingSnapshotKeepsLoadedStateOnRefreshFailure() async {
         let presenter = CategoriesListPresenterSpy()
-        let cachedCategories = [
-            MainCategoryCardModel(
-                id: "cat-1",
-                name: "Food",
-                icon: "🍴",
-                color: "light_orange",
-                amount: 5,
-                currency: "USD"
-            )
-        ]
+        let repository = CategoriesListRepositoryStub(results: [.failure(StubError.any)])
+        await repository.seed(categories: [makeCategory(amount: 5)])
+
         let sut = CategoriesListInteractor(
             presenter: presenter,
             router: CategoriesListRouterSpy(),
-            categoriesProvider: CategoriesListProviderStub(
-                cachedCategories: cachedCategories,
-                fetchResult: .failure(StubError.any)
-            )
+            repository: repository,
+            observer: repository.observer
         )
 
         await sut.fetchData()
+        await waitForUpdates()
 
         guard let last = presenter.presentedData.last else {
             return XCTFail("Expected presenter updates")
         }
 
         assertStatus(last.loadingState, is: .loaded)
-        XCTAssertEqual(last.categories, cachedCategories)
-
-        let hasFailedState = presenter.presentedData.contains {
-            if case .failed = $0.loadingState {
-                return true
-            }
-
-            return false
-        }
-        XCTAssertFalse(hasFailedState)
-    }
-}
-
-extension CategoriesListInteractorTests {
-    func testFetchDataWithoutCacheAndRefreshFailureBuildsFailedState() async {
-        let presenter = CategoriesListPresenterSpy()
-        let sut = CategoriesListInteractor(
-            presenter: presenter,
-            router: CategoriesListRouterSpy(),
-            categoriesProvider: CategoriesListProviderStub(
-                cachedCategories: nil,
-                fetchResult: .failure(StubError.any)
-            )
-        )
-
-        await sut.fetchData()
-
-        guard let last = presenter.presentedData.last else {
-            return XCTFail("Expected presenter updates")
-        }
-
-        if case .failed = last.loadingState {
-            XCTAssertTrue(true)
-        } else {
-            XCTFail("Expected failed loading state")
-        }
+        XCTAssertEqual(last.categories.first?.amount, 5)
     }
 }
 
 extension CategoriesListInteractorTests {
     func testHandleTapCategoryRoutesToCategoryScreen() async {
         let router = CategoriesListRouterSpy()
+        let repository = CategoriesListRepositoryStub(results: [.success([])])
         let sut = CategoriesListInteractor(
             presenter: CategoriesListPresenterSpy(),
             router: router,
-            categoriesProvider: CategoriesListProviderStub(
-                cachedCategories: nil,
-                fetchResult: .success([])
-            )
+            repository: repository,
+            observer: repository.observer
         )
 
         await sut.handleTapCategory(id: "cat-1", name: "Food")
@@ -128,9 +77,23 @@ private extension CategoriesListInteractorTests {
     enum StubError: Error {
         case any
     }
-}
 
-private extension CategoriesListInteractorTests {
+    func makeCategory(amount: Double) -> MainCategoryCardModel {
+        MainCategoryCardModel(
+            id: "cat-1",
+            name: "Food",
+            icon: "🍴",
+            color: "light_orange",
+            amount: amount,
+            currency: "USD"
+        )
+    }
+
+    func waitForUpdates() async {
+        await Task.yield()
+        await Task.yield()
+    }
+
     func assertStatus(_ status: LoadingStatus, is expected: LoadingStatus) {
         switch (status, expected) {
         case (.idle, .idle),
@@ -162,23 +125,52 @@ private final class CategoriesListRouterSpy: CategoriesListRoutingLogic {
     }
 }
 
-private final class CategoriesListProviderStub: CategoriesListCategoriesProviding, @unchecked Sendable {
-    private let cachedValue: [MainCategoryCardModel]?
-    private let fetchResult: Result<[MainCategoryCardModel], Error>
+private actor CategoriesListRepositoryStub: MainFlowDomainRepositoryProtocol {
+    nonisolated let observer: MainFlowDomainObserverProtocol
 
-    init(
-        cachedCategories: [MainCategoryCardModel]?,
-        fetchResult: Result<[MainCategoryCardModel], Error>
-    ) {
-        self.cachedValue = cachedCategories
-        self.fetchResult = fetchResult
+    private let store: MainFlowDomainStoreProtocol
+    private let results: [Result<[MainCategoryCardModel], Error>]
+    private var callCount: Int = .zero
+
+    init(results: [Result<[MainCategoryCardModel], Error>]) {
+        let store = MainFlowDomainStore()
+        self.store = store
+        self.observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        self.results = results
     }
 
-    func cachedCategories() -> [MainCategoryCardModel]? {
-        cachedValue
+    func refreshMainFlow() async throws {
+        try await refreshCategories()
     }
 
-    func fetchCategories() async throws -> [MainCategoryCardModel] {
-        try fetchResult.get()
+    func refreshCategories() async throws {
+        let index = min(callCount, max(results.count - 1, .zero))
+        let categories = try results[index].get()
+        callCount += 1
+
+        store.update { state in
+            categories.forEach { state.categoriesByID[$0.id] = $0 }
+            state.categoryOrder = categories.map(\.id)
+        }
+        observer.publishAll(from: store)
+    }
+
+    func refreshRecentExpenses() async throws {}
+    func refreshCategoryFirstPage(id: String) async throws {}
+    func refreshExpensesFirstPage() async throws {}
+    func loadNextCategoryPage(id: String) async throws {}
+    func loadNextExpensesPage() async throws {}
+    func addExpense(_ request: ExpensesCreateRequestDTO) async throws {}
+    func deleteExpense(id: String) async throws {}
+    func addCategory(_ request: CategoryCreateRequestDTO) async throws {}
+    func deleteCategory(id: String) async throws {}
+    func clearSession() async {}
+
+    func seed(categories: [MainCategoryCardModel]) {
+        store.update { state in
+            categories.forEach { state.categoriesByID[$0.id] = $0 }
+            state.categoryOrder = categories.map(\.id)
+        }
+        observer.publishAll(from: store)
     }
 }

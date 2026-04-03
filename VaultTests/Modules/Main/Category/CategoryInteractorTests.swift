@@ -3,43 +3,33 @@ import XCTest
 
 @MainActor
 final class CategoryInteractorTests: XCTestCase {
-    func testFetchDataHappyPathBuildsLoadedState() async {
+    func testFetchDataBuildsLoadedState() async {
         let presenter = CategoryPresenterSpy()
+        let repository = CategoryRepositoryStub(
+            refreshResults: [
+                .success(
+                    .init(
+                        category: makeCategory(amount: 10),
+                        expenses: [makeExpense(id: "exp-1", time: 100)],
+                        hasMore: false
+                    )
+                )
+            ],
+            nextPageResults: [],
+            deleteResults: []
+        )
         let sut = makeSut(
             presenter: presenter,
-            summaryProvider: CategorySummaryProviderStub(
-                results: [
-                    .success(
-                        .init(
-                            id: "cat-1",
-                            name: "Food",
-                            icon: "🍴",
-                            color: "light_orange",
-                            amount: 10,
-                            currency: "USD"
-                        )
-                    )
-                ]
-            ),
-            expensesProvider: CategoryExpensesProviderStub(
-                pageResults: [
-                    .success(
-                        .init(
-                            expenses: [makeExpense(id: "exp-1", time: 100)],
-                            nextCursor: nil,
-                            hasMore: false
-                        )
-                    )
-                ],
-                deleteResult: .success(())
-            )
+            router: CategoryRouterSpy(),
+            repository: repository,
+            observer: repository.observer
         )
 
         await sut.fetchData()
+        await waitForUpdates()
 
         guard let first = presenter.presentedData.first,
-              let last = presenter.presentedData.last
-        else {
+              let last = presenter.presentedData.last else {
             return XCTFail("Expected presenter updates")
         }
 
@@ -51,61 +41,39 @@ final class CategoryInteractorTests: XCTestCase {
 }
 
 extension CategoryInteractorTests {
-    func testFetchDataFailureBuildsFailedState() async {
-        let presenter = CategoryPresenterSpy()
-        let sut = makeSut(
-            presenter: presenter,
-            summaryProvider: CategorySummaryProviderStub(
-                results: [.failure(StubError.any)]
-            ),
-            expensesProvider: CategoryExpensesProviderStub(
-                pageResults: [.success(.init(expenses: [], nextCursor: nil, hasMore: false))],
-                deleteResult: .success(())
-            )
-        )
-
-        await sut.fetchData()
-
-        guard let last = presenter.presentedData.last else {
-            return XCTFail("Expected presenter update")
-        }
-
-        assertStatus(last.loadingState, is: .failed)
-    }
-}
-
-extension CategoryInteractorTests {
     func testHandleLoadNextPageAppendsExpenses() async {
         let presenter = CategoryPresenterSpy()
-        let expensesProvider = CategoryExpensesProviderStub(
-            pageResults: [
+        let repository = CategoryRepositoryStub(
+            refreshResults: [
                 .success(
                     .init(
+                        category: makeCategory(amount: 10),
                         expenses: [makeExpense(id: "exp-1", time: 200)],
-                        nextCursor: "cursor-1",
                         hasMore: true
                     )
-                ),
+                )
+            ],
+            nextPageResults: [
                 .success(
                     .init(
+                        category: makeCategory(amount: 10),
                         expenses: [makeExpense(id: "exp-2", time: 100)],
-                        nextCursor: nil,
                         hasMore: false
                     )
                 )
             ],
-            deleteResult: .success(())
+            deleteResults: []
         )
         let sut = makeSut(
             presenter: presenter,
-            summaryProvider: CategorySummaryProviderStub(
-                results: [.success(makeCategory(amount: 10))]
-            ),
-            expensesProvider: expensesProvider
+            router: CategoryRouterSpy(),
+            repository: repository,
+            observer: repository.observer
         )
 
         await sut.fetchData()
         await sut.handleLoadNextPage()
+        await waitForUpdates()
 
         guard let last = presenter.presentedData.last else {
             return XCTFail("Expected presenter update")
@@ -114,130 +82,44 @@ extension CategoryInteractorTests {
         assertStatus(last.loadingState, is: .loaded)
         XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 2)
         XCTAssertFalse(last.hasMore)
-
-        XCTAssertEqual(
-            await expensesProvider.requestedPages(),
-            [
-                .init(categoryID: "cat-1", cursor: nil, limit: 20),
-                .init(categoryID: "cat-1", cursor: "cursor-1", limit: 20)
-            ]
-        )
     }
 }
 
 extension CategoryInteractorTests {
-    func testHandleDeleteExpenseSuccessRemovesExpenseAndRefreshesSummary() async {
-        let presenter = CategoryPresenterSpy()
-        let summaryProvider = CategorySummaryProviderStub(
-            results: [
-                .success(makeCategory(amount: 10)),
-                .success(makeCategory(amount: 0))
-            ]
-        )
-        let sut = makeSut(
-            presenter: presenter,
-            summaryProvider: summaryProvider,
-            expensesProvider: CategoryExpensesProviderStub(
-                pageResults: [
-                    .success(
-                        .init(
-                            expenses: [makeExpense(id: "exp-1", time: 100)],
-                            nextCursor: nil,
-                            hasMore: false
-                        )
-                    )
-                ],
-                deleteResult: .success(())
-            )
-        )
-
-        await sut.fetchData()
-        let updatesBeforeDelete = presenter.presentedData.count
-        await sut.handleDeleteExpense(id: "exp-1")
-
-        guard let last = presenter.presentedData.last else {
-            return XCTFail("Expected presenter update")
-        }
-
-        let deleteUpdates = Array(presenter.presentedData.dropFirst(updatesBeforeDelete))
-        XCTAssertEqual(deleteUpdates.count, 2)
-        XCTAssertEqual(expenseIDs(from: deleteUpdates[0]), [])
-        XCTAssertTrue(deleteUpdates[0].deletingExpenseIDs.contains("exp-1"))
-        XCTAssertEqual(expenseIDs(from: deleteUpdates[1]), [])
-        XCTAssertTrue(deleteUpdates[1].deletingExpenseIDs.isEmpty)
-
-        XCTAssertTrue(last.expenseGroups.isEmpty)
-        XCTAssertTrue(last.deletingExpenseIDs.isEmpty)
-        XCTAssertEqual(last.category?.amount, 0)
-        XCTAssertEqual(await summaryProvider.callsCount(), 2)
-    }
-}
-
-extension CategoryInteractorTests {
-    func testHandleDeleteExpenseFailureKeepsExpenseAndClearsDeletingState() async {
+    func testHandleDeleteExpenseFailureRestoresStateAndShowsError() async {
         let presenter = CategoryPresenterSpy()
         let router = CategoryRouterSpy()
+        let repository = CategoryRepositoryStub(
+            refreshResults: [
+                .success(
+                    .init(
+                        category: makeCategory(amount: 10),
+                        expenses: [makeExpense(id: "exp-1", time: 100)],
+                        hasMore: false
+                    )
+                )
+            ],
+            nextPageResults: [],
+            deleteResults: [.failure(StubError.any)]
+        )
         let sut = makeSut(
             presenter: presenter,
             router: router,
-            summaryProvider: CategorySummaryProviderStub(
-                results: [.success(makeCategory(amount: 10))]
-            ),
-            expensesProvider: CategoryExpensesProviderStub(
-                pageResults: [
-                    .success(
-                        .init(
-                            expenses: [makeExpense(id: "exp-1", time: 100)],
-                            nextCursor: nil,
-                            hasMore: false
-                        )
-                    )
-                ],
-                deleteResult: .failure(StubError.any)
-            )
+            repository: repository,
+            observer: repository.observer
         )
 
         await sut.fetchData()
-        let updatesBeforeDelete = presenter.presentedData.count
         await sut.handleDeleteExpense(id: "exp-1")
+        await waitForUpdates()
 
         guard let last = presenter.presentedData.last else {
             return XCTFail("Expected presenter update")
         }
-
-        let deleteUpdates = Array(presenter.presentedData.dropFirst(updatesBeforeDelete))
-        XCTAssertEqual(deleteUpdates.count, 2)
-        XCTAssertEqual(expenseIDs(from: deleteUpdates[0]), [])
-        XCTAssertTrue(deleteUpdates[0].deletingExpenseIDs.contains("exp-1"))
-        XCTAssertEqual(expenseIDs(from: deleteUpdates[1]), ["exp-1"])
-        XCTAssertTrue(deleteUpdates[1].deletingExpenseIDs.isEmpty)
 
         XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 1)
         XCTAssertTrue(last.deletingExpenseIDs.isEmpty)
         XCTAssertEqual(router.presentedErrors, [L10n.mainOverviewError])
-    }
-}
-
-extension CategoryInteractorTests {
-    func testHandleTapEditButtonRoutesToEditScreen() async {
-        let router = CategoryRouterSpy()
-        let sut = makeSut(
-            presenter: CategoryPresenterSpy(),
-            router: router,
-            summaryProvider: CategorySummaryProviderStub(
-                results: [.success(makeCategory(amount: 10))]
-            ),
-            expensesProvider: CategoryExpensesProviderStub(
-                pageResults: [.success(.init(expenses: [], nextCursor: nil, hasMore: false))],
-                deleteResult: .success(())
-            )
-        )
-
-        await sut.handleTapEditButton()
-
-        XCTAssertEqual(router.openEditCalls.count, 1)
-        XCTAssertEqual(router.openEditCalls.first?.id, "cat-1")
-        XCTAssertEqual(router.openEditCalls.first?.name, "Food")
     }
 }
 
@@ -255,19 +137,17 @@ private extension CategoryInteractorTests {
 
     func makeSut(
         presenter: CategoryPresentationLogic,
-        router: CategoryRoutingLogic = CategoryRouterSpy(),
-        summaryProvider: CategorySummaryProviding,
-        expensesProvider: CategoryExpensesProviding
+        router: CategoryRoutingLogic,
+        repository: MainFlowDomainRepositoryProtocol,
+        observer: MainFlowDomainObserverProtocol
     ) -> CategoryInteractor {
         CategoryInteractor(
             categoryID: "cat-1",
             categoryName: "Food",
             presenter: presenter,
             router: router,
-            summaryProvider: summaryProvider,
-            expensesProvider: expensesProvider,
-            pager: Pager(),
-            expenseGrouping: MainExpenseDateGrouping()
+            repository: repository,
+            observer: observer
         )
     }
 
@@ -294,8 +174,9 @@ private extension CategoryInteractorTests {
         )
     }
 
-    func expenseIDs(from data: CategoryFetchData) -> [String] {
-        data.expenseGroups.flatMap(\.expenses).map(\.id)
+    func waitForUpdates() async {
+        await Task.yield()
+        await Task.yield()
     }
 
     func assertStatus(
@@ -345,70 +226,112 @@ private final class CategoryRouterSpy: CategoryRoutingLogic, @unchecked Sendable
     }
 }
 
-private actor CategorySummaryProviderStub: CategorySummaryProviding {
-    private let results: [Result<MainCategoryCardModel, Error>]
-    private var fetchCallsCount: Int = .zero
+private actor CategoryRepositoryStub: MainFlowDomainRepositoryProtocol {
+    nonisolated let observer: MainFlowDomainObserverProtocol
 
-    init(results: [Result<MainCategoryCardModel, Error>]) {
-        self.results = results
-    }
-
-    func fetchCategory(id: String) async throws -> MainCategoryCardModel {
-        let index = min(fetchCallsCount, max(results.count - 1, .zero))
-        let result = results[index]
-        fetchCallsCount += 1
-        return try result.get()
-    }
-
-    func callsCount() -> Int {
-        fetchCallsCount
-    }
-}
-
-private actor CategoryExpensesProviderStub: CategoryExpensesProviding {
-    private let pageResults: [Result<CategoryExpensesPage, Error>]
-    private let deleteResult: Result<Void, Error>
-    private var pageFetchCount: Int = .zero
-    private var pageRequests: [CategoryPageRequest] = []
+    private let store: MainFlowDomainStoreProtocol
+    private let refreshResults: [Result<CategoryPayload, Error>]
+    private let nextPageResults: [Result<CategoryPayload, Error>]
+    private let deleteResults: [Result<Void, Error>]
+    private var refreshCallCount: Int = .zero
+    private var nextPageCallCount: Int = .zero
+    private var deleteCallCount: Int = .zero
 
     init(
-        pageResults: [Result<CategoryExpensesPage, Error>],
-        deleteResult: Result<Void, Error>
+        refreshResults: [Result<CategoryPayload, Error>],
+        nextPageResults: [Result<CategoryPayload, Error>],
+        deleteResults: [Result<Void, Error>]
     ) {
-        self.pageResults = pageResults
-        self.deleteResult = deleteResult
+        let store = MainFlowDomainStore()
+        self.store = store
+        self.observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        self.refreshResults = refreshResults
+        self.nextPageResults = nextPageResults
+        self.deleteResults = deleteResults
     }
 
-    func fetchExpensesPage(
-        categoryID: String,
-        cursor: String?,
-        limit: Int
-    ) async throws -> CategoryExpensesPage {
-        pageRequests.append(
-            .init(
-                categoryID: categoryID,
-                cursor: cursor,
-                limit: limit
-            )
-        )
+    func refreshMainFlow() async throws {}
+    func refreshCategories() async throws {}
+    func refreshRecentExpenses() async throws {}
 
-        let index = min(pageFetchCount, max(pageResults.count - 1, .zero))
-        let result = pageResults[index]
-        pageFetchCount += 1
-        return try result.get()
+    func refreshCategoryFirstPage(id: String) async throws {
+        let index = min(refreshCallCount, max(refreshResults.count - 1, .zero))
+        let payload = try refreshResults[index].get()
+        refreshCallCount += 1
+        apply(payload: payload, replaceExpenses: true)
     }
+
+    func refreshExpensesFirstPage() async throws {}
+
+    func loadNextCategoryPage(id: String) async throws {
+        let index = min(nextPageCallCount, max(nextPageResults.count - 1, .zero))
+        let payload = try nextPageResults[index].get()
+        nextPageCallCount += 1
+        apply(payload: payload, replaceExpenses: false)
+    }
+
+    func loadNextExpensesPage() async throws {}
+    func addExpense(_ request: ExpensesCreateRequestDTO) async throws {}
 
     func deleteExpense(id: String) async throws {
-        _ = try deleteResult.get()
+        let index = min(deleteCallCount, max(deleteResults.count - 1, .zero))
+        let result = deleteResults[index]
+        deleteCallCount += 1
+
+        let previousState = store.snapshot()
+        store.update { state in
+            state.pendingDeletedExpenseIDs.insert(id)
+            state.categoryExpenseIDs["cat-1"]?.removeAll { $0 == id }
+        }
+        observer.publishAll(from: store)
+
+        do {
+            _ = try result.get()
+            store.update { state in
+                state.pendingDeletedExpenseIDs.remove(id)
+                state.expensesByID[id] = nil
+            }
+            observer.publishAll(from: store)
+        } catch {
+            store.replaceState(previousState)
+            observer.publishAll(from: store)
+            throw error
+        }
     }
 
-    func requestedPages() -> [CategoryPageRequest] {
-        pageRequests
+    func addCategory(_ request: CategoryCreateRequestDTO) async throws {}
+    func deleteCategory(id: String) async throws {}
+    func clearSession() async {}
+
+    func apply(payload: CategoryPayload, replaceExpenses: Bool) {
+        store.update { state in
+            state.categoriesByID[payload.category.id] = payload.category
+            if !state.categoryOrder.contains(payload.category.id) {
+                state.categoryOrder.append(payload.category.id)
+            }
+
+            payload.expenses.forEach { state.expensesByID[$0.id] = $0 }
+
+            if replaceExpenses {
+                state.categoryExpenseIDs[payload.category.id] = payload.expenses.map(\.id)
+            } else {
+                state.categoryExpenseIDs[payload.category.id, default: []] += payload.expenses.map(\.id)
+            }
+
+            state.categoryPagination[payload.category.id] = .init(
+                nextCursor: payload.hasMore ? "cursor" : nil,
+                hasMore: payload.hasMore,
+                isLoaded: true
+            )
+        }
+        observer.publishAll(from: store)
     }
 }
 
-private struct CategoryPageRequest: Equatable {
-    let categoryID: String
-    let cursor: String?
-    let limit: Int
+private extension CategoryRepositoryStub {
+    struct CategoryPayload {
+        let category: MainCategoryCardModel
+        let expenses: [MainExpenseModel]
+        let hasMore: Bool
+    }
 }

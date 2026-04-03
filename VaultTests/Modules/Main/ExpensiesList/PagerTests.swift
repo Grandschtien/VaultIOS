@@ -5,8 +5,11 @@ final class PagerTests: XCTestCase {
     func testInitialStateHasMoreWithNilCursor() async {
         let sut = Pager()
 
-        XCTAssertTrue(await sut.hasMorePages())
-        XCTAssertFalse(await sut.isLoadingPage())
+        let hasMorePages = await sut.hasMorePages()
+        let isLoadingPage = await sut.isLoadingPage()
+
+        XCTAssertTrue(hasMorePages)
+        XCTAssertFalse(isLoadingPage)
         let request = await sut.beginNextPageIfPossible()
         XCTAssertNil(request?.cursor)
     }
@@ -21,7 +24,8 @@ extension PagerTests {
 
         XCTAssertNotNil(firstRequest)
         XCTAssertNil(secondRequest)
-        XCTAssertTrue(await sut.isLoadingPage())
+        let isLoadingPage = await sut.isLoadingPage()
+        XCTAssertTrue(isLoadingPage)
     }
 }
 
@@ -34,8 +38,11 @@ extension PagerTests {
         let nextRequest = await sut.beginNextPageIfPossible()
 
         XCTAssertEqual(nextRequest?.cursor, "cursor-2")
-        XCTAssertTrue(await sut.hasMorePages())
-        XCTAssertTrue(await sut.isLoadingPage())
+        let hasMorePages = await sut.hasMorePages()
+        let isLoadingPage = await sut.isLoadingPage()
+
+        XCTAssertTrue(hasMorePages)
+        XCTAssertTrue(isLoadingPage)
     }
 }
 
@@ -50,7 +57,8 @@ extension PagerTests {
         let requestAfterReset = await sut.beginNextPageIfPossible()
 
         XCTAssertNil(requestAfterReset?.cursor)
-        XCTAssertTrue(await sut.hasMorePages())
+        let hasMorePages = await sut.hasMorePages()
+        XCTAssertTrue(hasMorePages)
     }
 }
 
@@ -64,6 +72,7 @@ extension PagerTests {
 
         XCTAssertNotNil(requestAfterRollback)
         XCTAssertNil(requestAfterRollback?.cursor)
-        XCTAssertTrue(await sut.isLoadingPage())
+        let isLoadingPage = await sut.isLoadingPage()
+        XCTAssertTrue(isLoadingPage)
     }
 }

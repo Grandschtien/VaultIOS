@@ -15,12 +15,18 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
     }
 
     private let screenNavigator: ScreenNavigator
+    private let context: MainFlowContext
     private let tabBarView = MainTabBarView()
+    private var logoutObserver: NSObjectProtocol?
     private var profileButtonSize: CGFloat { sizeL }
     private var profileIconSize: CGFloat { sizeS }
 
-    init(screenNavigator: ScreenNavigator) {
+    init(
+        screenNavigator: ScreenNavigator,
+        context: MainFlowContext
+    ) {
         self.screenNavigator = screenNavigator
+        self.context = context
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -32,6 +38,7 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
     override func viewDidLoad() {
         super.viewDidLoad()
         delegate = self
+        observeLogoutEvents()
 
         setupTabs()
         tabBarView.applyAppearance(to: tabBar)
@@ -50,7 +57,9 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
 
 private extension MainFlowRootViewController {
     func setupTabs() {
-        let homeController = MainFactory().build(navigator: screenNavigator)
+        let homeController = MainFactory(context: context).build(
+            navigator: screenNavigator
+        )
         let statsController = MainFlowPlaceholderViewController(titleText: L10n.mainTabStats)
         homeController.title = L10n.mainOverviewTitle
 
@@ -70,6 +79,22 @@ private extension MainFlowRootViewController {
             makeNavigationController(rootController: homeController),
             makeNavigationController(rootController: statsController)
         ]
+    }
+
+    func observeLogoutEvents() {
+        logoutObserver = NotificationCenter.default.addObserver(
+            forName: .authSessionDidLogout,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else {
+                return
+            }
+
+            Task {
+                await self.context.repository.clearSession()
+            }
+        }
     }
 
     func makeNavigationController(rootController: UIViewController) -> UINavigationController {

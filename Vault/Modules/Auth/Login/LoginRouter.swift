@@ -33,10 +33,9 @@ final class LoginRouter: LoginRoutingLogic {
     }
 
     func openMainFlow() {
-        let root = MainFlowRootViewController(screenNavigator: screenRouter)
         screenRouter.navigate(to: { route in
             route
-                .setRoot(to: root)
+                .setRoot(to: MainFlowRootFactory())
                 .makeKeyAndVisible()
         })
     }

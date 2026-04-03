@@ -5,7 +5,7 @@ final class MainCurrencyRateContractServiceTests: XCTestCase {
     func testGetCurrencyRateForwardsCurrencyAndDecodesResponse() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: #"{"currency":"USD","rate":1.23}"#
+            json: #"{"currency":"USD","rateToUsd":1.23,"asOf":"2026-01-01"}"#
         )
 
         var capturedCurrency: String?
@@ -23,6 +23,7 @@ final class MainCurrencyRateContractServiceTests: XCTestCase {
 
         XCTAssertEqual(capturedCurrency, "USD")
         XCTAssertEqual(response.currency, "USD")
-        XCTAssertEqual(response.rate, 1.23)
+        XCTAssertEqual(response.rateToUsd, 1.23)
+        XCTAssertEqual(response.asOf, "2026-01-01")
     }
 }

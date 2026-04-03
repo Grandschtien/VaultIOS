@@ -5,15 +5,15 @@ import Nivelir
 import Foundation
 
 final class ExpesiesListFactory: Screen {
+    private let context: MainFlowContext
+
+    init(context: MainFlowContext) {
+        self.context = context
+    }
+
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
-        var categoriesService: MainCategoriesContractServicing
-        @SafeInject
-        var expensesService: MainExpensesContractServicing
-        @SafeInject
         var toastPresenter: ToastPresenting
-        @SafeInject
-        var currencyConversionService: UserCurrencyConverting
 
         let viewModel = ExpesiesListViewModel()
         let presenter = ExpesiesListPresenter(
@@ -25,18 +25,11 @@ final class ExpesiesListFactory: Screen {
             screenRouter: navigator,
             toastPresenter: toastPresenter
         )
-        let categoriesProvider = ExpesiesListCategoriesProvider(categoriesService: categoriesService)
-        let expensesProvider = ExpesiesListExpensesProvider(
-            expensesService: expensesService,
-            currencyConversionService: currencyConversionService
-        )
         let interactor = ExpesiesListInteractor(
             presenter: presenter,
             router: router,
-            expensesProvider: expensesProvider,
-            categoriesProvider: categoriesProvider,
-            pager: Pager(),
-            expenseGrouping: MainExpenseDateGrouping()
+            repository: context.repository,
+            observer: context.observer
         )
 
         let viewModelStore = ViewModelStore(
