@@ -16,6 +16,7 @@ protocol AuthSessionServiceProtocol: Sendable {
     func hasValidSession() async -> Bool
     func refreshAccessToken() async throws -> AuthTokenDTO
     func accessToken() async -> String?
+    func logoutFromBackend() async throws
     func logout() async
 }
 
@@ -94,10 +95,22 @@ actor AuthSessionService: AuthSessionServiceProtocol {
         tokenStorageService.getToken()?.accessToken
     }
 
+    func logoutFromBackend() async throws {
+        guard let token = tokenStorageService.getToken() else {
+            throw Error.missingToken
+        }
+
+        try await networkClient.request(
+            AuthAPI.logout(
+                AuthTokenRequestDTO(refreshToken: token.refreshToken)
+            )
+        )
+
+        await logout()
+    }
+
     func logout() async {
-        tokenStorageService.removeToken()
-        userProfileStorageService.clearProfile()
-        NotificationCenter.default.post(name: .authSessionDidLogout, object: nil)
+        performLocalLogout()
     }
 }
 
@@ -109,5 +122,11 @@ private extension AuthSessionService {
 
         let expirationTimestamp = issuedAt + TimeInterval(max(0, token.expiresIn))
         return Date().timeIntervalSince1970 >= expirationTimestamp
+    }
+
+    func performLocalLogout() {
+        tokenStorageService.removeToken()
+        userProfileStorageService.clearProfile()
+        NotificationCenter.default.post(name: .authSessionDidLogout, object: nil)
     }
 }

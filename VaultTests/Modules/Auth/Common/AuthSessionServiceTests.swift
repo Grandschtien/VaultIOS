@@ -212,6 +212,96 @@ extension AuthSessionServiceTests {
     }
 }
 
+extension AuthSessionServiceTests {
+    func testLogoutFromBackendWhenRequestSucceedsLogsOutLocally() async throws {
+        let networkClient = AsyncNetworkClientSpy()
+        networkClient.logoutResult = .success(())
+        let tokenStorage = TokenStorageSpy()
+        let profileStorage = UserProfileStorageSpy()
+        tokenStorage.setToken(
+            AuthTokenDTO(
+                accessToken: "access",
+                refreshToken: "refresh",
+                tokenType: "bearer",
+                expiresIn: 900,
+                issuedAt: Date().timeIntervalSince1970
+            )
+        )
+        profileStorage.saveProfile(
+            UserProfileDefaults(
+                userId: "1",
+                email: "name@example.com",
+                name: "Egor",
+                currency: "USD",
+                language: "en-US"
+            )
+        )
+        let sut = makeSut(
+            networkClient: networkClient,
+            tokenStorage: tokenStorage,
+            profileStorage: profileStorage
+        )
+        let logoutExpectation = expectation(
+            forNotification: .authSessionDidLogout,
+            object: nil
+        )
+
+        try await sut.logoutFromBackend()
+
+        XCTAssertEqual(networkClient.logoutRequestCount, 1)
+        XCTAssertNil(tokenStorage.getToken())
+        XCTAssertNil(profileStorage.loadProfile())
+        await fulfillment(of: [logoutExpectation], timeout: 1.0)
+    }
+}
+
+extension AuthSessionServiceTests {
+    func testLogoutFromBackendWhenRequestFailsThrowsAndKeepsSession() async {
+        let networkClient = AsyncNetworkClientSpy()
+        networkClient.logoutResult = .failure(StubError.any)
+        let tokenStorage = TokenStorageSpy()
+        let profileStorage = UserProfileStorageSpy()
+        tokenStorage.setToken(
+            AuthTokenDTO(
+                accessToken: "access",
+                refreshToken: "refresh",
+                tokenType: "bearer",
+                expiresIn: 900,
+                issuedAt: Date().timeIntervalSince1970
+            )
+        )
+        profileStorage.saveProfile(
+            UserProfileDefaults(
+                userId: "1",
+                email: "name@example.com",
+                name: "Egor",
+                currency: "USD",
+                language: "en-US"
+            )
+        )
+        let sut = makeSut(
+            networkClient: networkClient,
+            tokenStorage: tokenStorage,
+            profileStorage: profileStorage
+        )
+        let logoutExpectation = expectation(
+            forNotification: .authSessionDidLogout,
+            object: nil
+        )
+        logoutExpectation.isInverted = true
+
+        do {
+            try await sut.logoutFromBackend()
+            XCTFail("Expected logoutFromBackend to throw")
+        } catch {}
+
+        XCTAssertEqual(networkClient.logoutRequestCount, 1)
+        XCTAssertNotNil(tokenStorage.getToken())
+        XCTAssertNotNil(profileStorage.loadProfile())
+        await fulfillment(of: [logoutExpectation], timeout: 0.1)
+    }
+}
+
 private extension AuthSessionServiceTests {
     func makeSut(
         networkClient: AsyncNetworkClient,
@@ -274,8 +364,10 @@ private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @u
 
 private final class AsyncNetworkClientSpy: AsyncNetworkClient, @unchecked Sendable {
     var refreshResult: Result<AuthTokenDTO, Error> = .failure(AuthSessionServiceTests.StubError.any)
+    var logoutResult: Result<Void, Error> = .failure(AuthSessionServiceTests.StubError.any)
     var refreshDelayNanoseconds: UInt64 = .zero
     private(set) var refreshRequestCount: Int = .zero
+    private(set) var logoutRequestCount: Int = .zero
     private let lock = NSLock()
 
     func request<T: Codable, InBodyError: CustomError>(
@@ -312,7 +404,22 @@ private final class AsyncNetworkClientSpy: AsyncNetworkClient, @unchecked Sendab
     func request<InBodyError: CustomError>(
         inBodyError: InBodyError.Type,
         _ target: ApiTarget
-    ) async throws {}
+    ) async throws {
+        guard let authTarget = target as? AuthAPI, case .logout = authTarget else {
+            throw AuthSessionServiceTests.StubError.any
+        }
+
+        lock.withLock {
+            logoutRequestCount += 1
+        }
+
+        switch logoutResult {
+        case .success:
+            return
+        case let .failure(error):
+            throw error
+        }
+    }
 }
 
 private extension NSLock {

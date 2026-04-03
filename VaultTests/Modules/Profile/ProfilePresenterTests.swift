@@ -80,6 +80,24 @@ extension ProfilePresenterTests {
 }
 
 extension ProfilePresenterTests {
+    func testPresentFetchedDataWhenLoggingOutShowsLogoutButtonLoader() {
+        sut.presentFetchedData(
+            ProfileFetchData(
+                loadingState: .loaded,
+                isLoggingOut: true
+            )
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        XCTAssertTrue(content.logoutButton.isLoading)
+        XCTAssertFalse(content.logoutButton.isEnabled)
+    }
+}
+
+extension ProfilePresenterTests {
     func testPresentFetchedDataFailedBuildsRetryErrorState() async {
         let retryExpectation = expectation(description: "Retry command")
         handler.onHandleRetry = {

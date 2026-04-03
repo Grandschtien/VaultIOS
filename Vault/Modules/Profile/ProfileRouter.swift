@@ -6,7 +6,6 @@ import Nivelir
 
 @MainActor
 protocol ProfileRoutingLogic: Sendable {
-    func handleLogoutPlaceholder()
     func openCurrencySelection(
         currentCurrencyCode: String,
         output: ProfileCurrencySelectionOutput
@@ -27,8 +26,6 @@ final class ProfileRouter: ProfileRoutingLogic {
         self.screenRouter = screenRouter
         self.toastPresenter = toastPresenter
     }
-
-    func handleLogoutPlaceholder() {}
 
     func openCurrencySelection(
         currentCurrencyCode: String,

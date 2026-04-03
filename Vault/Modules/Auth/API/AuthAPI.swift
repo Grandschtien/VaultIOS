@@ -13,6 +13,7 @@ enum AuthAPI: ApiTarget, Sendable {
     case login(LoginRequestDTO)
     case register(RegisterRequestDTO)
     case refresh(AuthTokenRequestDTO)
+    case logout(AuthTokenRequestDTO)
     
     var host: String {
         return "localhost"
@@ -26,6 +27,8 @@ enum AuthAPI: ApiTarget, Sendable {
             "/auth/register"
         case .refresh:
             "/auth/refresh"
+        case .logout:
+            "/auth/logout"
         }
     }
     
@@ -46,6 +49,8 @@ enum AuthAPI: ApiTarget, Sendable {
         case let .register(dto):
             .custonJSON(data: dto, encoder: JSONCoder.encoder)
         case let .refresh(dto):
+            .custonJSON(data: dto, encoder: JSONCoder.encoder)
+        case let .logout(dto):
             .custonJSON(data: dto, encoder: JSONCoder.encoder)
         }
     }

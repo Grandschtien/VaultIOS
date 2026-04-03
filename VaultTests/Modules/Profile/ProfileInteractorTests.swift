@@ -162,19 +162,48 @@ extension ProfileInteractorTests {
 }
 
 extension ProfileInteractorTests {
-    func testHandleTapLogoutCallsRouterPlaceholder() async {
+    func testHandleTapLogoutWhenBackendRequestSucceedsDoesNotPresentError() async {
         let presenter = ProfilePresenterSpy()
         let router = ProfileRouterSpy()
         let profileService = ProfileServiceStub(results: [])
+        let authSessionService = AuthSessionServiceSpy(logoutResult: .success(()))
         let sut = makeSut(
             presenter: presenter,
             router: router,
-            profileService: profileService
+            profileService: profileService,
+            authSessionService: authSessionService
         )
 
         await sut.handleTapLogout()
 
-        XCTAssertEqual(router.handleLogoutPlaceholderCallsCount, 1)
+        XCTAssertTrue(router.presentedErrors.isEmpty)
+        XCTAssertEqual(presenter.presentedData.last?.isLoggingOut, true)
+        let logoutCallsCount = await authSessionService.currentLogoutFromBackendCallsCount()
+        XCTAssertEqual(logoutCallsCount, 1)
+    }
+}
+
+extension ProfileInteractorTests {
+    func testHandleTapLogoutWhenBackendRequestFailsPresentsErrorToast() async {
+        let presenter = ProfilePresenterSpy()
+        let router = ProfileRouterSpy()
+        let profileService = ProfileServiceStub(results: [])
+        let authSessionService = AuthSessionServiceSpy(logoutResult: .failure(StubError.any))
+        let sut = makeSut(
+            presenter: presenter,
+            router: router,
+            profileService: profileService,
+            authSessionService: authSessionService
+        )
+
+        await sut.handleTapLogout()
+
+        XCTAssertEqual(router.presentedErrors.count, 1)
+        XCTAssertGreaterThanOrEqual(presenter.presentedData.count, 2)
+        XCTAssertEqual(presenter.presentedData[0].isLoggingOut, true)
+        XCTAssertEqual(presenter.presentedData[1].isLoggingOut, false)
+        let logoutCallsCount = await authSessionService.currentLogoutFromBackendCallsCount()
+        XCTAssertEqual(logoutCallsCount, 1)
     }
 }
 
@@ -222,14 +251,16 @@ private extension ProfileInteractorTests {
         presenter: ProfilePresentationLogic,
         router: ProfileRoutingLogic,
         profileService: ProfileContractServicing,
-        localProfileStorage: UserProfileStorageServiceProtocol = UserProfileStorageServiceSpy()
+        localProfileStorage: UserProfileStorageServiceProtocol = UserProfileStorageServiceSpy(),
+        authSessionService: AuthSessionServiceProtocol = AuthSessionServiceSpy(logoutResult: .success(()))
     ) -> ProfileInteractor {
         ProfileInteractor(
             presenter: presenter,
             router: router,
             profileService: profileService,
             currencyRateService: CurrencyRateServiceStub(),
-            userProfileStorageService: localProfileStorage
+            userProfileStorageService: localProfileStorage,
+            authSessionService: authSessionService
         )
     }
 
@@ -259,13 +290,9 @@ private final class ProfilePresenterSpy: ProfilePresentationLogic {
 
 @MainActor
 private final class ProfileRouterSpy: ProfileRoutingLogic {
-    private(set) var handleLogoutPlaceholderCallsCount = 0
     private(set) var openCurrencySelectionCallsCount = 0
     private(set) var lastOpenedCurrencyCode: String?
-
-    func handleLogoutPlaceholder() {
-        handleLogoutPlaceholderCallsCount += 1
-    }
+    private(set) var presentedErrors: [String] = []
 
     func openCurrencySelection(
         currentCurrencyCode: String,
@@ -275,7 +302,47 @@ private final class ProfileRouterSpy: ProfileRoutingLogic {
         lastOpenedCurrencyCode = currentCurrencyCode
     }
 
-    func presentError(with text: String) {}
+    func presentError(with text: String) {
+        presentedErrors.append(text)
+    }
+}
+
+private actor AuthSessionServiceSpy: AuthSessionServiceProtocol {
+    private let logoutResult: Result<Void, Error>
+    private var logoutFromBackendCallsCount = 0
+
+    init(logoutResult: Result<Void, Error>) {
+        self.logoutResult = logoutResult
+    }
+
+    func hasValidSession() async -> Bool {
+        false
+    }
+
+    func refreshAccessToken() async throws -> AuthTokenDTO {
+        throw StubError.any
+    }
+
+    func accessToken() async -> String? {
+        nil
+    }
+
+    func logoutFromBackend() async throws {
+        logoutFromBackendCallsCount += 1
+
+        switch logoutResult {
+        case .success:
+            return
+        case let .failure(error):
+            throw error
+        }
+    }
+
+    func logout() async {}
+
+    func currentLogoutFromBackendCallsCount() -> Int {
+        logoutFromBackendCallsCount
+    }
 }
 
 private actor ProfileServiceStub: ProfileContractServicing {

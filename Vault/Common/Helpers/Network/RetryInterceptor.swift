@@ -14,7 +14,8 @@ final class RetryInterceptor: RequestInterceptor {
         static let unprotectedPaths: Set<String> = [
             "/auth/login",
             "/auth/register",
-            "/auth/refresh"
+            "/auth/refresh",
+            "/auth/logout"
         ]
     }
 

@@ -17,6 +17,19 @@ final class AuthInterceptorTests: XCTestCase {
 }
 
 extension AuthInterceptorTests {
+    func testAdaptDoesNotAppendAuthorizationHeaderForLogoutPath() async {
+        let authSessionService = AuthSessionServiceStub(accessToken: "access-token")
+        let sut = AuthInterceptor(authSessionService: authSessionService)
+        var request = URLRequest(url: URL(string: "https://example.com/auth/logout")!)
+        request.httpMethod = "POST"
+
+        let adaptedRequest = await adaptRequest(sut: sut, request: request)
+
+        XCTAssertNil(adaptedRequest.value(forHTTPHeaderField: "Authorization"))
+    }
+}
+
+extension AuthInterceptorTests {
     func testAdaptAppendsAuthorizationHeaderForProtectedPath() async {
         let authSessionService = AuthSessionServiceStub(accessToken: "access-token")
         let sut = AuthInterceptor(authSessionService: authSessionService)
@@ -64,6 +77,8 @@ private actor AuthSessionServiceStub: AuthSessionServiceProtocol {
     func accessToken() async -> String? {
         token
     }
+
+    func logoutFromBackend() async throws {}
 
     func logout() async {}
 

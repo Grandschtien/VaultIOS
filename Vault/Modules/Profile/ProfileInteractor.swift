@@ -19,9 +19,11 @@ actor ProfileInteractor: ProfileBusinessLogic {
     private let profileService: ProfileContractServicing
     private let currencyRateService: MainCurrencyRateContractServicing
     private let userProfileStorageService: UserProfileStorageServiceProtocol
+    private let authSessionService: AuthSessionServiceProtocol
 
     private var loadingState: LoadingStatus = .idle
     private var isSavingCurrency: Bool = false
+    private var isLoggingOut: Bool = false
     private var profile: ProfileResponseDTO?
     private var selectedCurrencyCode: String?
 
@@ -30,18 +32,21 @@ actor ProfileInteractor: ProfileBusinessLogic {
         router: ProfileRoutingLogic,
         profileService: ProfileContractServicing,
         currencyRateService: MainCurrencyRateContractServicing,
-        userProfileStorageService: UserProfileStorageServiceProtocol
+        userProfileStorageService: UserProfileStorageServiceProtocol,
+        authSessionService: AuthSessionServiceProtocol
     ) {
         self.presenter = presenter
         self.router = router
         self.profileService = profileService
         self.currencyRateService = currencyRateService
         self.userProfileStorageService = userProfileStorageService
+        self.authSessionService = authSessionService
     }
 
     func fetchData() async {
         loadingState = .loading
         isSavingCurrency = false
+        isLoggingOut = false
         profile = nil
         let cachedCurrency = normalizedCurrencyCode(
             userProfileStorageService.loadProfile()?.currency
@@ -69,6 +74,7 @@ private extension ProfileInteractor {
                 profile: profile,
                 selectedCurrencyCode: selectedCurrencyCode,
                 isSavingCurrency: isSavingCurrency,
+                isLoggingOut: isLoggingOut,
                 appVersion: appVersion(),
                 appBuild: appBuild()
             )
@@ -108,6 +114,17 @@ private extension ProfileInteractor {
         return message
     }
 
+    func logoutFailedMessage(from error: Error) -> String {
+        let message = error.localizedDescription
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if message.isEmpty {
+            return L10n.profileError
+        }
+
+        return message
+    }
+
     func persistLocalProfile(
         with profile: ProfileResponseDTO,
         rateToUsd: Double
@@ -139,8 +156,20 @@ extension ProfileInteractor: ProfileHandler {
     }
 
     func handleTapLogout() async {
-        // TODO: Replace with real logout flow when product requirements are finalized.
-        await router.handleLogoutPlaceholder()
+        guard !isLoggingOut else {
+            return
+        }
+
+        isLoggingOut = true
+        await presentFetchedData()
+
+        do {
+            try await authSessionService.logoutFromBackend()
+        } catch {
+            isLoggingOut = false
+            await presentFetchedData()
+            await router.presentError(with: logoutFailedMessage(from: error))
+        }
     }
 
     func handleTapCurrency() async {

@@ -124,7 +124,8 @@ private extension ProfilePresenter {
                 titleColor: Asset.Colors.errorColor.color,
                 backgroundColor: .clear,
                 font: Typography.typographyMedium16,
-                isEnabled: true,
+                isEnabled: !data.isLoggingOut,
+                isLoading: data.isLoggingOut,
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapLogout()
                 },

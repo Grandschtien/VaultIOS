@@ -8,6 +8,7 @@ struct ProfileFetchData: Sendable {
     let profile: ProfileResponseDTO?
     let selectedCurrencyCode: String?
     let isSavingCurrency: Bool
+    let isLoggingOut: Bool
     let appVersion: String
     let appBuild: String
 
@@ -17,6 +18,7 @@ struct ProfileFetchData: Sendable {
         profile: ProfileResponseDTO? = nil,
         selectedCurrencyCode: String? = nil,
         isSavingCurrency: Bool = false,
+        isLoggingOut: Bool = false,
         appVersion: String = "",
         appBuild: String = ""
     ) {
@@ -25,6 +27,7 @@ struct ProfileFetchData: Sendable {
         self.profile = profile
         self.selectedCurrencyCode = selectedCurrencyCode
         self.isSavingCurrency = isSavingCurrency
+        self.isLoggingOut = isLoggingOut
         self.appVersion = appVersion
         self.appBuild = appBuild
     }

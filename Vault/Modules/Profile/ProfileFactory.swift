@@ -13,6 +13,8 @@ final class ProfileFactory: Screen {
         @SafeInject
         var userProfileStorageService: UserProfileStorageServiceProtocol
         @SafeInject
+        var authSessionService: AuthSessionServiceProtocol
+        @SafeInject
         var toastPresenter: ToastPresenting
 
         let viewModel = ProfileViewModel()
@@ -26,7 +28,8 @@ final class ProfileFactory: Screen {
             router: router,
             profileService: profileService,
             currencyRateService: currencyRateService,
-            userProfileStorageService: userProfileStorageService
+            userProfileStorageService: userProfileStorageService,
+            authSessionService: authSessionService
         )
 
         let viewModelStore = ViewModelStore(

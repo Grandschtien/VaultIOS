@@ -74,6 +74,40 @@ extension RetryInterceptorTests {
 }
 
 extension RetryInterceptorTests {
+    func testRetryWhenUnauthorizedForLogoutPathDoesNotRetry() async {
+        let authSessionService = AuthSessionServiceStub(
+            refreshResult: .success(
+                AuthTokenDTO(
+                    accessToken: "new-access",
+                    refreshToken: "new-refresh",
+                    tokenType: "bearer",
+                    expiresIn: 900
+                )
+            )
+        )
+        let sut = RetryInterceptor(authSessionService: authSessionService)
+        let (session, request) = await makeCompletedRequest(
+            statusCode: 401,
+            path: "/auth/logout"
+        )
+
+        let retryResult = await resolveRetryResult(
+            sut: sut,
+            request: request,
+            session: session
+        )
+
+        switch retryResult {
+        case .doNotRetry:
+            let refreshCallCount = await authSessionService.currentRefreshCallCount()
+            XCTAssertEqual(refreshCallCount, 0)
+        default:
+            XCTFail("Expected doNotRetry")
+        }
+    }
+}
+
+extension RetryInterceptorTests {
     func testRetryWhenStatusCodeIsNotUnauthorizedDoesNotRetry() async {
         let authSessionService = AuthSessionServiceStub(
             refreshResult: .success(
@@ -174,6 +208,8 @@ private actor AuthSessionServiceStub: AuthSessionServiceProtocol {
     func accessToken() async -> String? {
         nil
     }
+
+    func logoutFromBackend() async throws {}
 
     func logout() async {
         logoutCallCount += 1
