@@ -11,7 +11,6 @@ import Nivelir
 final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleProviding, ImageProviding {
     private enum Constants {
         static let homeTabIndex: Int = 0
-        static let centerActionTabIndex: Int = 1
     }
 
     private let screenNavigator: ScreenNavigator
@@ -48,7 +47,7 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
         tabBarView.apply(
             .init(
                 centerActionTapCommand: Command { [weak self] in
-                    self?.selectedIndex = Constants.centerActionTabIndex
+                    self?.openAddExpenseChooser()
                 }
             )
         )
@@ -147,6 +146,17 @@ private extension MainFlowRootViewController {
         rootController.navigationItem.rightBarButtonItem = UIBarButtonItem(customView: makeProfileButton())
 
         return navigationController
+    }
+
+    func openAddExpenseChooser() {
+        let addExpenseScreen = ExpenseEntryChooserFactory(context: context)
+            .withBottomSheetStack(AddExpenseBottomSheetConfiguration.chooser())
+
+        screenNavigator.navigate(to: { route in
+            route
+                .top(.stack)
+                .present(addExpenseScreen)
+        })
     }
 
     func makeProfileButton() -> UIButton {

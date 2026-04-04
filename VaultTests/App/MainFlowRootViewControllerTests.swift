@@ -36,6 +36,37 @@ final class MainFlowRootViewControllerTests: XCTestCase {
         XCTAssertEqual(statsNavigation.viewControllers.first?.title, L10n.mainTabStats)
     }
 
+    func testCenterActionPresentsAddExpenseChooserWithoutChangingSelectedTab() async {
+        let window = UIWindow(frame: .init(x: 0, y: 0, width: 375, height: 812))
+        let navigator = ScreenNavigator(window: window)
+        let context = MainFlowContext(
+            store: MainFlowDomainStore(),
+            observer: MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping()),
+            repository: MainFlowRootRepositoryStub()
+        )
+        let sut = MainFlowRootViewController(
+            screenNavigator: navigator,
+            context: context
+        )
+
+        window.rootViewController = sut
+        window.makeKeyAndVisible()
+        _ = sut.view
+
+        guard let centerActionButton = findCenterActionButton(in: sut.view) else {
+            return XCTFail("Expected center action button")
+        }
+
+        centerActionButton.sendActions(for: .touchUpInside)
+        await Task.yield()
+        await Task.yield()
+
+        XCTAssertEqual(sut.selectedIndex, 0)
+
+        let presentedNavigation = sut.presentedViewController as? BottomSheetStackController
+        XCTAssertTrue(presentedNavigation?.viewControllers.first is ExpenseEntryChooserViewController)
+    }
+
     func testCurrencyChangeNotificationTriggersRepositoryUpdate() async {
         let window = UIWindow(frame: .init(x: 0, y: 0, width: 375, height: 812))
         let navigator = ScreenNavigator(window: window)
@@ -70,6 +101,15 @@ final class MainFlowRootViewControllerTests: XCTestCase {
 
         await fulfillment(of: [expectation], timeout: 1.0)
     }
+}
+
+private func findCenterActionButton(in rootView: UIView) -> UIButton? {
+    let tabBarView = allSubviews(in: rootView).first { $0 is MainTabBarView }
+    return tabBarView?.subviews.compactMap { $0 as? UIButton }.first
+}
+
+private func allSubviews(in view: UIView) -> [UIView] {
+    view.subviews + view.subviews.flatMap(allSubviews)
 }
 
 private final class MainFlowRootRepositoryStub: MainFlowDomainRepositoryProtocol, @unchecked Sendable {
