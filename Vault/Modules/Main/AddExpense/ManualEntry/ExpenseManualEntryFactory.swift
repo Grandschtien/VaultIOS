@@ -1,7 +1,7 @@
 import UIKit
 import Nivelir
 
-final class ExpenseManualEntryFactory: Screen {
+struct ExpenseManualEntryFactory: Screen {
     private let context: MainFlowContext
 
     init(context: MainFlowContext) {
@@ -11,6 +11,8 @@ final class ExpenseManualEntryFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
         var toastPresenter: ToastPresenting
+        @SafeInject
+        var userProfileStorageService: UserProfileStorageServiceProtocol
 
         let viewModel = ExpenseManualEntryViewModel()
         let presenter = ExpenseManualEntryPresenter(
@@ -19,12 +21,16 @@ final class ExpenseManualEntryFactory: Screen {
         )
         let router = ExpenseManualEntryRouter(
             screenRouter: navigator,
-            context: context,
+            screens: AddExpenseScreens(context: context),
             toastPresenter: toastPresenter
         )
         let interactor = ExpenseManualEntryInteractor(
             presenter: presenter,
-            router: router
+            router: router,
+            repository: context.repository,
+            observer: context.observer,
+            userProfileStorageService: userProfileStorageService,
+            requestBuilder: ExpenseManualEntryRequestBuilder()
         )
 
         let viewModelStore = ViewModelStore(

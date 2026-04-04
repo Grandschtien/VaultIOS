@@ -8,23 +8,23 @@ protocol ExpenseManualEntryRoutingLogic: Sendable {
         output: ExpenseCategoryPickerOutput
     )
     func close()
-    func presentComingSoon()
+    func presentError(with text: String)
 }
 
 final class ExpenseManualEntryRouter: ExpenseManualEntryRoutingLogic {
     private let screenRouter: ScreenNavigator
-    private let context: MainFlowContext
+    private let screens: AddExpenseScreens
     private let toastPresenter: ToastPresenting
 
     weak var viewController: UIViewController?
 
     init(
         screenRouter: ScreenNavigator,
-        context: MainFlowContext,
+        screens: AddExpenseScreens,
         toastPresenter: ToastPresenting
     ) {
         self.screenRouter = screenRouter
-        self.context = context
+        self.screens = screens
         self.toastPresenter = toastPresenter
     }
 
@@ -32,20 +32,19 @@ final class ExpenseManualEntryRouter: ExpenseManualEntryRoutingLogic {
         selectedCategoryID: String?,
         output: ExpenseCategoryPickerOutput
     ) {
-        guard let container = viewController?.navigationController ?? viewController else {
+        guard let viewController else {
             return
         }
 
-        let pickerScreen = ExpenseCategoryPickerFactory(
-            selectedCategoryID: selectedCategoryID,
-            output: output,
-            context: context
-        )
-        .withBottomSheetStack(AddExpenseBottomSheetConfiguration.categoryPicker())
-
-        screenRouter.navigate(from: container) { route in
+        screenRouter.navigate(from: viewController) { route in
             route
-                .present(pickerScreen)
+                .present(
+                    screens.categoryPickerScreen(
+                        selectedCategoryID: selectedCategoryID,
+                        output: output
+                    )
+                )
+                .addingBottomSheet(.content)
         }
     }
 
@@ -59,7 +58,7 @@ final class ExpenseManualEntryRouter: ExpenseManualEntryRoutingLogic {
         }
     }
 
-    func presentComingSoon() {
-        toastPresenter.present(state: .neuteral, title: L10n.mainOverviewComingSoon)
+    func presentError(with text: String) {
+        toastPresenter.present(state: .error, title: text)
     }
 }

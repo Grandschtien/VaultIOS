@@ -1,7 +1,7 @@
 import UIKit
 import SnapKit
 
-final class ExpenseAIEntryView: UIView, LayoutScaleProviding, AddExpenseSheetContentSizing {
+final class ExpenseAIEntryView: UIView, LayoutScaleProviding {
     private let headerView = AddExpenseSheetHeaderView()
     private let promptInputView = ExpenseMultilineInputView()
     private let processButton = Button()
@@ -21,18 +21,6 @@ final class ExpenseAIEntryView: UIView, LayoutScaleProviding, AddExpenseSheetCon
         headerView.apply(viewModel.header)
         promptInputView.apply(viewModel.promptInput)
         processButton.apply(viewModel.processButton)
-    }
-
-    func fittingHeight(for width: CGFloat) -> CGFloat {
-        layoutIfNeeded()
-
-        return headerView.frame.maxY
-        + spaceS
-        + promptInputView.frame.height
-        + spaceS
-        + processButton.frame.height
-        + spaceS
-        + safeAreaInsets.bottom
     }
 }
 

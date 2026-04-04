@@ -10,50 +10,42 @@ protocol ExpenseEntryChooserRoutingLogic: Sendable {
 
 final class ExpenseEntryChooserRouter: ExpenseEntryChooserRoutingLogic {
     private let screenRouter: ScreenNavigator
-    private let context: MainFlowContext
+    private let screens: AddExpenseScreens
 
     weak var viewController: UIViewController?
 
     init(
         screenRouter: ScreenNavigator,
-        context: MainFlowContext
+        screens: AddExpenseScreens
     ) {
         self.screenRouter = screenRouter
-        self.context = context
+        self.screens = screens
     }
 
     func openAiEntry() {
-        guard let viewController else {
-            return
-        }
-
-        screenRouter.navigate(from: viewController) { route in
+        screenRouter.navigate(to: { route in
             route
-                .stack(of: BottomSheetStackController.self)
-                .push(ExpenseAIEntryFactory()) { route in
-                    route.changeBottomSheet { bottomSheet in
-                        AddExpenseBottomSheetConfiguration.applyAiEntry(to: bottomSheet)
-                    }
-                }
-        }
+                .top(.container)
+                .dismiss()
+                .present(
+                    screens.aiEntryScreen()
+                        .withBottomSheet(.init(detents: [.content]))
+                )
+        })
     }
-
+    
     func openManualEntry() {
-        guard let viewController else {
-            return
-        }
-
-        screenRouter.navigate(from: viewController) { route in
+        screenRouter.navigate(to: { route in
             route
-                .stack(of: BottomSheetStackController.self)
-                .push(ExpenseManualEntryFactory(context: context)) { route in
-                    route.changeBottomSheet { bottomSheet in
-                        AddExpenseBottomSheetConfiguration.applyManualEntry(to: bottomSheet)
-                    }
-                }
-        }
+                .top(.container)
+                .dismiss()
+                .present(
+                    screens.manualEntryScreen()
+                        .withBottomSheet(.init(detents: [.content]))
+                )
+        })
     }
-
+    
     func close() {
         let container = viewController?.navigationController ?? viewController
 

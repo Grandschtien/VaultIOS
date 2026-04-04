@@ -149,14 +149,19 @@ private extension MainFlowRootViewController {
     }
 
     func openAddExpenseChooser() {
-        let addExpenseScreen = ExpenseEntryChooserFactory(context: context)
-            .withBottomSheetStack(AddExpenseBottomSheetConfiguration.chooser())
-
-        screenNavigator.navigate(to: { route in
+        screenNavigator.navigate(from: self) { route in
             route
-                .top(.stack)
-                .present(addExpenseScreen)
-        })
+                .present(
+                    ExpenseEntryChooserFactory(
+                        context: context
+                    ).withBottomSheet(
+                        .init(
+                            detents: [.content],
+                            prefferedGrabberForMaximumDetentValue: .default
+                        )
+                    )
+                )
+        }
     }
 
     func makeProfileButton() -> UIButton {

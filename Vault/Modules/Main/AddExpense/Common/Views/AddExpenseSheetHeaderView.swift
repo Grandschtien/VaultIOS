@@ -4,7 +4,6 @@ import SnapKit
 final class AddExpenseSheetHeaderView: UIView, LayoutScaleProviding {
     private(set) var viewModel: ViewModel = .init()
 
-    private let handleView = UIView()
     private let titleLabel = Label()
     private let closeButton = UIButton(type: .system)
 
@@ -29,25 +28,14 @@ private extension AddExpenseSheetHeaderView {
     func setupViews() {
         backgroundColor = .clear
 
-        handleView.backgroundColor = Asset.Colors.textAndIconPlaceseholder.color.withAlphaComponent(0.4)
-        handleView.layer.cornerRadius = spaceXXS
-
         closeButton.tintColor = Asset.Colors.textAndIconSecondary.color
         closeButton.setImage(UIImage(systemName: "xmark"), for: .normal)
         closeButton.addTarget(self, action: #selector(handleTapClose), for: .touchUpInside)
     }
 
     func setupLayout() {
-        addSubview(handleView)
         addSubview(titleLabel)
         addSubview(closeButton)
-
-        handleView.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(spaceXS)
-            make.centerX.equalToSuperview()
-            make.width.equalTo(sizeM)
-            make.height.equalTo(spaceXXS)
-        }
 
         closeButton.snp.makeConstraints { make in
             make.trailing.equalToSuperview().inset(spaceS)
@@ -56,7 +44,7 @@ private extension AddExpenseSheetHeaderView {
         }
 
         titleLabel.snp.makeConstraints { make in
-            make.top.equalTo(handleView.snp.bottom).offset(spaceS)
+            make.top.equalToSuperview().offset(spaceS)
             make.leading.equalToSuperview().offset(spaceXL)
             make.trailing.equalToSuperview().inset(spaceXL)
             make.bottom.equalToSuperview()

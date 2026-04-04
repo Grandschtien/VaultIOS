@@ -1,7 +1,7 @@
 import UIKit
 import Nivelir
 
-final class ExpenseCategoryPickerFactory: Screen {
+struct ExpenseCategoryPickerFactory: Screen {
     private let selectedCategoryID: String?
     private let output: ExpenseCategoryPickerOutput
     private let context: MainFlowContext

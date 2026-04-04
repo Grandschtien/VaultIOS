@@ -45,6 +45,7 @@ private extension ExpenseAmountInputView {
         textField.tintColor = Asset.Colors.interactiveElemetsPrimary.color
         textField.textAlignment = .center
         textField.keyboardType = .decimalPad
+        textField.delegate = self
         textField.addTarget(self, action: #selector(handleTextChanged), for: .editingChanged)
     }
 
@@ -66,6 +67,49 @@ private extension ExpenseAmountInputView {
     @objc
     func handleTextChanged() {
         viewModel.onTextDidChange?.execute(textField.text ?? "")
+    }
+}
+
+extension ExpenseAmountInputView: UITextFieldDelegate {
+    func textField(
+        _ textField: UITextField,
+        shouldChangeCharactersIn range: NSRange,
+        replacementString string: String
+    ) -> Bool {
+        ExpenseAmountInputFilter.shouldChange(
+            currentText: textField.text ?? "",
+            range: range,
+            replacementString: string
+        )
+    }
+}
+
+enum ExpenseAmountInputFilter {
+    private static let decimalSeparators = CharacterSet(charactersIn: ".,")
+    private static let allowedCharacters = CharacterSet.decimalDigits.union(decimalSeparators)
+
+    static func shouldChange(
+        currentText: String,
+        range: NSRange,
+        replacementString: String
+    ) -> Bool {
+        if replacementString.isEmpty {
+            return true
+        }
+
+        guard let textRange = Range(range, in: currentText) else {
+            return false
+        }
+
+        let updatedText = currentText.replacingCharacters(in: textRange, with: replacementString)
+        let unicodeScalars = updatedText.unicodeScalars
+
+        guard unicodeScalars.allSatisfy({ allowedCharacters.contains($0) }) else {
+            return false
+        }
+
+        let separatorsCount = unicodeScalars.filter { decimalSeparators.contains($0) }.count
+        return separatorsCount <= 1
     }
 }
 

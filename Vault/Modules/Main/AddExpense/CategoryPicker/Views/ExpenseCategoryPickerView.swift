@@ -1,7 +1,7 @@
 import UIKit
 import SnapKit
 
-final class ExpenseCategoryPickerView: UIView, LayoutScaleProviding, AddExpenseSheetContentSizing {
+final class ExpenseCategoryPickerView: UIView, LayoutScaleProviding {
     private var viewModel: ExpenseCategoryPickerViewModel = .init()
     private let tableAdapter: ExpenseCategoryPickerTableAdapter
 
@@ -52,18 +52,6 @@ final class ExpenseCategoryPickerView: UIView, LayoutScaleProviding, AddExpenseS
             tableAdapter.configure(rows: rows)
             tableView.reloadData()
         }
-    }
-
-    func fittingHeight(for width: CGFloat) -> CGFloat {
-        layoutIfNeeded()
-
-        return headerView.frame.maxY
-        + spaceS
-        + contentHeight
-        + spaceS
-        + addButton.frame.height
-        + spaceS
-        + safeAreaInsets.bottom
     }
 }
 

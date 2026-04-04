@@ -50,6 +50,43 @@ final class MainExpensesContractServiceTests: XCTestCase {
 }
 
 extension MainExpensesContractServiceTests {
+    func testCreateExpensesForwardsEmptyDescription() async throws {
+        let spy = AsyncNetworkClientContractSpy()
+        spy.setResponse(
+            json: #"{"expenses":[{"id":"exp-2","title":"Coffee","amount":5,"currency":"USD","category":"cat-1","time_of_add":"2025-01-01T10:00:00Z"}]}"#
+        )
+
+        var capturedRequest: ExpensesCreateRequestDTO?
+        spy.onRequest = { target in
+            guard let api = target as? ExpensiesAPI,
+                  case let .create(request) = api else {
+                return XCTFail("Expected ExpensiesAPI.create")
+            }
+
+            capturedRequest = request
+        }
+
+        let sut = MainExpensesContractService(networkClient: spy)
+        _ = try await sut.createExpenses(
+            .init(
+                expenses: [
+                    .init(
+                        title: "Coffee",
+                        description: "",
+                        amount: 5,
+                        currency: "USD",
+                        category: "cat-1",
+                        timeOfAdd: Date(timeIntervalSince1970: 1_735_725_600)
+                    )
+                ]
+            )
+        )
+
+        XCTAssertEqual(capturedRequest?.expenses.first?.description, "")
+    }
+}
+
+extension MainExpensesContractServiceTests {
     func testListExpensesForwardsAllFiltersAndDecodesCursor() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(

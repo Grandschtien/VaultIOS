@@ -63,8 +63,7 @@ final class MainFlowRootViewControllerTests: XCTestCase {
 
         XCTAssertEqual(sut.selectedIndex, 0)
 
-        let presentedNavigation = sut.presentedViewController as? BottomSheetStackController
-        XCTAssertTrue(presentedNavigation?.viewControllers.first is ExpenseEntryChooserViewController)
+        XCTAssertTrue(sut.presentedViewController is ExpenseEntryChooserViewController)
     }
 
     func testCurrencyChangeNotificationTriggersRepositoryUpdate() async {

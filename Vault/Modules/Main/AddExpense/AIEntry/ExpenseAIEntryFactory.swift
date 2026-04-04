@@ -1,7 +1,7 @@
 import UIKit
 import Nivelir
 
-final class ExpenseAIEntryFactory: Screen {
+struct ExpenseAIEntryFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
         var toastPresenter: ToastPresenting

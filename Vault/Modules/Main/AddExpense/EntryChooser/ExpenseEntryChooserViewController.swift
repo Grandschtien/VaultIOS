@@ -1,6 +1,6 @@
 import UIKit
 
-final class ExpenseEntryChooserViewController: UIViewController, HasContentView, AddExpenseSheetSizingController {
+final class ExpenseEntryChooserViewController: UIViewController, HasContentView {
     typealias ContentView = ExpenseEntryChooserView
 
     private let interactor: ExpenseEntryChooserBusinessLogic
@@ -36,11 +36,6 @@ final class ExpenseEntryChooserViewController: UIViewController, HasContentView,
         }
     }
 
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        updatePreferredContentSizeIfNeeded()
-    }
-
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
@@ -50,6 +45,5 @@ final class ExpenseEntryChooserViewController: UIViewController, HasContentView,
 private extension ExpenseEntryChooserViewController {
     func render(with viewModel: ExpenseEntryChooserViewModel) {
         contentView.configure(with: viewModel)
-        updatePreferredContentSizeIfNeeded()
     }
 }

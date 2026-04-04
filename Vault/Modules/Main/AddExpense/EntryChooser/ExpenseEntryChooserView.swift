@@ -1,7 +1,7 @@
 import UIKit
 import SnapKit
 
-final class ExpenseEntryChooserView: UIView, LayoutScaleProviding, AddExpenseSheetContentSizing {
+final class ExpenseEntryChooserView: UIView, LayoutScaleProviding {
     private let headerView = AddExpenseSheetHeaderView()
     private let aiButton = Button()
     private let manualButton = Button()
@@ -22,16 +22,6 @@ final class ExpenseEntryChooserView: UIView, LayoutScaleProviding, AddExpenseShe
         headerView.apply(viewModel.header)
         aiButton.apply(viewModel.aiButton)
         manualButton.apply(viewModel.manualButton)
-    }
-
-    func fittingHeight(for width: CGFloat) -> CGFloat {
-        layoutIfNeeded()
-
-        return headerView.frame.maxY
-        + spaceL
-        + buttonStackView.frame.height
-        + spaceS
-        + safeAreaInsets.bottom
     }
 }
 
@@ -58,7 +48,7 @@ private extension ExpenseEntryChooserView {
         buttonStackView.snp.makeConstraints { make in
             make.top.equalTo(headerView.snp.bottom).offset(spaceL)
             make.horizontalEdges.equalTo(safeAreaLayoutGuide).inset(spaceS)
-            make.bottom.lessThanOrEqualTo(safeAreaLayoutGuide).inset(spaceS)
+            make.bottom.equalTo(safeAreaLayoutGuide).inset(spaceS)
         }
     }
 }

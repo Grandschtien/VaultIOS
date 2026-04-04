@@ -23,6 +23,8 @@ final class ExpenseManualEntryPresenter: ExpenseManualEntryPresentationLogic, La
     }
 
     func presentFetchedData(_ data: ExpenseManualEntryFetchData) {
+        let isLoading = data.loadingState == .loading
+
         viewModel = ExpenseManualEntryViewModel(
             header: .init(
                 title: .init(
@@ -43,7 +45,7 @@ final class ExpenseManualEntryPresenter: ExpenseManualEntryPresentationLogic, La
                     alignment: .center
                 ),
                 text: data.amountText,
-                placeholder: L10n.expenseManualEntryAmountPlaceholder,
+                placeholder: amountPlaceholder(for: data.currencyCode),
                 onTextDidChange: CommandOf { [weak handler] text in
                     await handler?.handleChangeAmount(text)
                 }
@@ -76,6 +78,8 @@ final class ExpenseManualEntryPresenter: ExpenseManualEntryPresentationLogic, La
                 titleColor: Asset.Colors.textAndIconPrimaryInverted.color,
                 backgroundColor: Asset.Colors.interactiveElemetsPrimary.color,
                 font: Typography.typographySemibold16,
+                isEnabled: data.isConfirmEnabled && !isLoading,
+                isLoading: isLoading,
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapConfirm()
                 },
@@ -86,6 +90,23 @@ final class ExpenseManualEntryPresenter: ExpenseManualEntryPresentationLogic, La
 }
 
 private extension ExpenseManualEntryPresenter {
+    func amountPlaceholder(for currencyCode: String) -> String {
+        let normalizedCurrencyCode = currencyCode
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
+        guard !normalizedCurrencyCode.isEmpty else {
+            return L10n.expenseManualEntryAmountPlaceholder
+        }
+
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = normalizedCurrencyCode
+        formatter.locale = Locale.current
+
+        let currencySymbol = formatter.currencySymbol ?? normalizedCurrencyCode
+        return "\(currencySymbol)0.00"
+    }
+
     func makeCategoryFieldViewModel(
         selectedCategory: ExpenseCategorySelectionModel?
     ) -> ExpenseCategoryFieldView.ViewModel {

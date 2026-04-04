@@ -1,6 +1,6 @@
 import UIKit
 
-final class ExpenseCategoryPickerViewController: UIViewController, HasContentView, AddExpenseSheetSizingController {
+final class ExpenseCategoryPickerViewController: UIViewController, HasContentView {
     typealias ContentView = ExpenseCategoryPickerView
 
     private let interactor: ExpenseCategoryPickerBusinessLogic
@@ -39,11 +39,6 @@ final class ExpenseCategoryPickerViewController: UIViewController, HasContentVie
         }
     }
 
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        updatePreferredContentSizeIfNeeded()
-    }
-
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
@@ -53,6 +48,5 @@ final class ExpenseCategoryPickerViewController: UIViewController, HasContentVie
 private extension ExpenseCategoryPickerViewController {
     func render(with viewModel: ExpenseCategoryPickerViewModel) {
         contentView.configure(with: viewModel)
-        updatePreferredContentSizeIfNeeded()
     }
 }

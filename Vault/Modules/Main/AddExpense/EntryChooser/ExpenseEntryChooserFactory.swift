@@ -1,7 +1,7 @@
 import UIKit
 import Nivelir
 
-final class ExpenseEntryChooserFactory: Screen {
+struct ExpenseEntryChooserFactory: Screen {
     private let context: MainFlowContext
 
     init(context: MainFlowContext) {
@@ -13,7 +13,7 @@ final class ExpenseEntryChooserFactory: Screen {
         let presenter = ExpenseEntryChooserPresenter(viewModel: viewModel)
         let router = ExpenseEntryChooserRouter(
             screenRouter: navigator,
-            context: context
+            screens: AddExpenseScreens(context: context)
         )
         let interactor = ExpenseEntryChooserInteractor(
             presenter: presenter,

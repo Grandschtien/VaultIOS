@@ -1,7 +1,7 @@
 import UIKit
 import SnapKit
 
-final class ExpenseManualEntryView: UIView, LayoutScaleProviding, AddExpenseSheetContentSizing {
+final class ExpenseManualEntryView: UIView, LayoutScaleProviding {
     private let headerView = AddExpenseSheetHeaderView()
     private let scrollView = UIScrollView()
     private let contentStackView = UIStackView()
@@ -29,18 +29,6 @@ final class ExpenseManualEntryView: UIView, LayoutScaleProviding, AddExpenseShee
         categoryFieldView.apply(viewModel.categoryField)
         descriptionInputView.apply(viewModel.descriptionInput)
         confirmButton.apply(viewModel.confirmButton)
-    }
-
-    func fittingHeight(for width: CGFloat) -> CGFloat {
-        layoutIfNeeded()
-
-        return headerView.frame.maxY
-        + spaceS
-        + contentStackView.frame.height
-        + spaceS
-        + confirmButton.frame.height
-        + spaceS
-        + safeAreaInsets.bottom
     }
 }
 
