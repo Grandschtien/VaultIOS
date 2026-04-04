@@ -32,6 +32,47 @@ final class ExpenseManualEntryView: UIView, LayoutScaleProviding {
     }
 }
 
+extension ExpenseManualEntryView: AddExpenseSheetContentHeightProviding {
+    func preferredContentHeight(for width: CGFloat) -> CGFloat {
+        layoutIfNeeded()
+
+        let headerHeight = headerView.systemLayoutSizeFitting(
+            CGSize(
+                width: headerView.bounds.width > .zero ? headerView.bounds.width : width,
+                height: UIView.layoutFittingCompressedSize.height
+            ),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        ).height
+
+        let contentHeight = contentStackView.systemLayoutSizeFitting(
+            CGSize(
+                width: contentStackView.bounds.width > .zero ? contentStackView.bounds.width : width,
+                height: UIView.layoutFittingCompressedSize.height
+            ),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        ).height
+
+        let buttonHeight = confirmButton.systemLayoutSizeFitting(
+            CGSize(
+                width: confirmButton.bounds.width > .zero ? confirmButton.bounds.width : width,
+                height: UIView.layoutFittingCompressedSize.height
+            ),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        ).height
+
+        return safeAreaInsets.top
+            + headerHeight
+            + spaceS
+            + contentHeight
+            + spaceS
+            + buttonHeight
+            + safeAreaInsets.bottom
+    }
+}
+
 private extension ExpenseManualEntryView {
     func setupViews() {
         backgroundColor = Asset.Colors.backgroundPrimary.color

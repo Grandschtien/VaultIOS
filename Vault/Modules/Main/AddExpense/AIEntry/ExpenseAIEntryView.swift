@@ -45,6 +45,7 @@ private extension ExpenseAIEntryView {
         }
 
         processButton.snp.makeConstraints { make in
+            make.top.equalTo(promptInputView.snp.bottom).offset(spaceS)
             make.horizontalEdges.equalTo(safeAreaLayoutGuide).inset(spaceS)
             make.bottom.equalTo(safeAreaLayoutGuide).inset(spaceS)
         }

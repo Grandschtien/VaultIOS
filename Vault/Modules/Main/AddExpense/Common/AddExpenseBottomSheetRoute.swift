@@ -5,6 +5,12 @@ enum AddExpenseBottomSheetBehavior {
     case content
 }
 
+protocol AddExpenseSheetContentHeightProviding {
+    func preferredContentHeight(for width: CGFloat) -> CGFloat
+}
+
+protocol AddExpenseSheetContentSizing: HasContentView where Self: UIViewController {}
+
 private struct AddExpenseBottomSheetMetrics: LayoutScaleProviding {}
 
 private extension AddExpenseBottomSheetBehavior {
@@ -19,7 +25,7 @@ private extension AddExpenseBottomSheetBehavior {
 
         switch self {
         case .content:
-            sheet.detents = [.content()]
+            sheet.detents = [.content(for: viewController)]
         }
 
         sheet.prefersGrabberVisible = true
@@ -28,8 +34,15 @@ private extension AddExpenseBottomSheetBehavior {
 }
 
 private extension UISheetPresentationController.Detent {
-    static func content() -> UISheetPresentationController.Detent {
-        .medium()
+    static func content(
+        for viewController: UIViewController
+    ) -> UISheetPresentationController.Detent {
+        .custom { context in
+            min(
+                viewController.preferredContentSize.height,
+                context.maximumDetentValue
+            )
+        }
     }
 }
 
@@ -117,5 +130,51 @@ extension ScreenPresentAction {
 extension ScreenThenable where Current: UIViewController {
     func addingBottomSheet(_ behavior: AddExpenseBottomSheetBehavior) -> Self {
         then(ScreenAddExpenseBottomSheetAction<Current>(behavior: behavior))
+    }
+}
+
+extension AddExpenseSheetContentSizing where Self: UIViewController, ContentView: UIView {
+    func updatePreferredContentSizeToFitContent() {
+        let preferredWidth = view.bounds.width > .zero
+            ? view.bounds.width
+            : view.window?.bounds.width ?? UIScreen.main.bounds.width
+
+        guard preferredWidth > .zero else {
+            return
+        }
+
+        let preferredHeight: CGFloat
+        if let contentView = contentView as? AddExpenseSheetContentHeightProviding {
+            preferredHeight = contentView.preferredContentHeight(for: preferredWidth)
+        } else {
+            preferredHeight = contentView.systemLayoutSizeFitting(
+                CGSize(
+                    width: preferredWidth,
+                    height: UIView.layoutFittingCompressedSize.height
+                ),
+                withHorizontalFittingPriority: .required,
+                verticalFittingPriority: .fittingSizeLevel
+            ).height
+        }
+
+        guard preferredHeight > .zero else {
+            return
+        }
+
+        let preferredContentSize = CGSize(
+            width: preferredWidth,
+            height: preferredHeight
+        )
+
+        if self.preferredContentSize != preferredContentSize {
+            self.preferredContentSize = preferredContentSize
+        }
+
+        if navigationController?.preferredContentSize != preferredContentSize {
+            navigationController?.preferredContentSize = preferredContentSize
+        }
+
+        sheetPresentationController?.invalidateDetents()
+        navigationController?.sheetPresentationController?.invalidateDetents()
     }
 }

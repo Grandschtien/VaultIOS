@@ -115,17 +115,22 @@ private extension ExpenseCategoryPickerView {
         }
     }
 
-    var contentHeight: CGFloat {
+    func contentHeight(for width: CGFloat) -> CGFloat {
         switch viewModel.state {
         case .error:
             return errorView.systemLayoutSizeFitting(
-                UIView.layoutFittingCompressedSize
+                CGSize(
+                    width: errorView.bounds.width > .zero ? errorView.bounds.width : width,
+                    height: UIView.layoutFittingCompressedSize.height
+                ),
+                withHorizontalFittingPriority: .required,
+                verticalFittingPriority: .fittingSizeLevel
             ).height
         case .empty:
             return max(
                 emptyLabel.systemLayoutSizeFitting(
                     CGSize(
-                        width: emptyLabel.bounds.width,
+                        width: emptyLabel.bounds.width > .zero ? emptyLabel.bounds.width : width,
                         height: UIView.layoutFittingCompressedSize.height
                     ),
                     withHorizontalFittingPriority: .required,
@@ -137,6 +142,38 @@ private extension ExpenseCategoryPickerView {
             tableView.layoutIfNeeded()
             return tableView.contentSize.height
         }
+    }
+}
+
+extension ExpenseCategoryPickerView: AddExpenseSheetContentHeightProviding {
+    func preferredContentHeight(for width: CGFloat) -> CGFloat {
+        layoutIfNeeded()
+
+        let headerHeight = headerView.systemLayoutSizeFitting(
+            CGSize(
+                width: headerView.bounds.width > .zero ? headerView.bounds.width : width,
+                height: UIView.layoutFittingCompressedSize.height
+            ),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        ).height
+
+        let buttonHeight = addButton.systemLayoutSizeFitting(
+            CGSize(
+                width: addButton.bounds.width > .zero ? addButton.bounds.width : width,
+                height: UIView.layoutFittingCompressedSize.height
+            ),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        ).height
+
+        return safeAreaInsets.top
+            + headerHeight
+            + spaceS
+            + contentHeight(for: width)
+            + spaceS
+            + buttonHeight
+            + safeAreaInsets.bottom
     }
 }
 

@@ -63,7 +63,11 @@ final class MainFlowRootViewControllerTests: XCTestCase {
 
         XCTAssertEqual(sut.selectedIndex, 0)
 
-        XCTAssertTrue(sut.presentedViewController is ExpenseEntryChooserViewController)
+        guard let presentedViewController = sut.presentedViewController as? ExpenseEntryChooserViewController else {
+            return XCTFail("Expected expense entry chooser")
+        }
+
+        XCTAssertGreaterThan(presentedViewController.preferredContentSize.height, 0)
     }
 
     func testCurrencyChangeNotificationTriggersRepositoryUpdate() async {
