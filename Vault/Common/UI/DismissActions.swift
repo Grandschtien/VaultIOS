@@ -1,8 +1,23 @@
-//
-//  DismissActions.swift
-//  Vault
-//
-//  Created by Егор Шкарин on 04.04.2026.
-//
+import UIKit
+import Nivelir
 
-import Foundation
+extension ScreenThenable where Current: UIViewController {
+    func dimiss(
+        animated: Bool = true
+    ) -> Self {
+        presenting { route in
+            route.dismiss(animated: animated)
+        }
+    }
+
+    func dimissAndPresent<New: Screen>(
+        _ screen: New,
+        animated: Bool = true
+    ) -> Self where New.Container: UIViewController {
+        presenting { route in
+            route
+                .dismiss(animated: animated)
+                .present(screen, animated: animated)
+        }
+    }
+}

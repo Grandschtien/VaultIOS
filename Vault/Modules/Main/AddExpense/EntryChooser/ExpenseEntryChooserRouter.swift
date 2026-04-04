@@ -23,36 +23,32 @@ final class ExpenseEntryChooserRouter: ExpenseEntryChooserRoutingLogic {
     }
 
     func openAiEntry() {
-        screenRouter.navigate(to: { route in
-            route
-                .top(.container)
-                .dismiss()
-                .present(
-                    screens.aiEntryScreen()
-                        .withBottomSheet(.init(detents: [.content]))
-                )
-        })
+        let container = viewController?.navigationController ?? viewController
+
+        screenRouter.navigate(from: container) { route in
+            route.dimissAndPresent(
+                screens.aiEntryScreen()
+                    .withBottomSheet(.init(detents: [.content]))
+            )
+        }
     }
-    
+
     func openManualEntry() {
-        screenRouter.navigate(to: { route in
-            route
-                .top(.container)
-                .dismiss()
-                .present(
-                    screens.manualEntryScreen()
-                        .withBottomSheet(.init(detents: [.content]))
-                )
-        })
+        let container = viewController?.navigationController ?? viewController
+
+        screenRouter.navigate(from: container) { route in
+            route.dimissAndPresent(
+                screens.manualEntryScreen()
+                    .withBottomSheet(.init(detents: [.content]))
+            )
+        }
     }
-    
+
     func close() {
         let container = viewController?.navigationController ?? viewController
 
         screenRouter.navigate(from: container) { route in
-            route.presenting { presentingRoute in
-                presentingRoute.dismiss()
-            }
+            route.dimiss()
         }
     }
 }

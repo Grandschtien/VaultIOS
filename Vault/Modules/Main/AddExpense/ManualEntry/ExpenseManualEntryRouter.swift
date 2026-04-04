@@ -52,9 +52,7 @@ final class ExpenseManualEntryRouter: ExpenseManualEntryRoutingLogic {
         let container = viewController?.navigationController ?? viewController
 
         screenRouter.navigate(from: container) { route in
-            route.presenting { presentingRoute in
-                presentingRoute.dismiss()
-            }
+            route.dimiss()
         }
     }
 
