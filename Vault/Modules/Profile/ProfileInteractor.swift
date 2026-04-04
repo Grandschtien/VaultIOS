@@ -191,6 +191,7 @@ extension ProfileInteractor: ProfileHandler {
 
         let previousCurrencyCode = normalizedCurrencyCode(currentProfile.currency)
         let updatedCurrencyCode = normalizedCurrencyCode(selectedCurrencyCode)
+        let previousRateToUsd = userProfileStorageService.loadProfile()?.currencyRate
 
         guard !updatedCurrencyCode.isEmpty,
               updatedCurrencyCode != previousCurrencyCode
@@ -220,6 +221,15 @@ extension ProfileInteractor: ProfileHandler {
                 isSavingCurrency = false
                 loadingState = .loaded
                 await presentFetchedData()
+                NotificationCenter.default.post(
+                    name: .profileCurrencyDidChange,
+                    object: ProfileCurrencyDidChangePayload(
+                        previousCurrencyCode: previousCurrencyCode,
+                        previousRateToUsd: previousRateToUsd,
+                        updatedCurrencyCode: updatedCurrencyCode,
+                        updatedRateToUsd: updatedRate.rateToUsd
+                    )
+                )
             } catch {
                 _ = try? await profileService.updateProfile(
                     .init(currency: previousCurrencyCode)

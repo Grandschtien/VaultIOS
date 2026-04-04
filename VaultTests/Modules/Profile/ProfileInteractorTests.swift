@@ -240,6 +240,82 @@ extension ProfileInteractorTests {
     }
 }
 
+extension ProfileInteractorTests {
+    func testHandleTapSaveCurrencyPostsCurrencyChangedNotificationAndPersistsProfile() async {
+        let presenter = ProfilePresenterSpy()
+        let router = ProfileRouterSpy()
+        let profileService = ProfileServiceStub(
+            results: [
+                .success(
+                    .init(
+                        id: "user-1",
+                        email: "sarah@example.com",
+                        name: "Sarah Connor",
+                        currency: "USD",
+                        preferredLanguage: "en-US",
+                        tier: "ACTIVE",
+                        tierValidUntil: nil
+                    )
+                )
+            ],
+            updateResults: [
+                .success(
+                    .init(
+                        id: "user-1",
+                        email: "sarah@example.com",
+                        name: "Sarah Connor",
+                        currency: "EUR",
+                        preferredLanguage: "en-US",
+                        tier: "ACTIVE",
+                        tierValidUntil: nil
+                    )
+                )
+            ]
+        )
+        let localProfileStorage = UserProfileStorageServiceSpy(
+            storedProfile: .init(
+                userId: "user-1",
+                email: "sarah@example.com",
+                name: "Sarah Connor",
+                currency: "USD",
+                language: "en-US",
+                currencyRate: 1
+            )
+        )
+        let sut = makeSut(
+            presenter: presenter,
+            router: router,
+            profileService: profileService,
+            localProfileStorage: localProfileStorage
+        )
+
+        let expectation = expectation(description: "Currency changed notification")
+        var receivedPayload: ProfileCurrencyDidChangePayload?
+        let token = NotificationCenter.default.addObserver(
+            forName: .profileCurrencyDidChange,
+            object: nil,
+            queue: nil
+        ) { notification in
+            receivedPayload = notification.object as? ProfileCurrencyDidChangePayload
+            expectation.fulfill()
+        }
+        defer {
+            NotificationCenter.default.removeObserver(token)
+        }
+
+        await sut.fetchData()
+        await sut.handleDidSelectCurrency("EUR")
+        await sut.handleTapSaveCurrency()
+
+        await fulfillment(of: [expectation], timeout: 1.0)
+
+        XCTAssertEqual(receivedPayload?.previousCurrencyCode, "USD")
+        XCTAssertEqual(receivedPayload?.updatedCurrencyCode, "EUR")
+        XCTAssertEqual(receivedPayload?.updatedRateToUsd, 1)
+        XCTAssertEqual(localProfileStorage.loadProfile()?.currency, "EUR")
+    }
+}
+
 private extension ProfileInteractorTests {
     enum LoadingStatusCase {
         case loading
@@ -347,10 +423,16 @@ private actor AuthSessionServiceSpy: AuthSessionServiceProtocol {
 
 private actor ProfileServiceStub: ProfileContractServicing {
     private var results: [Result<ProfileResponseDTO, Error>]
+    private let updateResults: [Result<ProfileResponseDTO, Error>]
     private var getProfileCallsCount = 0
+    private var updateProfileCallsCount = 0
 
-    init(results: [Result<ProfileResponseDTO, Error>]) {
+    init(
+        results: [Result<ProfileResponseDTO, Error>],
+        updateResults: [Result<ProfileResponseDTO, Error>] = [.failure(StubError.any)]
+    ) {
         self.results = results
+        self.updateResults = updateResults
     }
 
     func getProfile() async throws -> ProfileResponseDTO {
@@ -365,7 +447,9 @@ private actor ProfileServiceStub: ProfileContractServicing {
     }
 
     func updateProfile(_ request: ProfileUpdateRequestDTO) async throws -> ProfileResponseDTO {
-        throw StubError.any
+        let index = min(updateProfileCallsCount, max(updateResults.count - 1, .zero))
+        updateProfileCallsCount += 1
+        return try updateResults[index].get()
     }
 
     func callsCount() -> Int {

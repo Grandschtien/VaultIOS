@@ -158,6 +158,7 @@ private actor CategoriesListRepositoryStub: MainFlowDomainRepositoryProtocol {
     func refreshRecentExpenses() async throws {}
     func refreshCategoryFirstPage(id: String) async throws {}
     func refreshExpensesFirstPage() async throws {}
+    func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {}
     func loadNextCategoryPage(id: String) async throws {}
     func loadNextExpensesPage() async throws {}
     func addExpense(_ request: ExpensesCreateRequestDTO) async throws {}

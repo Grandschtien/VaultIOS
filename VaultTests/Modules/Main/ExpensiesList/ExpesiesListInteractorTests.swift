@@ -244,6 +244,7 @@ private actor ExpesiesListRepositoryStub: MainFlowDomainRepositoryProtocol {
 
     func refreshRecentExpenses() async throws {}
     func refreshCategoryFirstPage(id: String) async throws {}
+    func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {}
 
     func refreshExpensesFirstPage() async throws {
         let index = min(firstPageCallCount, max(firstPageResults.count - 1, .zero))

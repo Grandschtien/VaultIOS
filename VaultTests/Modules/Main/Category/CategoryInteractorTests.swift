@@ -262,6 +262,7 @@ private actor CategoryRepositoryStub: MainFlowDomainRepositoryProtocol {
     }
 
     func refreshExpensesFirstPage() async throws {}
+    func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {}
 
     func loadNextCategoryPage(id: String) async throws {
         let index = min(nextPageCallCount, max(nextPageResults.count - 1, .zero))

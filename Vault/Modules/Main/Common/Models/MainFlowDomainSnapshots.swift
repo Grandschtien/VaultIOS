@@ -95,6 +95,7 @@ struct MainFlowPaginationState: Equatable, Sendable {
 }
 
 struct MainFlowDomainState: Equatable, Sendable {
+    var preferredCurrencyCode: String?
     var categoriesByID: [String: MainCategoryCardModel]
     var categoryOrder: [String]
     var expensesByID: [String: MainExpenseModel]
@@ -106,6 +107,7 @@ struct MainFlowDomainState: Equatable, Sendable {
     var pendingDeletedExpenseIDs: Set<String>
 
     init(
+        preferredCurrencyCode: String? = nil,
         categoriesByID: [String: MainCategoryCardModel] = [:],
         categoryOrder: [String] = [],
         expensesByID: [String: MainExpenseModel] = [:],
@@ -116,6 +118,7 @@ struct MainFlowDomainState: Equatable, Sendable {
         categoryPagination: [String: MainFlowPaginationState] = [:],
         pendingDeletedExpenseIDs: Set<String> = []
     ) {
+        self.preferredCurrencyCode = preferredCurrencyCode
         self.categoriesByID = categoriesByID
         self.categoryOrder = categoryOrder
         self.expensesByID = expensesByID

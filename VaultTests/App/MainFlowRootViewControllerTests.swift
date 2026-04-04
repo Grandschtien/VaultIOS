@@ -35,14 +35,54 @@ final class MainFlowRootViewControllerTests: XCTestCase {
         XCTAssertTrue(homeNavigation.viewControllers.first is MainViewController)
         XCTAssertEqual(statsNavigation.viewControllers.first?.title, L10n.mainTabStats)
     }
+
+    func testCurrencyChangeNotificationTriggersRepositoryUpdate() async {
+        let window = UIWindow(frame: .init(x: 0, y: 0, width: 375, height: 812))
+        let navigator = ScreenNavigator(window: window)
+        let repository = MainFlowRootRepositoryStub()
+        let context = MainFlowContext(
+            store: MainFlowDomainStore(),
+            observer: MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping()),
+            repository: repository
+        )
+        let sut = MainFlowRootViewController(
+            screenNavigator: navigator,
+            context: context
+        )
+
+        let payload = ProfileCurrencyDidChangePayload(
+            previousCurrencyCode: "USD",
+            previousRateToUsd: 1,
+            updatedCurrencyCode: "EUR",
+            updatedRateToUsd: 0.92
+        )
+        let expectation = expectation(description: "Currency event forwarded to repository")
+        repository.onHandleCurrencyDidChange = { receivedPayload in
+            XCTAssertEqual(receivedPayload, payload)
+            expectation.fulfill()
+        }
+
+        _ = sut.view
+        NotificationCenter.default.post(
+            name: .profileCurrencyDidChange,
+            object: payload
+        )
+
+        await fulfillment(of: [expectation], timeout: 1.0)
+    }
 }
 
 private final class MainFlowRootRepositoryStub: MainFlowDomainRepositoryProtocol, @unchecked Sendable {
+    var onHandleCurrencyDidChange: ((ProfileCurrencyDidChangePayload) -> Void)?
+
     func refreshMainFlow() async throws {}
     func refreshCategories() async throws {}
     func refreshRecentExpenses() async throws {}
     func refreshCategoryFirstPage(id: String) async throws {}
     func refreshExpensesFirstPage() async throws {}
+    func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {
+        onHandleCurrencyDidChange?(payload)
+    }
     func loadNextCategoryPage(id: String) async throws {}
     func loadNextExpensesPage() async throws {}
     func addExpense(_ request: ExpensesCreateRequestDTO) async throws {}

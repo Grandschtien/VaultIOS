@@ -6,6 +6,7 @@ protocol MainFlowDomainRepositoryProtocol: Sendable {
     func refreshRecentExpenses() async throws
     func refreshCategoryFirstPage(id: String) async throws
     func refreshExpensesFirstPage() async throws
+    func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async
     func loadNextCategoryPage(id: String) async throws
     func loadNextExpensesPage() async throws
     func addExpense(_ request: ExpensesCreateRequestDTO) async throws
@@ -55,6 +56,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         store.update { state in
             categories.forEach { state.categoriesByID[$0.id] = $0 }
             state.categoryOrder = categories.map(\.id)
+            state.preferredCurrencyCode = categories.first?.currency ?? state.preferredCurrencyCode
         }
         observer.publishAll(from: store)
     }
@@ -123,6 +125,44 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
             pruneUnreferencedExpenses(in: &state)
         }
         observer.publishAll(from: store)
+    }
+
+    func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {
+        let didRecalculateCategories = recalculateOverviewCategoriesIfPossible(with: payload)
+        if didRecalculateCategories {
+            observer.publishAll(from: store)
+        } else {
+            do {
+                try await refreshCategories()
+            } catch {
+                observer.publishAll(from: store)
+            }
+        }
+
+        let state = store.snapshot()
+        let shouldRefreshRecentExpenses = !state.recentExpenseIDs.isEmpty
+        let shouldRefreshExpensesList = state.expensesListPagination.isLoaded
+            && !state.expensesListExpenseIDs.isEmpty
+        let loadedCategoryIDs = state.categoryPagination.compactMap { element -> String? in
+            guard element.value.isLoaded else {
+                return nil
+            }
+
+            let loadedExpenseIDs = state.categoryExpenseIDs[element.key] ?? []
+            return loadedExpenseIDs.isEmpty ? nil : element.key
+        }
+
+        if shouldRefreshRecentExpenses {
+            try? await refreshRecentExpenses()
+        }
+
+        if shouldRefreshExpensesList {
+            try? await refreshExpensesFirstPage()
+        }
+
+        for categoryID in loadedCategoryIDs {
+            try? await refreshCategoryFirstPage(id: categoryID)
+        }
     }
 
     func loadNextCategoryPage(id: String) async throws {
@@ -431,6 +471,122 @@ private extension MainFlowDomainRepository {
         }
     }
 
+    func recalculateOverviewCategoriesIfPossible(
+        with payload: ProfileCurrencyDidChangePayload
+    ) -> Bool {
+        var didRecalculateCategories = false
+        let previousCurrencyCode = normalizedCurrencyCode(payload.previousCurrencyCode)
+        let updatedCurrencyCode = normalizedCurrencyCode(payload.updatedCurrencyCode)
+
+        store.update { state in
+            state.preferredCurrencyCode = updatedCurrencyCode
+
+            guard !state.categoryOrder.isEmpty else {
+                didRecalculateCategories = true
+                return
+            }
+
+            guard let previousRateToUsd = rateToUsd(
+                for: previousCurrencyCode,
+                explicitRateToUsd: payload.previousRateToUsd
+            ),
+            let updatedRateToUsd = rateToUsd(
+                for: updatedCurrencyCode,
+                explicitRateToUsd: payload.updatedRateToUsd
+            ) else {
+                return
+            }
+
+            let categories = state.categoryOrder.compactMap { state.categoriesByID[$0] }
+            guard categories.count == state.categoryOrder.count else {
+                return
+            }
+
+            guard categories.allSatisfy({
+                isSameCurrency($0.currency, previousCurrencyCode)
+            }) else {
+                return
+            }
+
+            for category in categories {
+                let amountInUsd = amountInUsd(
+                    amount: category.amount,
+                    currency: previousCurrencyCode,
+                    rateToUsd: previousRateToUsd
+                )
+                let updatedAmount = amountFromUsd(
+                    amountInUsd: amountInUsd,
+                    currency: updatedCurrencyCode,
+                    rateToUsd: updatedRateToUsd
+                )
+
+                state.categoriesByID[category.id] = MainCategoryCardModel(
+                    id: category.id,
+                    name: category.name,
+                    icon: category.icon,
+                    color: category.color,
+                    amount: updatedAmount,
+                    currency: updatedCurrencyCode
+                )
+            }
+
+            didRecalculateCategories = true
+        }
+
+        return didRecalculateCategories
+    }
+
+    func normalizedCurrencyCode(_ code: String) -> String {
+        code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    }
+
+    func rateToUsd(
+        for currencyCode: String,
+        explicitRateToUsd: Double?
+    ) -> Double? {
+        if isSameCurrency(currencyCode, "USD") {
+            return 1
+        }
+
+        guard let explicitRateToUsd, explicitRateToUsd > .zero else {
+            return nil
+        }
+
+        return explicitRateToUsd
+    }
+
+    func amountInUsd(
+        amount: Double,
+        currency: String,
+        rateToUsd: Double
+    ) -> Double {
+        if isSameCurrency(currency, "USD") {
+            return amount
+        }
+
+        return amount * rateToUsd
+    }
+
+    func amountFromUsd(
+        amountInUsd: Double,
+        currency: String,
+        rateToUsd: Double
+    ) -> Double {
+        if isSameCurrency(currency, "USD") {
+            return amountInUsd
+        }
+
+        guard rateToUsd > .zero else {
+            return amountInUsd
+        }
+
+        return amountInUsd / rateToUsd
+    }
+
+    func isSameCurrency(_ lhs: String, _ rhs: String) -> Bool {
+        lhs.compare(rhs, options: [.caseInsensitive]) == .orderedSame
+    }
+
     func makeCategoryModel(from category: CategoryDTO) -> MainCategoryCardModel {
         let convertedAmount = currencyConversionService.convertUsdAmount(category.totalSpentUsd ?? .zero)
         return MainCategoryCardModel(
@@ -486,6 +642,9 @@ private extension MainFlowDomainRepository {
     }
 
     func currentCurrencyCode(from state: MainFlowDomainState) -> String {
-        state.categoriesByID.values.first?.currency ?? Locale.current.currency?.identifier ?? "USD"
+        state.categoriesByID.values.first?.currency
+            ?? state.preferredCurrencyCode
+            ?? Locale.current.currency?.identifier
+            ?? "USD"
     }
 }

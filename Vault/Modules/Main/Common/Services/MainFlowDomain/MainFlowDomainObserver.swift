@@ -243,6 +243,7 @@ private extension MainFlowDomainObserver {
         return MainFlowOverviewSnapshot(
             summary: makeSummary(
                 from: categories,
+                preferredCurrencyCode: state.preferredCurrencyCode,
                 previousSummary: previousSummary
             ),
             categories: categories,
@@ -304,9 +305,18 @@ private extension MainFlowDomainObserver {
 
     func makeSummary(
         from categories: [MainCategoryCardModel],
+        preferredCurrencyCode: String?,
         previousSummary: MainSummaryModel?
     ) -> MainSummaryModel? {
-        guard let currency = categories.first?.currency ?? previousSummary?.currency else {
+        let resolvedCurrency: String? = if let currencyFromCategories = categories.first?.currency {
+            currencyFromCategories
+        } else if let currencyFromPreferred = preferredCurrencyCode {
+            currencyFromPreferred
+        } else {
+            previousSummary?.currency
+        }
+
+        guard let currency = resolvedCurrency else {
             return nil
         }
 

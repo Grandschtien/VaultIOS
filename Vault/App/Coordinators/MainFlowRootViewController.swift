@@ -18,6 +18,7 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
     private let context: MainFlowContext
     private let tabBarView = MainTabBarView()
     private var logoutObserver: NSObjectProtocol?
+    private var currencyDidChangeObserver: NSObjectProtocol?
     private var profileButtonSize: CGFloat { sizeL }
     private var profileIconSize: CGFloat { sizeS }
 
@@ -39,6 +40,7 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
         super.viewDidLoad()
         delegate = self
         observeLogoutEvents()
+        observeCurrencyChangeEvents()
 
         setupTabs()
         tabBarView.applyAppearance(to: tabBar)
@@ -52,6 +54,16 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
         )
 
         selectedIndex = Constants.homeTabIndex
+    }
+
+    deinit {
+        if let logoutObserver {
+            NotificationCenter.default.removeObserver(logoutObserver)
+        }
+
+        if let currencyDidChangeObserver {
+            NotificationCenter.default.removeObserver(currencyDidChangeObserver)
+        }
     }
 }
 
@@ -93,6 +105,23 @@ private extension MainFlowRootViewController {
 
             Task {
                 await self.context.repository.clearSession()
+            }
+        }
+    }
+
+    func observeCurrencyChangeEvents() {
+        currencyDidChangeObserver = NotificationCenter.default.addObserver(
+            forName: .profileCurrencyDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self,
+                  let payload = notification.object as? ProfileCurrencyDidChangePayload else {
+                return
+            }
+
+            Task {
+                await self.context.repository.handleCurrencyDidChange(payload)
             }
         }
     }
