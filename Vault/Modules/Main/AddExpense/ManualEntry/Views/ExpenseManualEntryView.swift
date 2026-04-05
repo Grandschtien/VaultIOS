@@ -3,13 +3,14 @@ import SnapKit
 
 final class ExpenseManualEntryView: UIView, LayoutScaleProviding {
     private let headerView = AddExpenseSheetHeaderView()
-    private let scrollView = UIScrollView()
     private let contentStackView = UIStackView()
     private let amountInputView = ExpenseAmountInputView()
     private let titleField = TextField()
     private let categoryFieldView = ExpenseCategoryFieldView()
     private let descriptionInputView = ExpenseMultilineInputView()
-    private let confirmButton = Button()
+    private let buttonsStackView = UIStackView()
+    private let primaryButton = Button()
+    private let skipButton = Button()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -24,11 +25,20 @@ final class ExpenseManualEntryView: UIView, LayoutScaleProviding {
 
     func configure(with viewModel: ExpenseManualEntryViewModel) {
         headerView.apply(viewModel.header)
-        amountInputView.apply(viewModel.amountInput)
-        titleField.apply(viewModel.titleField)
-        categoryFieldView.apply(viewModel.categoryField)
-        descriptionInputView.apply(viewModel.descriptionInput)
-        confirmButton.apply(viewModel.confirmButton)
+
+        if let currentDraft = viewModel.currentDraft {
+            amountInputView.apply(currentDraft.amountInput)
+            titleField.apply(currentDraft.titleField)
+            categoryFieldView.apply(currentDraft.categoryField)
+            descriptionInputView.apply(currentDraft.descriptionInput)
+        }
+
+        primaryButton.apply(viewModel.primaryButton)
+
+        skipButton.isHidden = viewModel.skipButton == nil
+        if let skipButtonViewModel = viewModel.skipButton {
+            skipButton.apply(skipButtonViewModel)
+        }
     }
 }
 
@@ -54,22 +64,12 @@ extension ExpenseManualEntryView: AddExpenseSheetContentHeightProviding {
             verticalFittingPriority: .fittingSizeLevel
         ).height
 
-        let buttonHeight = confirmButton.systemLayoutSizeFitting(
-            CGSize(
-                width: confirmButton.bounds.width > .zero ? confirmButton.bounds.width : width,
-                height: UIView.layoutFittingCompressedSize.height
-            ),
-            withHorizontalFittingPriority: .required,
-            verticalFittingPriority: .fittingSizeLevel
-        ).height
-
         return safeAreaInsets.top
             + headerHeight
             + spaceS
             + contentHeight
-            + spaceS
-            + buttonHeight
             + safeAreaInsets.bottom
+            + spaceS
     }
 }
 
@@ -77,43 +77,58 @@ private extension ExpenseManualEntryView {
     func setupViews() {
         backgroundColor = Asset.Colors.backgroundPrimary.color
 
-        scrollView.showsVerticalScrollIndicator = false
-        scrollView.keyboardDismissMode = .interactive
-
         contentStackView.axis = .vertical
         contentStackView.spacing = spaceS
+
+        buttonsStackView.axis = .vertical
+        buttonsStackView.spacing = spaceS
     }
 
     func setupLayout() {
         addSubview(headerView)
-        addSubview(scrollView)
-        addSubview(confirmButton)
+        addSubview(contentStackView)
 
-        scrollView.addSubview(contentStackView)
         contentStackView.addArrangedSubview(amountInputView)
         contentStackView.addArrangedSubview(titleField)
         contentStackView.addArrangedSubview(categoryFieldView)
         contentStackView.addArrangedSubview(descriptionInputView)
+        contentStackView.addArrangedSubview(buttonsStackView)
+
+        buttonsStackView.addArrangedSubview(primaryButton)
+        buttonsStackView.addArrangedSubview(skipButton)
 
         headerView.snp.makeConstraints { make in
             make.top.equalTo(safeAreaLayoutGuide)
             make.horizontalEdges.equalToSuperview()
         }
 
-        confirmButton.snp.makeConstraints { make in
+        contentStackView.snp.makeConstraints { make in
+            make.top.equalTo(headerView.snp.bottom).offset(spaceS)
             make.horizontalEdges.equalTo(safeAreaLayoutGuide).inset(spaceS)
             make.bottom.equalTo(safeAreaLayoutGuide).inset(spaceS)
         }
 
-        scrollView.snp.makeConstraints { make in
-            make.top.equalTo(headerView.snp.bottom).offset(spaceS)
-            make.horizontalEdges.equalTo(safeAreaLayoutGuide).inset(spaceS)
-            make.bottom.equalTo(confirmButton.snp.top).offset(-spaceS)
-        }
+        skipButton.isHidden = true
+    }
+}
 
-        contentStackView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-            make.width.equalTo(scrollView)
+extension ExpenseManualEntryView {
+    struct DraftViewModel: Equatable {
+        let amountInput: ExpenseAmountInputView.ViewModel
+        let titleField: TextField.ViewModel
+        let categoryField: ExpenseCategoryFieldView.ViewModel
+        let descriptionInput: ExpenseMultilineInputView.ViewModel
+
+        init(
+            amountInput: ExpenseAmountInputView.ViewModel = .init(),
+            titleField: TextField.ViewModel = .init(),
+            categoryField: ExpenseCategoryFieldView.ViewModel = .init(),
+            descriptionInput: ExpenseMultilineInputView.ViewModel = .init()
+        ) {
+            self.amountInput = amountInput
+            self.titleField = titleField
+            self.categoryField = categoryField
+            self.descriptionInput = descriptionInput
         }
     }
 }

@@ -105,6 +105,27 @@ extension MainContractsAPITests {
 }
 
 extension MainContractsAPITests {
+    func testAIParseBuildsExpectedConfiguration() {
+        let target = AIParseAPI.parse(
+            .init(
+                text: "Coffee 5",
+                currencyHint: "USD"
+            )
+        )
+
+        XCTAssertEqual(target.path, "/ai/parse")
+        XCTAssertEqual(target.method.rawValue, "POST")
+        XCTAssertEqual(target.host, "localhost")
+        XCTAssertEqual(target.timeoutInterval, 30)
+        XCTAssertEqual(target.url.absoluteString, "https://localhost:8080/ai/parse")
+
+        guard case .custonJSON = target.requestType else {
+            return XCTFail("Expected custom JSON request type")
+        }
+    }
+}
+
+extension MainContractsAPITests {
     func testCurrencyRateBuildExpectedConfiguration() {
         let target = CurrencyRateAPI.get(currency: "USD")
 

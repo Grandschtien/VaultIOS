@@ -2,25 +2,22 @@ import Foundation
 
 struct ExpenseManualEntryViewModel: Equatable {
     let header: AddExpenseSheetHeaderView.ViewModel
-    let amountInput: ExpenseAmountInputView.ViewModel
-    let titleField: TextField.ViewModel
-    let categoryField: ExpenseCategoryFieldView.ViewModel
-    let descriptionInput: ExpenseMultilineInputView.ViewModel
-    let confirmButton: Button.ButtonViewModel
+    let currentDraft: ExpenseManualEntryView.DraftViewModel?
+    let changePageCommand: CommandOf<Int>
+    let primaryButton: Button.ButtonViewModel
+    let skipButton: Button.ButtonViewModel?
 
     init(
         header: AddExpenseSheetHeaderView.ViewModel = .init(),
-        amountInput: ExpenseAmountInputView.ViewModel = .init(),
-        titleField: TextField.ViewModel = .init(),
-        categoryField: ExpenseCategoryFieldView.ViewModel = .init(),
-        descriptionInput: ExpenseMultilineInputView.ViewModel = .init(),
-        confirmButton: Button.ButtonViewModel = .init()
+        currentDraft: ExpenseManualEntryView.DraftViewModel? = .init(),
+        changePageCommand: CommandOf<Int> = .init(action: nil),
+        primaryButton: Button.ButtonViewModel = .init(),
+        skipButton: Button.ButtonViewModel? = nil
     ) {
         self.header = header
-        self.amountInput = amountInput
-        self.titleField = titleField
-        self.categoryField = categoryField
-        self.descriptionInput = descriptionInput
-        self.confirmButton = confirmButton
+        self.currentDraft = currentDraft
+        self.changePageCommand = changePageCommand
+        self.primaryButton = primaryButton
+        self.skipButton = skipButton
     }
 }

@@ -76,9 +76,13 @@
 "expense_ai_entry_title" = "AI Entry";
 "expense_ai_entry_placeholder" = "e.g. Bought coffee for $5 at Starbucks";
 "expense_ai_entry_process" = "Process";
+"expense_ai_entry_no_expense_title" = "Entry Not Recognized";
+"expense_ai_entry_no_expense_message" = "We couldn't understand your entry. Would you like to refine it or add the details manually?";
+"expense_ai_entry_add_manually" = "Add Manually";
+"expense_ai_entry_fix_prompt" = "Fix Prompt";
 "expense_manual_entry_title" = "Review Expense";
 "expense_manual_entry_amount_label" = "Amount";
-"expense_manual_entry_amount_placeholder" = "$0.00";
+"expense_manual_entry_amount_placeholder" = "0.00";
 "expense_manual_entry_title_label" = "Title";
 "expense_manual_entry_title_placeholder" = "Lunch at Nando's";
 "expense_manual_entry_category_label" = "Category";
@@ -86,6 +90,7 @@
 "expense_manual_entry_description_label" = "Description";
 "expense_manual_entry_description_placeholder" = "Add a note";
 "expense_manual_entry_confirm_changes" = "Confirm Changes";
+"expense_manual_entry_skip" = "Skip";
 "expense_category_picker_add" = "Add";
 "expense_category_picker_empty" = "No categories available";
 "expense_category_picker_error" = "Unable to load categories";

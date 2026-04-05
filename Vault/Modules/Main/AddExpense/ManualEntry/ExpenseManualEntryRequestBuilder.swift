@@ -1,20 +1,16 @@
 import Foundation
 
 struct ExpenseManualEntryRequestBuilder: Sendable {
-    func isValidDraft(
-        amountText: String,
-        titleText: String,
-        selectedCategory: ExpenseCategorySelectionModel?
-    ) -> Bool {
-        guard selectedCategory != nil else {
+    func isValidDraft(_ draft: ExpenseEditableDraft) -> Bool {
+        guard draft.selectedCategory != nil else {
             return false
         }
 
-        guard !normalizedTitle(from: titleText).isEmpty else {
+        guard !normalizedTitle(from: draft.titleText).isEmpty else {
             return false
         }
 
-        guard let amount = normalizedAmount(from: amountText) else {
+        guard let amount = normalizedAmount(from: draft.amountText) else {
             return false
         }
 
@@ -22,40 +18,43 @@ struct ExpenseManualEntryRequestBuilder: Sendable {
     }
 
     func makeRequest(
-        amountText: String,
-        titleText: String,
-        descriptionText: String,
-        selectedCategory: ExpenseCategorySelectionModel?,
-        currencyCode: String,
+        drafts: [ExpenseEditableDraft],
         timeOfAdd: Date
     ) -> ExpensesCreateRequestDTO? {
-        guard let selectedCategory,
-              let amount = normalizedAmount(from: amountText) else {
+        let expenses = drafts.compactMap { draft -> ExpenseCreateItemRequestDTO? in
+            guard let selectedCategory = draft.selectedCategory,
+                  let amount = normalizedAmount(from: draft.amountText) else {
+                return nil
+            }
+
+            let title = normalizedTitle(from: draft.titleText)
+            guard !title.isEmpty else {
+                return nil
+            }
+
+            let currency = draft.currencyCode
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .uppercased()
+            guard !currency.isEmpty else {
+                return nil
+            }
+
+            return ExpenseCreateItemRequestDTO(
+                title: title,
+                description: draft.descriptionText.trimmingCharacters(in: .whitespacesAndNewlines),
+                amount: amount,
+                currency: currency,
+                category: selectedCategory.id,
+                timeOfAdd: timeOfAdd
+            )
+        }
+
+        guard expenses.count == drafts.count,
+              !expenses.isEmpty else {
             return nil
         }
 
-        let title = normalizedTitle(from: titleText)
-        guard !title.isEmpty else {
-            return nil
-        }
-
-        let currency = currencyCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        guard !currency.isEmpty else {
-            return nil
-        }
-
-        return ExpensesCreateRequestDTO(
-            expenses: [
-                ExpenseCreateItemRequestDTO(
-                    title: title,
-                    description: descriptionText.trimmingCharacters(in: .whitespacesAndNewlines),
-                    amount: amount,
-                    currency: currency,
-                    category: selectedCategory.id,
-                    timeOfAdd: timeOfAdd
-                )
-            ]
-        )
+        return ExpensesCreateRequestDTO(expenses: expenses)
     }
 }
 

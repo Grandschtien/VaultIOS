@@ -234,7 +234,6 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
     func addExpense(_ request: ExpensesCreateRequestDTO) async throws {
         let previousState = store.snapshot()
         let optimisticExpenses = request.expenses.map(makeOptimisticExpenseModel)
-        let affectedCategoryIDs = Set(request.expenses.map(\.category))
 
         store.update { state in
             merge(expenses: optimisticExpenses, into: &state)
@@ -247,8 +246,23 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         observer.publishAll(from: store)
 
         do {
-            _ = try await expensesService.createExpenses(request)
-            try await reconcileAfterExpenseMutation(affectedCategoryIDs: affectedCategoryIDs)
+            let response = try await expensesService.createExpenses(request)
+            let responseExpenses = response.expenses.map(makeExpenseModel)
+            let optimisticExpenseIDs = optimisticExpenses.map(\.id)
+
+            store.update { state in
+                removeExpenses(ids: optimisticExpenseIDs, from: &state)
+                applyCategoryAmountDelta(for: optimisticExpenses, multiplier: -1, state: &state)
+                merge(expenses: responseExpenses, into: &state)
+                insertExpensesIntoRecent(responseExpenses, state: &state)
+                insertExpensesIntoExpensesList(responseExpenses, state: &state)
+                insertExpensesIntoCategories(responseExpenses, state: &state)
+                applyCategoryAmountDelta(for: responseExpenses, multiplier: 1, state: &state)
+                pruneUnreferencedExpenses(in: &state)
+            }
+            observer.publishAll(from: store)
+
+            try? await refreshCategories()
         } catch {
             store.replaceState(previousState)
             observer.publishAll(from: store)
@@ -411,6 +425,16 @@ private extension MainFlowDomainRepository {
         state.expensesListExpenseIDs.removeAll { $0 == id }
         state.categoryExpenseIDs.keys.forEach { categoryID in
             state.categoryExpenseIDs[categoryID]?.removeAll { $0 == id }
+        }
+    }
+
+    func removeExpenses(
+        ids: [String],
+        from state: inout MainFlowDomainState
+    ) {
+        ids.forEach { id in
+            removeExpense(id: id, from: &state)
+            state.expensesByID[id] = nil
         }
     }
 

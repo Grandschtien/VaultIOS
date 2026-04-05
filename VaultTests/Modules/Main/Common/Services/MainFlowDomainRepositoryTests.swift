@@ -245,6 +245,95 @@ extension MainFlowDomainRepositoryTests {
 }
 
 extension MainFlowDomainRepositoryTests {
+    func testAddExpenseSuccessReplacesOptimisticExpensesWithResponse() async throws {
+        let store = MainFlowDomainStore()
+        let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        let category = MainCategoryCardModel(
+            id: "cat-1",
+            name: "Food",
+            icon: "🍴",
+            color: "light_orange",
+            amount: 10,
+            currency: "USD"
+        )
+
+        store.update { state in
+            state.categoriesByID[category.id] = category
+            state.categoryOrder = [category.id]
+            state.categoryExpenseIDs[category.id] = []
+            state.categoryPagination[category.id] = .init(hasMore: false, isLoaded: true)
+            state.expensesListPagination = .init(hasMore: false, isLoaded: true)
+        }
+        observer.publishAll(from: store)
+
+        let categoriesService = CategoriesServiceStub(
+            listResult: .success(
+                .init(
+                    categories: [
+                        .init(
+                            id: "cat-1",
+                            name: "Food",
+                            icon: "🍴",
+                            color: "light_orange",
+                            totalSpentUsd: 15
+                        )
+                    ]
+                )
+            )
+        )
+        let expensesService = ExpensesServiceStub(
+            listResults: [],
+            createResult: .success(
+                .init(
+                    expenses: [
+                        .init(
+                            id: "exp-server",
+                            title: "Coffee",
+                            description: "Morning",
+                            amount: 4,
+                            currency: "USD",
+                            category: "cat-1",
+                            timeOfAdd: Date(timeIntervalSince1970: 100)
+                        )
+                    ]
+                )
+            )
+        )
+        let repository = MainFlowDomainRepository(
+            categoriesService: categoriesService,
+            expensesService: expensesService,
+            currencyConversionService: CurrencyConverterStub(),
+            store: store,
+            observer: observer
+        )
+
+        try await repository.addExpense(
+            .init(
+                expenses: [
+                    .init(
+                        title: "Coffee",
+                        description: "Morning",
+                        amount: 4,
+                        currency: "USD",
+                        category: "cat-1",
+                        timeOfAdd: Date(timeIntervalSince1970: 100)
+                    )
+                ]
+            )
+        )
+
+        let state = store.snapshot()
+        XCTAssertEqual(state.recentExpenseIDs, ["exp-server"])
+        XCTAssertEqual(state.expensesListExpenseIDs, ["exp-server"])
+        XCTAssertEqual(state.categoryExpenseIDs["cat-1"], ["exp-server"])
+        XCTAssertEqual(state.expensesByID.keys, ["exp-server"])
+        XCTAssertEqual(state.expensesByID["exp-server"]?.title, "Coffee")
+        XCTAssertEqual(await expensesService.listCallsCount(), 0)
+        XCTAssertEqual(await categoriesService.listCallsCount(), 1)
+    }
+}
+
+extension MainFlowDomainRepositoryTests {
     func testAddExpenseFailureRollsBackOptimisticInsert() async {
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())

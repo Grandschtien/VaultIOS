@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "alert_wraning.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

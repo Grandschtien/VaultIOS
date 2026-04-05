@@ -3,80 +3,38 @@ import XCTest
 
 @MainActor
 final class ExpenseManualEntryInteractorTests: XCTestCase {
-    func testFetchDataBuildsEmptyDraft() async {
+    func testFetchDataBuildsSingleDraftFromProfileCurrency() async {
         let presenter = ExpenseManualEntryPresenterSpy()
-        let router = ExpenseManualEntryRouterSpy()
-        let repository = MainFlowRepositorySpy()
-        let observer = MainFlowObserverStub()
-        let userProfileStorageService = UserProfileStorageSpy(
-            profile: .init(
-                userId: "1",
-                email: "test@example.com",
-                name: "Test",
-                currency: "KZT",
-                language: "en"
-            )
-        )
-        let sut = ExpenseManualEntryInteractor(
+        let sut = makeSUT(
             presenter: presenter,
-            router: router,
-            repository: repository,
-            observer: observer,
-            userProfileStorageService: userProfileStorageService,
-            requestBuilder: ExpenseManualEntryRequestBuilder()
+            userProfileStorageService: UserProfileStorageSpy(
+                profile: .init(
+                    userId: "1",
+                    email: "test@example.com",
+                    name: "Test",
+                    currency: "KZT",
+                    language: "en"
+                )
+            )
         )
 
         await sut.fetchData()
 
         let last = presenter.presentedData.last
         XCTAssertEqual(last?.loadingState, .idle)
-        XCTAssertFalse(last?.isConfirmEnabled ?? true)
-        XCTAssertEqual(last?.amountText, "")
-        XCTAssertEqual(last?.titleText, "")
-        XCTAssertEqual(last?.descriptionText, "")
-        XCTAssertEqual(last?.currencyCode, "KZT")
-        XCTAssertNil(last?.selectedCategory)
+        XCTAssertEqual(last?.drafts.count, 1)
+        XCTAssertEqual(last?.drafts.first?.currencyCode, "KZT")
+        XCTAssertEqual(last?.currentPage, 0)
+        XCTAssertEqual(last?.primaryAction, .confirm)
+        XCTAssertFalse(last?.isPrimaryEnabled ?? true)
+        XCTAssertFalse(last?.isSkipVisible ?? true)
     }
+}
 
-    func testHandleFieldChangesUpdateDraft() async {
-        let presenter = ExpenseManualEntryPresenterSpy()
+extension ExpenseManualEntryInteractorTests {
+    func testHandleTapCategoryOpensPickerForCurrentDraft() async {
         let router = ExpenseManualEntryRouterSpy()
-        let repository = MainFlowRepositorySpy()
-        let observer = MainFlowObserverStub()
-        let userProfileStorageService = UserProfileStorageSpy()
-        let sut = ExpenseManualEntryInteractor(
-            presenter: presenter,
-            router: router,
-            repository: repository,
-            observer: observer,
-            userProfileStorageService: userProfileStorageService,
-            requestBuilder: ExpenseManualEntryRequestBuilder()
-        )
-
-        await sut.handleChangeAmount("45.00")
-        await sut.handleChangeTitle("Lunch at Nando's")
-        await sut.handleChangeDescription("Quick lunch after the project milestone.")
-
-        let last = presenter.presentedData.last
-        XCTAssertEqual(last?.amountText, "45.00")
-        XCTAssertEqual(last?.titleText, "Lunch at Nando's")
-        XCTAssertEqual(last?.descriptionText, "Quick lunch after the project milestone.")
-    }
-
-    func testHandleTapCategoryOpensPicker() async {
-        let presenter = ExpenseManualEntryPresenterSpy()
-        let router = ExpenseManualEntryRouterSpy()
-        let repository = MainFlowRepositorySpy()
-        let observer = MainFlowObserverStub()
-        let userProfileStorageService = UserProfileStorageSpy()
-        let sut = ExpenseManualEntryInteractor(
-            presenter: presenter,
-            router: router,
-            repository: repository,
-            observer: observer,
-            userProfileStorageService: userProfileStorageService,
-            requestBuilder: ExpenseManualEntryRequestBuilder()
-        )
+        let sut = makeSUT(router: router)
 
         await sut.handleTapCategory()
 
@@ -84,114 +42,38 @@ final class ExpenseManualEntryInteractorTests: XCTestCase {
         XCTAssertNil(router.lastSelectedCategoryID)
     }
 
-    func testHandleDidSelectCategoryUpdatesDraft() async {
+    func testHandleTapPrimaryButtonSavesSingleDraftAndCloses() async {
         let presenter = ExpenseManualEntryPresenterSpy()
         let router = ExpenseManualEntryRouterSpy()
         let repository = MainFlowRepositorySpy()
-        let observer = MainFlowObserverStub()
-        let userProfileStorageService = UserProfileStorageSpy()
-        let sut = ExpenseManualEntryInteractor(
+        let sut = makeSUT(
             presenter: presenter,
             router: router,
             repository: repository,
-            observer: observer,
-            userProfileStorageService: userProfileStorageService,
-            requestBuilder: ExpenseManualEntryRequestBuilder()
-        )
-
-        await sut.handleDidSelectCategory(
-            .init(
-                id: "food",
-                name: "Food & Dining",
-                icon: "🍔",
-                color: "green"
-            )
-        )
-
-        XCTAssertEqual(presenter.presentedData.last?.selectedCategory?.id, "food")
-        XCTAssertEqual(presenter.presentedData.last?.selectedCategory?.name, "Food & Dining")
-    }
-
-    func testValidDraftEnablesConfirm() async {
-        let presenter = ExpenseManualEntryPresenterSpy()
-        let router = ExpenseManualEntryRouterSpy()
-        let repository = MainFlowRepositorySpy()
-        let observer = MainFlowObserverStub()
-        let userProfileStorageService = UserProfileStorageSpy()
-        let sut = ExpenseManualEntryInteractor(
-            presenter: presenter,
-            router: router,
-            repository: repository,
-            observer: observer,
-            userProfileStorageService: userProfileStorageService,
-            requestBuilder: ExpenseManualEntryRequestBuilder()
-        )
-
-        await sut.handleChangeAmount("45.00")
-        await sut.handleChangeTitle("Lunch at Nando's")
-        await sut.handleDidSelectCategory(
-            .init(
-                id: "food",
-                name: "Food & Dining",
-                icon: "🍔",
-                color: "green"
-            )
-        )
-
-        XCTAssertTrue(presenter.presentedData.last?.isConfirmEnabled ?? false)
-    }
-
-    func testHandleTapConfirmSuccessClosesFlow() async {
-        let presenter = ExpenseManualEntryPresenterSpy()
-        let router = ExpenseManualEntryRouterSpy()
-        let repository = MainFlowRepositorySpy()
-        let observer = MainFlowObserverStub(
-            overviewSnapshot: MainFlowOverviewSnapshot(
-                summary: MainSummaryModel(
-                    totalAmount: 0,
-                    currency: "EUR",
-                    changePercent: 0
+            initialDrafts: [
+                .init(
+                    amountText: "45,00",
+                    titleText: "  Lunch at Nando's  ",
+                    descriptionText: "  Quick lunch  ",
+                    selectedCategory: .init(
+                        id: "food",
+                        name: "Food",
+                        icon: "🍔",
+                        color: "green"
+                    ),
+                    currencyCode: "GBP"
                 )
-            )
-        )
-        let userProfileStorageService = UserProfileStorageSpy(
-            profile: .init(
-                userId: "1",
-                email: "test@example.com",
-                name: "Test",
-                currency: "GBP",
-                language: "en"
-            )
-        )
-        let sut = ExpenseManualEntryInteractor(
-            presenter: presenter,
-            router: router,
-            repository: repository,
-            observer: observer,
-            userProfileStorageService: userProfileStorageService,
-            requestBuilder: ExpenseManualEntryRequestBuilder()
-        )
-
-        await sut.handleChangeAmount("45,00")
-        await sut.handleChangeTitle("  Lunch at Nando's  ")
-        await sut.handleChangeDescription("  Quick lunch after the project milestone.  ")
-        await sut.handleDidSelectCategory(
-            .init(
-                id: "food",
-                name: "Food & Dining",
-                icon: "🍔",
-                color: "green"
-            )
+            ]
         )
 
         let before = Date()
-        await sut.handleTapConfirm()
+        await sut.handleTapPrimaryButton()
         let after = Date()
 
         let request = await repository.lastAddExpenseRequest()
         XCTAssertEqual(request?.expenses.count, 1)
         XCTAssertEqual(request?.expenses.first?.title, "Lunch at Nando's")
-        XCTAssertEqual(request?.expenses.first?.description, "Quick lunch after the project milestone.")
+        XCTAssertEqual(request?.expenses.first?.description, "Quick lunch")
         XCTAssertEqual(request?.expenses.first?.amount, 45)
         XCTAssertEqual(request?.expenses.first?.currency, "GBP")
         XCTAssertEqual(request?.expenses.first?.category, "food")
@@ -207,34 +89,19 @@ final class ExpenseManualEntryInteractorTests: XCTestCase {
         }
     }
 
-    func testHandleTapConfirmFailureShowsGenericError() async {
+    func testHandleTapPrimaryButtonFailureShowsGenericError() async {
         let presenter = ExpenseManualEntryPresenterSpy()
         let router = ExpenseManualEntryRouterSpy()
         let repository = MainFlowRepositorySpy()
-        let observer = MainFlowObserverStub()
-        let userProfileStorageService = UserProfileStorageSpy()
-        let sut = ExpenseManualEntryInteractor(
+        await repository.setAddExpenseError(ExpenseManualEntryTestError.any)
+        let sut = makeSUT(
             presenter: presenter,
             router: router,
             repository: repository,
-            observer: observer,
-            userProfileStorageService: userProfileStorageService,
-            requestBuilder: ExpenseManualEntryRequestBuilder()
+            initialDrafts: [validDraft()]
         )
 
-        await repository.setAddExpenseError(ExpenseManualEntryTestError.any)
-        await sut.handleChangeAmount("45.00")
-        await sut.handleChangeTitle("Lunch at Nando's")
-        await sut.handleDidSelectCategory(
-            .init(
-                id: "food",
-                name: "Food & Dining",
-                icon: "🍔",
-                color: "green"
-            )
-        )
-
-        await sut.handleTapConfirm()
+        await sut.handleTapPrimaryButton()
 
         XCTAssertEqual(router.closeCallsCount, 0)
         XCTAssertEqual(router.presentedErrors, [L10n.mainOverviewError])
@@ -242,53 +109,135 @@ final class ExpenseManualEntryInteractorTests: XCTestCase {
             presenter.presentedData.last?.loadingState,
             .failed(.undelinedError(description: L10n.mainOverviewError))
         )
-        XCTAssertTrue(presenter.presentedData.last?.isConfirmEnabled ?? false)
+    }
+}
+
+extension ExpenseManualEntryInteractorTests {
+    func testHandleTapPrimaryButtonAdvancesMultiDraftFlow() async {
+        let presenter = ExpenseManualEntryPresenterSpy()
+        let repository = MainFlowRepositorySpy()
+        let sut = makeSUT(
+            presenter: presenter,
+            repository: repository,
+            initialDrafts: [
+                validDraft(title: "Coffee"),
+                .init(currencyCode: "USD")
+            ]
+        )
+
+        await sut.handleTapPrimaryButton()
+
+        XCTAssertEqual(presenter.presentedData.last?.currentPage, 1)
+        XCTAssertEqual(presenter.presentedData.last?.primaryAction, .confirm)
+        XCTAssertFalse(presenter.presentedData.last?.isSkipVisible ?? true)
+        let request = await repository.lastAddExpenseRequest()
+        XCTAssertNil(request)
     }
 
-    func testHandleTapConfirmWhileLoadingIsIgnored() async {
+    func testHandleTapSkipAdvancesWithoutSaving() async {
         let presenter = ExpenseManualEntryPresenterSpy()
-        let router = ExpenseManualEntryRouterSpy()
         let repository = MainFlowRepositorySpy()
-        let observer = MainFlowObserverStub()
-        let userProfileStorageService = UserProfileStorageSpy()
-        let sut = ExpenseManualEntryInteractor(
+        let sut = makeSUT(
+            presenter: presenter,
+            repository: repository,
+            initialDrafts: [
+                validDraft(title: "Coffee"),
+                validDraft(title: "Taxi")
+            ]
+        )
+
+        await sut.handleTapSkip()
+
+        XCTAssertEqual(presenter.presentedData.last?.currentPage, 1)
+        XCTAssertEqual(await repository.addExpenseCallsCount(), 0)
+    }
+
+    func testFinalConfirmJumpsBackToFirstInvalidIncludedDraft() async {
+        let presenter = ExpenseManualEntryPresenterSpy()
+        let repository = MainFlowRepositorySpy()
+        let sut = makeSUT(
+            presenter: presenter,
+            repository: repository,
+            initialDrafts: [
+                validDraft(title: "Coffee"),
+                validDraft(title: "Taxi")
+            ]
+        )
+
+        await sut.handleTapPrimaryButton()
+        await sut.handleChangeCurrentPage(0)
+        await sut.handleChangeTitle("   ")
+        await sut.handleChangeCurrentPage(1)
+        await sut.handleTapPrimaryButton()
+
+        XCTAssertEqual(presenter.presentedData.last?.currentPage, 0)
+        XCTAssertEqual(await repository.addExpenseCallsCount(), 0)
+    }
+
+    func testHandleTapPrimaryButtonWhileLoadingIsIgnored() async {
+        let repository = MainFlowRepositorySpy()
+        await repository.setShouldSuspendAddExpense(true)
+        let sut = makeSUT(
+            repository: repository,
+            initialDrafts: [validDraft()]
+        )
+
+        let startedExpectation = expectation(description: "request started")
+        await repository.setOnAddExpense { _ in
+            startedExpectation.fulfill()
+        }
+
+        let firstTapTask = Task {
+            await sut.handleTapPrimaryButton()
+        }
+
+        await fulfillment(of: [startedExpectation], timeout: 1.0)
+        await sut.handleTapPrimaryButton()
+
+        XCTAssertEqual(await repository.addExpenseCallsCount(), 1)
+        await repository.resumeAddExpense()
+        _ = await firstTapTask.value
+    }
+}
+
+@MainActor
+private extension ExpenseManualEntryInteractorTests {
+    func makeSUT(
+        presenter: ExpenseManualEntryPresenterSpy = .init(),
+        router: ExpenseManualEntryRouterSpy = .init(),
+        repository: MainFlowRepositorySpy = .init(),
+        observer: MainFlowObserverStub = .init(),
+        userProfileStorageService: UserProfileStorageSpy = .init(),
+        initialDrafts: [ExpenseEditableDraft] = []
+    ) -> ExpenseManualEntryInteractor {
+        return ExpenseManualEntryInteractor(
             presenter: presenter,
             router: router,
             repository: repository,
-            observer: observer,
-            userProfileStorageService: userProfileStorageService,
-            requestBuilder: ExpenseManualEntryRequestBuilder()
+            currencyCodeResolver: AddExpenseCurrencyCodeResolver(
+                observer: observer,
+                userProfileStorageService: userProfileStorageService
+            ),
+            requestBuilder: ExpenseManualEntryRequestBuilder(),
+            initialDrafts: initialDrafts
         )
+    }
 
-        let addExpenseStartedExpectation = expectation(description: "First request started")
-        await repository.setShouldSuspendAddExpense(true)
-        await repository.setOnAddExpense { _ in
-            addExpenseStartedExpectation.fulfill()
-        }
-
-        await sut.handleChangeAmount("45.00")
-        await sut.handleChangeTitle("Lunch at Nando's")
-        await sut.handleDidSelectCategory(
-            .init(
+    func validDraft(
+        title: String = "Lunch"
+    ) -> ExpenseEditableDraft {
+        ExpenseEditableDraft(
+            amountText: "45.00",
+            titleText: title,
+            descriptionText: "Morning",
+            selectedCategory: .init(
                 id: "food",
-                name: "Food & Dining",
+                name: "Food",
                 icon: "🍔",
                 color: "green"
-            )
+            ),
+            currencyCode: "USD"
         )
-
-        let firstTapTask = Task {
-            await sut.handleTapConfirm()
-        }
-
-        await fulfillment(of: [addExpenseStartedExpectation], timeout: 1.0)
-        await sut.handleTapConfirm()
-
-        let addExpenseCallsCount = await repository.addExpenseCallsCount()
-        XCTAssertEqual(addExpenseCallsCount, 1)
-
-        await repository.resumeAddExpense()
-        await firstTapTask.value
     }
 }
 
@@ -338,27 +287,19 @@ private final class MainFlowObserverStub: MainFlowDomainObserverProtocol, @unche
     }
 
     func subscribeOverview() -> AsyncStream<MainFlowOverviewSnapshot> {
-        AsyncStream { continuation in
-            continuation.finish()
-        }
+        AsyncStream { $0.finish() }
     }
 
     func subscribeCategories() -> AsyncStream<MainFlowCategoriesSnapshot> {
-        AsyncStream { continuation in
-            continuation.finish()
-        }
+        AsyncStream { $0.finish() }
     }
 
     func subscribeCategory(id: String) -> AsyncStream<MainFlowCategorySnapshot> {
-        AsyncStream { continuation in
-            continuation.finish()
-        }
+        AsyncStream { $0.finish() }
     }
 
     func subscribeExpensesList() -> AsyncStream<MainFlowExpensesListSnapshot> {
-        AsyncStream { continuation in
-            continuation.finish()
-        }
+        AsyncStream { $0.finish() }
     }
 
     func currentOverviewSnapshot() -> MainFlowOverviewSnapshot {
@@ -370,7 +311,7 @@ private final class MainFlowObserverStub: MainFlowDomainObserverProtocol, @unche
     }
 
     func currentCategorySnapshot(id: String) -> MainFlowCategorySnapshot {
-        MainFlowCategorySnapshot(categoryID: id)
+        .init(categoryID: id)
     }
 
     func currentExpensesListSnapshot() -> MainFlowExpensesListSnapshot {

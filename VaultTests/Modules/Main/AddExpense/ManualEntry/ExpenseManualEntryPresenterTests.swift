@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class ExpenseManualEntryPresenterTests: XCTestCase {
-    func testPresentFetchedDataShowsLoadingOnConfirmButton() {
+    func testPresentFetchedDataShowsLoadingOnPrimaryButton() {
         let sut = ExpenseManualEntryPresenter(
             viewModel: ExpenseManualEntryViewModel(),
             colorProvider: CategoryColorProvider()
@@ -12,23 +12,20 @@ final class ExpenseManualEntryPresenterTests: XCTestCase {
         sut.presentFetchedData(
             ExpenseManualEntryFetchData(
                 loadingState: .loading,
-                isConfirmEnabled: true,
-                amountText: "45.00",
-                titleText: "Lunch",
-                selectedCategory: .init(
-                    id: "food",
-                    name: "Food",
-                    icon: "🍔",
-                    color: "green"
-                )
+                drafts: [validDraft()],
+                isPrimaryEnabled: true
             )
         )
 
-        XCTAssertTrue(sut.viewModel.confirmButton.isLoading)
-        XCTAssertFalse(sut.viewModel.confirmButton.isEnabled)
+        XCTAssertTrue(sut.viewModel.primaryButton.isLoading)
+        XCTAssertFalse(sut.viewModel.primaryButton.isEnabled)
+        XCTAssertFalse(sut.viewModel.isScrollEnabled)
+        XCTAssertFalse(sut.viewModel.header.isCloseEnabled)
     }
+}
 
-    func testPresentFetchedDataDisablesConfirmForInvalidDraft() {
+extension ExpenseManualEntryPresenterTests {
+    func testPresentFetchedDataBuildsPagedMultiDraftState() {
         let sut = ExpenseManualEntryPresenter(
             viewModel: ExpenseManualEntryViewModel(),
             colorProvider: CategoryColorProvider()
@@ -36,16 +33,22 @@ final class ExpenseManualEntryPresenterTests: XCTestCase {
 
         sut.presentFetchedData(
             ExpenseManualEntryFetchData(
-                loadingState: .idle,
-                isConfirmEnabled: false
+                drafts: [validDraft(), validDraft(currencyCode: "EUR")],
+                currentPage: 0,
+                primaryAction: .next,
+                isPrimaryEnabled: true,
+                isSkipVisible: true
             )
         )
 
-        XCTAssertFalse(sut.viewModel.confirmButton.isLoading)
-        XCTAssertFalse(sut.viewModel.confirmButton.isEnabled)
+        XCTAssertEqual(sut.viewModel.forms.count, 2)
+        XCTAssertEqual(sut.viewModel.primaryButton.title, L10n.next)
+        XCTAssertEqual(sut.viewModel.skipButton?.title, L10n.expenseManualEntrySkip)
+        XCTAssertEqual(sut.viewModel.pageControl?.pageCount, 2)
+        XCTAssertEqual(sut.viewModel.pageControl?.currentPage, 0)
     }
 
-    func testPresentFetchedDataBuildsAmountPlaceholderFromCurrencyCode() {
+    func testPresentFetchedDataBuildsAmountPlaceholderFromDraftCurrency() {
         let sut = ExpenseManualEntryPresenter(
             viewModel: ExpenseManualEntryViewModel(),
             colorProvider: CategoryColorProvider()
@@ -53,10 +56,27 @@ final class ExpenseManualEntryPresenterTests: XCTestCase {
 
         sut.presentFetchedData(
             ExpenseManualEntryFetchData(
-                currencyCode: "EUR"
+                drafts: [validDraft(currencyCode: "EUR")]
             )
         )
 
-        XCTAssertEqual(sut.viewModel.amountInput.placeholder, "€0.00")
+        XCTAssertEqual(sut.viewModel.forms.first?.amountInput.placeholder, "€0.00")
+    }
+}
+
+private extension ExpenseManualEntryPresenterTests {
+    func validDraft(currencyCode: String = "USD") -> ExpenseEditableDraft {
+        ExpenseEditableDraft(
+            amountText: "45.00",
+            titleText: "Lunch",
+            descriptionText: "",
+            selectedCategory: .init(
+                id: "food",
+                name: "Food",
+                icon: "🍔",
+                color: "green"
+            ),
+            currencyCode: currencyCode
+        )
     }
 }

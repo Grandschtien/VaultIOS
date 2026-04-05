@@ -3,9 +3,14 @@ import Nivelir
 
 struct ExpenseManualEntryFactory: Screen {
     private let context: MainFlowContext
+    private let initialDrafts: [ExpenseEditableDraft]
 
-    init(context: MainFlowContext) {
+    init(
+        context: MainFlowContext,
+        initialDrafts: [ExpenseEditableDraft] = []
+    ) {
         self.context = context
+        self.initialDrafts = initialDrafts
     }
 
     func build(navigator: ScreenNavigator) -> UIViewController {
@@ -28,9 +33,12 @@ struct ExpenseManualEntryFactory: Screen {
             presenter: presenter,
             router: router,
             repository: context.repository,
-            observer: context.observer,
-            userProfileStorageService: userProfileStorageService,
-            requestBuilder: ExpenseManualEntryRequestBuilder()
+            currencyCodeResolver: AddExpenseCurrencyCodeResolver(
+                observer: context.observer,
+                userProfileStorageService: userProfileStorageService
+            ),
+            requestBuilder: ExpenseManualEntryRequestBuilder(),
+            initialDrafts: initialDrafts
         )
 
         let viewModelStore = ViewModelStore(

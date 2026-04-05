@@ -54,6 +54,9 @@ final class ExpenseMultilineInputView: UIView, LayoutScaleProviding {
 
         textView.keyboardType = viewModel.keyboardType
         textView.autocapitalizationType = viewModel.autocapitalizationType
+        textView.isEditable = viewModel.isEditable
+        textView.isSelectable = viewModel.isEditable
+        containerView.alpha = viewModel.isEditable ? 1 : 0.65
         minimumHeightConstraint?.update(offset: viewModel.minimumHeight == .zero ? sizeXXL : viewModel.minimumHeight)
 
         updatePlaceholderVisibility()
@@ -144,6 +147,7 @@ extension ExpenseMultilineInputView {
         let minimumHeight: CGFloat
         let keyboardType: UIKeyboardType
         let autocapitalizationType: UITextAutocapitalizationType
+        let isEditable: Bool
         let onTextDidChange: CommandOf<String>?
 
         init(
@@ -154,6 +158,7 @@ extension ExpenseMultilineInputView {
             minimumHeight: CGFloat = .zero,
             keyboardType: UIKeyboardType = .default,
             autocapitalizationType: UITextAutocapitalizationType = .sentences,
+            isEditable: Bool = true,
             onTextDidChange: CommandOf<String>? = nil
         ) {
             self.title = title
@@ -163,6 +168,7 @@ extension ExpenseMultilineInputView {
             self.minimumHeight = minimumHeight
             self.keyboardType = keyboardType
             self.autocapitalizationType = autocapitalizationType
+            self.isEditable = isEditable
             self.onTextDidChange = onTextDidChange
         }
     }

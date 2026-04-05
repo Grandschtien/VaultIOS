@@ -33,10 +33,54 @@ final class ExpenseManualEntryPresenter: ExpenseManualEntryPresentationLogic, La
                     textColor: Asset.Colors.textAndIconPrimary.color,
                     alignment: .center
                 ),
+                isCloseEnabled: data.isCloseEnabled,
                 closeCommand: Command { [weak handler] in
                     await handler?.handleTapClose()
                 }
             ),
+            currentDraft: makeFormViewModel(
+                draft: data.currentDraft,
+                isEditable: !isLoading
+            ),
+            changePageCommand: CommandOf { [weak handler] page in
+                await handler?.handleChangeCurrentPage(page)
+            },
+            primaryButton: .init(
+                title: primaryButtonTitle(for: data.primaryAction),
+                titleColor: Asset.Colors.textAndIconPrimaryInverted.color,
+                backgroundColor: Asset.Colors.interactiveElemetsPrimary.color,
+                font: Typography.typographySemibold16,
+                isEnabled: data.isPrimaryEnabled && !isLoading,
+                isLoading: isLoading,
+                tapCommand: Command { [weak handler] in
+                    await handler?.handleTapPrimaryButton()
+                },
+                leftIcon: primaryButtonIcon(for: data.primaryAction)
+            ),
+            skipButton: data.isSkipVisible
+                ? .init(
+                    title: L10n.expenseManualEntrySkip,
+                    titleColor: Asset.Colors.textAndIconPrimary.color,
+                    backgroundColor: Asset.Colors.interactiveInputBackground.color,
+                    font: Typography.typographySemibold16,
+                    isEnabled: !isLoading,
+                    tapCommand: Command { [weak handler] in
+                        await handler?.handleTapSkip()
+                    }
+                )
+                : nil
+        )
+    }
+}
+
+private extension ExpenseManualEntryPresenter {
+    func makeFormViewModel(
+        draft: ExpenseEditableDraft?,
+        isEditable: Bool
+    ) -> ExpenseManualEntryView.DraftViewModel? {
+        guard let draft else { return nil }
+        
+        return ExpenseManualEntryView.DraftViewModel(
             amountInput: .init(
                 title: .init(
                     text: L10n.expenseManualEntryAmountLabel,
@@ -44,21 +88,31 @@ final class ExpenseManualEntryPresenter: ExpenseManualEntryPresentationLogic, La
                     textColor: Asset.Colors.textAndIconPlaceseholder.color,
                     alignment: .center
                 ),
-                text: data.amountText,
-                placeholder: amountPlaceholder(for: data.currencyCode),
+                currencyLabel: .init(
+                    text: amountCurrencyText(for: draft.currencyCode),
+                    font: Typography.typographyBold36,
+                    textColor: Asset.Colors.textAndIconPrimary.color
+                ),
+                text: draft.amountText,
+                placeholder: L10n.expenseManualEntryAmountPlaceholder,
+                isEnabled: isEditable,
                 onTextDidChange: CommandOf { [weak handler] text in
                     await handler?.handleChangeAmount(text)
                 }
             ),
             titleField: .init(
-                text: data.titleText,
+                text: draft.titleText,
                 placeholder: L10n.expenseManualEntryTitlePlaceholder,
                 titleText: L10n.expenseManualEntryTitleLabel,
+                isEnabled: isEditable,
                 onTextDidChanged: CommandOf { [weak handler] text in
                     await handler?.handleChangeTitle(text)
                 }
             ),
-            categoryField: makeCategoryFieldViewModel(selectedCategory: data.selectedCategory),
+            categoryField: makeCategoryFieldViewModel(
+                selectedCategory: draft.selectedCategory,
+                isEnabled: isEditable
+            ),
             descriptionInput: .init(
                 title: .init(
                     text: L10n.expenseManualEntryDescriptionLabel,
@@ -66,36 +120,23 @@ final class ExpenseManualEntryPresenter: ExpenseManualEntryPresentationLogic, La
                     textColor: Asset.Colors.textAndIconPrimary.color,
                     alignment: .left
                 ),
-                text: data.descriptionText,
+                text: draft.descriptionText,
                 placeholder: L10n.expenseManualEntryDescriptionPlaceholder,
                 minimumHeight: sizeXXL,
+                isEditable: isEditable,
                 onTextDidChange: CommandOf { [weak handler] text in
                     await handler?.handleChangeDescription(text)
                 }
-            ),
-            confirmButton: .init(
-                title: L10n.expenseManualEntryConfirmChanges,
-                titleColor: Asset.Colors.textAndIconPrimaryInverted.color,
-                backgroundColor: Asset.Colors.interactiveElemetsPrimary.color,
-                font: Typography.typographySemibold16,
-                isEnabled: data.isConfirmEnabled && !isLoading,
-                isLoading: isLoading,
-                tapCommand: Command { [weak handler] in
-                    await handler?.handleTapConfirm()
-                },
-                leftIcon: UIImage(systemName: "checkmark")
             )
         )
     }
-}
 
-private extension ExpenseManualEntryPresenter {
-    func amountPlaceholder(for currencyCode: String) -> String {
+    func amountCurrencyText(for currencyCode: String) -> String {
         let normalizedCurrencyCode = currencyCode
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .uppercased()
         guard !normalizedCurrencyCode.isEmpty else {
-            return L10n.expenseManualEntryAmountPlaceholder
+            return "USD"
         }
 
         let formatter = NumberFormatter()
@@ -103,12 +144,12 @@ private extension ExpenseManualEntryPresenter {
         formatter.currencyCode = normalizedCurrencyCode
         formatter.locale = Locale.current
 
-        let currencySymbol = formatter.currencySymbol ?? normalizedCurrencyCode
-        return "\(currencySymbol)0.00"
+        return formatter.currencySymbol ?? normalizedCurrencyCode
     }
 
     func makeCategoryFieldViewModel(
-        selectedCategory: ExpenseCategorySelectionModel?
+        selectedCategory: ExpenseCategorySelectionModel?,
+        isEnabled: Bool
     ) -> ExpenseCategoryFieldView.ViewModel {
         let iconBackgroundColor: UIColor
         if let selectedCategory {
@@ -134,9 +175,32 @@ private extension ExpenseManualEntryPresenter {
             ),
             iconText: selectedCategory?.icon,
             iconBackgroundColor: iconBackgroundColor,
+            isEnabled: isEnabled,
             tapCommand: Command { [weak handler] in
                 await handler?.handleTapCategory()
             }
         )
+    }
+
+    func primaryButtonTitle(
+        for action: ExpenseManualEntryFetchData.PrimaryAction
+    ) -> String {
+        switch action {
+        case .next:
+            return L10n.next
+        case .confirm:
+            return L10n.expenseManualEntryConfirmChanges
+        }
+    }
+
+    func primaryButtonIcon(
+        for action: ExpenseManualEntryFetchData.PrimaryAction
+    ) -> UIImage? {
+        switch action {
+        case .next:
+            return Asset.Icons.arrowRight.image
+        case .confirm:
+            return UIImage(systemName: "checkmark")
+        }
     }
 }

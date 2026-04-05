@@ -29,6 +29,8 @@ final class ExpenseCategoryFieldView: UIView, LayoutScaleProviding {
         iconBackgroundView.backgroundColor = viewModel.iconBackgroundColor
         iconLabel.isHidden = !viewModel.isSelected
         categoryLabel.apply(viewModel.value)
+        cardButton.isEnabled = viewModel.isEnabled
+        cardButton.alpha = viewModel.isEnabled ? 1 : 0.65
 
         if let iconText = viewModel.iconText {
             iconLabel.apply(
@@ -116,6 +118,7 @@ extension ExpenseCategoryFieldView {
         let value: Label.LabelViewModel
         let iconText: String?
         let iconBackgroundColor: UIColor
+        let isEnabled: Bool
         let tapCommand: Command
 
         init(
@@ -123,12 +126,14 @@ extension ExpenseCategoryFieldView {
             value: Label.LabelViewModel = .init(),
             iconText: String? = nil,
             iconBackgroundColor: UIColor = Asset.Colors.interactiveInputBackground.color,
+            isEnabled: Bool = true,
             tapCommand: Command = .nope
         ) {
             self.title = title
             self.value = value
             self.iconText = iconText
             self.iconBackgroundColor = iconBackgroundColor
+            self.isEnabled = isEnabled
             self.tapCommand = tapCommand
         }
 

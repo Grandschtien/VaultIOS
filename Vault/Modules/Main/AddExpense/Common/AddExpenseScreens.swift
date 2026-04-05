@@ -9,11 +9,17 @@ struct AddExpenseScreens {
     }
 
     func aiEntryScreen() -> AnyModalScreen {
-        ExpenseAIEntryFactory().eraseToAnyScreen()
+        ExpenseAIEntryFactory(context: context).eraseToAnyScreen()
     }
 
-    func manualEntryScreen() -> AnyModalScreen {
-        ExpenseManualEntryFactory(context: context).eraseToAnyScreen()
+    func manualEntryScreen(
+        initialDrafts: [ExpenseEditableDraft] = []
+    ) -> AnyModalScreen {
+        ExpenseManualEntryFactory(
+            context: context,
+            initialDrafts: initialDrafts
+        )
+        .eraseToAnyScreen()
     }
 
     func categoryPickerScreen(

@@ -135,6 +135,15 @@ private extension AppAssembly {
         }
         .inObjectScope(.transient)
 
+        container.register(MainAIParseContractServicing.self) { resolver in
+            guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
+                fatalError("Failed to resolve AsyncNetworkClient for MainAIParseContractService")
+            }
+
+            return MainAIParseContractService(networkClient: networkClient)
+        }
+        .inObjectScope(.transient)
+
         container.register(ProfileContractServicing.self) { resolver in
             guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
                 fatalError("Failed to resolve AsyncNetworkClient for ProfileContractService")

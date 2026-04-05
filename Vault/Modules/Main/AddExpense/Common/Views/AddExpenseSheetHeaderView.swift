@@ -21,6 +21,8 @@ final class AddExpenseSheetHeaderView: UIView, LayoutScaleProviding {
     func apply(_ viewModel: ViewModel) {
         self.viewModel = viewModel
         titleLabel.apply(viewModel.title)
+        closeButton.isEnabled = viewModel.isCloseEnabled
+        closeButton.alpha = viewModel.isCloseEnabled ? 1 : 0.4
     }
 }
 
@@ -60,13 +62,16 @@ private extension AddExpenseSheetHeaderView {
 extension AddExpenseSheetHeaderView {
     struct ViewModel: Equatable {
         let title: Label.LabelViewModel
+        let isCloseEnabled: Bool
         let closeCommand: Command
 
         init(
             title: Label.LabelViewModel = .init(),
+            isCloseEnabled: Bool = true,
             closeCommand: Command = .nope
         ) {
             self.title = title
+            self.isCloseEnabled = isCloseEnabled
             self.closeCommand = closeCommand
         }
     }

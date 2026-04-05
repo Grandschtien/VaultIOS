@@ -55,6 +55,8 @@ final class TextField: UIView, LayoutScaleProviding {
         leftAccessoryImageView.image = viewModel.leftIcon?.withRenderingMode(.alwaysTemplate)
         helpLabel.text = viewModel.helpText
         helpLabel.textColor = viewModel.helpTextColor
+        textField.isEnabled = viewModel.isEnabled
+        inputContainerView.alpha = viewModel.isEnabled ? 1 : 0.65
 
         isSecureModeEnabled = viewModel.isSecureTextEntry
         setSecureTextEntry(viewModel.isSecureTextEntry)
@@ -379,6 +381,7 @@ extension TextField {
         let rightIcon: UIImage?
         let helpText: String?
         let helpTextColor: UIColor
+        let isEnabled: Bool
         let onTextDidChanged: CommandOf<String>?
         let onReturn: Command
         let onAdditionalLabelTap: Command
@@ -393,6 +396,7 @@ extension TextField {
             rightIcon: UIImage? = nil,
             helpText: String? = nil,
             helpTextColor: UIColor = Asset.Colors.textAndIconSecondary.color,
+            isEnabled: Bool = true,
             onTextDidChanged: CommandOf<String>? = nil,
             onReturn: Command = .nope,
             onAdditionalLabelTap: Command = .nope
@@ -406,6 +410,7 @@ extension TextField {
             self.rightIcon = rightIcon
             self.helpText = helpText
             self.helpTextColor = helpTextColor
+            self.isEnabled = isEnabled
             self.onTextDidChanged = onTextDidChanged
             self.onReturn = onReturn
             self.onAdditionalLabelTap = onAdditionalLabelTap

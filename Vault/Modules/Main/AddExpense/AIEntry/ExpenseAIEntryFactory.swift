@@ -2,19 +2,38 @@ import UIKit
 import Nivelir
 
 struct ExpenseAIEntryFactory: Screen {
+    private let context: MainFlowContext
+
+    init(context: MainFlowContext) {
+        self.context = context
+    }
+
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
         var toastPresenter: ToastPresenting
+        @SafeInject
+        var aiParseService: MainAIParseContractServicing
+        @SafeInject
+        var userProfileStorageService: UserProfileStorageServiceProtocol
 
         let viewModel = ExpenseAIEntryViewModel()
         let presenter = ExpenseAIEntryPresenter(viewModel: viewModel)
         let router = ExpenseAIEntryRouter(
             screenRouter: navigator,
-            toastPresenter: toastPresenter
+            screens: AddExpenseScreens(context: context),
+            toastPresenter: toastPresenter,
+            noExpenseAlertPresenter: ExpenseAIEntryNoExpenseAlertPresenter()
         )
         let interactor = ExpenseAIEntryInteractor(
             presenter: presenter,
-            router: router
+            router: router,
+            aiParseService: aiParseService,
+            observer: context.observer,
+            currencyCodeResolver: AddExpenseCurrencyCodeResolver(
+                observer: context.observer,
+                userProfileStorageService: userProfileStorageService
+            ),
+            draftMapper: ExpenseAIParsedDraftMapper()
         )
 
         let viewModelStore = ViewModelStore(

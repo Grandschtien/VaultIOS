@@ -17,6 +17,8 @@ final class ExpenseAIEntryPresenter: ExpenseAIEntryPresentationLogic, LayoutScal
     }
 
     func presentFetchedData(_ data: ExpenseAIEntryFetchData) {
+        let isLoading = data.loadingState == .loading
+
         viewModel = ExpenseAIEntryViewModel(
             header: .init(
                 title: .init(
@@ -25,6 +27,7 @@ final class ExpenseAIEntryPresenter: ExpenseAIEntryPresentationLogic, LayoutScal
                     textColor: Asset.Colors.textAndIconPrimary.color,
                     alignment: .center
                 ),
+                isCloseEnabled: data.isCloseEnabled,
                 closeCommand: Command { [weak handler] in
                     await handler?.handleTapClose()
                 }
@@ -40,6 +43,7 @@ final class ExpenseAIEntryPresenter: ExpenseAIEntryPresentationLogic, LayoutScal
                 ),
                 minimumHeight: sizeXXXL,
                 autocapitalizationType: .sentences,
+                isEditable: data.isPromptEditable,
                 onTextDidChange: CommandOf { [weak handler] text in
                     await handler?.handleChangePrompt(text)
                 }
@@ -49,6 +53,8 @@ final class ExpenseAIEntryPresenter: ExpenseAIEntryPresentationLogic, LayoutScal
                 titleColor: Asset.Colors.textAndIconPrimaryInverted.color,
                 backgroundColor: Asset.Colors.interactiveElemetsPrimary.color,
                 font: Typography.typographySemibold16,
+                isEnabled: data.isProcessEnabled && !isLoading,
+                isLoading: isLoading,
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapProcess()
                 }
