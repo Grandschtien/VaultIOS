@@ -17,15 +17,18 @@ final class MainPresenter: MainPresentationLogic {
 
     private let formatter: MainValueFormatting
     private let colorProvider: CategoryColorProviding
+    private let summaryPeriodProvider: MainSummaryPeriodProviding
 
     init(
         viewModel: MainViewModel,
         formatter: MainValueFormatting,
-        colorProvider: CategoryColorProviding
+        colorProvider: CategoryColorProviding,
+        summaryPeriodProvider: MainSummaryPeriodProviding
     ) {
         self.viewModel = viewModel
         self.formatter = formatter
         self.colorProvider = colorProvider
+        self.summaryPeriodProvider = summaryPeriodProvider
 
         presentFetchedData(
             MainFetchData(
@@ -100,6 +103,7 @@ private extension MainPresenter {
                     textColor: Asset.Colors.textAndIconPrimaryInverted.color.withAlphaComponent(0.75),
                     alignment: .left
                 ),
+                periodDescription: makeSummaryPeriodDescriptionViewModel(),
                 amount: .init(
                     text: L10n.mainOverviewLoading,
                     font: Typography.typographyBold30,
@@ -117,6 +121,7 @@ private extension MainPresenter {
 
         case .failed:
             return .init(
+                periodDescription: makeSummaryPeriodDescriptionViewModel(),
                 errorViewModel: makeSectionErrorViewModel(
                     command: Command { [weak handler] in
                         await handler?.handleTapRetrySummary()
@@ -133,6 +138,7 @@ private extension MainPresenter {
                         textColor: Asset.Colors.textAndIconPrimaryInverted.color.withAlphaComponent(0.75),
                         alignment: .left
                     ),
+                    periodDescription: makeSummaryPeriodDescriptionViewModel(),
                     amount: .init(
                         text: L10n.mainOverviewLoading,
                         font: Typography.typographyBold30,
@@ -155,6 +161,7 @@ private extension MainPresenter {
                     textColor: Asset.Colors.textAndIconPrimaryInverted.color.withAlphaComponent(0.75),
                     alignment: .left
                 ),
+                periodDescription: makeSummaryPeriodDescriptionViewModel(),
                 amount: .init(
                     text: formatter.formatAmount(summary.totalAmount, currencyCode: summary.currency),
                     font: Typography.typographyBold30,
@@ -165,6 +172,15 @@ private extension MainPresenter {
                 trend: nil
             )
         }
+    }
+
+    func makeSummaryPeriodDescriptionViewModel() -> Label.LabelViewModel {
+        .init(
+            text: formatter.formatSummaryPeriod(summaryPeriodProvider.currentMonthPeriod().from),
+            font: Typography.typographyRegular12,
+            textColor: Asset.Colors.textAndIconPrimaryInverted.color.withAlphaComponent(0.75),
+            alignment: .left
+        )
     }
 
     func makeCategoriesSectionViewModel(from data: MainFetchData) -> MainCategoriesSectionView.ViewModel {

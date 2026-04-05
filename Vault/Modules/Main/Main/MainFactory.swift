@@ -23,7 +23,11 @@ final class MainFactory: Screen {
             currencyRateService: currencyRateService,
             userProfileStorageService: userProfileStorageService
         )
-        let summaryProvider = MainSummaryProvider(summaryService: summaryService)
+        let summaryPeriodProvider = MainSummaryPeriodProvider()
+        let summaryProvider = MainSummaryProvider(
+            summaryService: summaryService,
+            summaryPeriodProvider: summaryPeriodProvider
+        )
         let formatter = MainValueFormatter()
         let colorProvider = CategoryColorProvider()
         let categoriesCollectionAdapter = CategoryCollectionViewAdapter()
@@ -32,7 +36,8 @@ final class MainFactory: Screen {
         let presenter = MainPresenter(
             viewModel: viewModel,
             formatter: formatter,
-            colorProvider: colorProvider
+            colorProvider: colorProvider,
+            summaryPeriodProvider: summaryPeriodProvider
         )
         let router = MainRouter(
             screenRouter: navigator,

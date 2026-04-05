@@ -57,6 +57,7 @@
 "main_overview_categories" = "Categories";
 "main_overview_recent_expenses" = "Recent Expenses";
 "main_overview_see_all" = "See All";
+"main_overview_from_date" = "From %@";
 "main_overview_from_last_month" = "%@ from last month";
 "main_overview_loading" = "Loading...";
 "main_overview_empty_categories" = "No categories yet";

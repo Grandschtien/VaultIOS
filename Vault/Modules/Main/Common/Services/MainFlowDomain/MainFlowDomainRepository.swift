@@ -25,6 +25,8 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
 
     private let categoriesService: MainCategoriesContractServicing
     private let expensesService: MainExpensesContractServicing
+    private let summaryService: MainSummaryContractServicing?
+    private let summaryPeriodProvider: MainSummaryPeriodProviding?
     private let currencyConversionService: UserCurrencyConverting
     private let store: MainFlowDomainStoreProtocol
     private let observer: MainFlowDomainObserverProtocol
@@ -32,12 +34,16 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
     init(
         categoriesService: MainCategoriesContractServicing,
         expensesService: MainExpensesContractServicing,
+        summaryService: MainSummaryContractServicing? = nil,
+        summaryPeriodProvider: MainSummaryPeriodProviding? = nil,
         currencyConversionService: UserCurrencyConverting,
         store: MainFlowDomainStoreProtocol,
         observer: MainFlowDomainObserverProtocol
     ) {
         self.categoriesService = categoriesService
         self.expensesService = expensesService
+        self.summaryService = summaryService
+        self.summaryPeriodProvider = summaryPeriodProvider
         self.currencyConversionService = currencyConversionService
         self.store = store
         self.observer = observer
@@ -50,8 +56,12 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
     }
 
     func refreshCategories() async throws {
-        let response = try await categoriesService.listCategories()
-        let categories = response.categories.map(makeCategoryModel)
+        async let categoriesTask = categoriesService.listCategories()
+        async let monthlyTotalsTask = fetchMonthlyCategoryTotals()
+
+        let response = try await categoriesTask
+        let monthlyTotals = await monthlyTotalsTask
+        let categories = response.categories.map { makeCategoryModel(from: $0, monthlyTotals: monthlyTotals) }
 
         store.update { state in
             categories.forEach { state.categoriesByID[$0.id] = $0 }
@@ -78,17 +88,22 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
     func refreshCategoryFirstPage(id: String) async throws {
         async let categoryTask = categoriesService.getCategory(id: id)
         async let expensesTask = expensesService.listExpenses(
-            parameters: .init(
-                category: id,
+            parameters: makeCategoryExpensesQueryParameters(
+                categoryID: id,
                 cursor: nil,
                 limit: Constants.listPageLimit
             )
         )
+        async let monthlyCategoryTotalTask = fetchMonthlyCategoryTotal(for: id)
 
         let categoryResponse = try await categoryTask
         let expensesResponse = try await expensesTask
+        let monthlyCategoryTotal = await monthlyCategoryTotalTask
 
-        let category = makeCategoryModel(from: categoryResponse.category)
+        let category = makeCategoryModel(
+            from: categoryResponse.category,
+            monthlyTotals: monthlyCategoryTotal.map { [id: $0] }
+        )
         let expenses = expensesResponse.expenses.map(makeExpenseModel)
 
         store.update { state in
@@ -174,8 +189,8 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         }
 
         let response = try await expensesService.listExpenses(
-            parameters: .init(
-                category: id,
+            parameters: makeCategoryExpensesQueryParameters(
+                categoryID: id,
                 cursor: pagination.nextCursor,
                 limit: Constants.listPageLimit
             )
@@ -611,8 +626,12 @@ private extension MainFlowDomainRepository {
         lhs.compare(rhs, options: [.caseInsensitive]) == .orderedSame
     }
 
-    func makeCategoryModel(from category: CategoryDTO) -> MainCategoryCardModel {
-        let convertedAmount = currencyConversionService.convertUsdAmount(category.totalSpentUsd ?? .zero)
+    func makeCategoryModel(
+        from category: CategoryDTO,
+        monthlyTotals: [String: Double]? = nil
+    ) -> MainCategoryCardModel {
+        let usdAmount = monthlyTotals?[category.id] ?? category.totalSpentUsd ?? .zero
+        let convertedAmount = currencyConversionService.convertUsdAmount(usdAmount)
         return MainCategoryCardModel(
             id: category.id,
             name: localizedCategoryName(from: category.name),
@@ -670,5 +689,73 @@ private extension MainFlowDomainRepository {
             ?? state.preferredCurrencyCode
             ?? Locale.current.currency?.identifier
             ?? "USD"
+    }
+
+    func fetchMonthlyCategoryTotals() async -> [String: Double]? {
+        guard let summaryService, let summaryPeriodProvider else {
+            return nil
+        }
+
+        let period = summaryPeriodProvider.currentMonthPeriod()
+
+        do {
+            let response = try await summaryService.getSummary(
+                parameters: .init(
+                    from: period.from,
+                    to: period.to
+                )
+            )
+
+            return response.byCategory?.reduce(into: [String: Double]()) { partialResult, categorySummary in
+                partialResult[categorySummary.category] = categorySummary.total
+            }
+        } catch {
+            return nil
+        }
+    }
+
+    func fetchMonthlyCategoryTotal(for categoryID: String) async -> Double? {
+        guard let summaryService, let summaryPeriodProvider else {
+            return nil
+        }
+
+        let period = summaryPeriodProvider.currentMonthPeriod()
+
+        do {
+            let response = try await summaryService.getSummaryByCategory(
+                id: categoryID,
+                parameters: .init(
+                    from: period.from,
+                    to: period.to
+                )
+            )
+
+            return response.total
+        } catch {
+            return nil
+        }
+    }
+
+    func makeCategoryExpensesQueryParameters(
+        categoryID: String,
+        cursor: String?,
+        limit: Int
+    ) -> ExpensesListQueryParameters {
+        guard let summaryPeriodProvider else {
+            return .init(
+                category: categoryID,
+                cursor: cursor,
+                limit: limit
+            )
+        }
+
+        let period = summaryPeriodProvider.currentMonthPeriod()
+        return .init(
+            category: categoryID,
+            from: period.from,
+            to: period.to,
+            cursor: cursor,
+            limit: limit
+        )
     }
 }

@@ -56,6 +56,7 @@
 "main_overview_categories" = "Категории";
 "main_overview_recent_expenses" = "Последние расходы";
 "main_overview_see_all" = "Смотреть всё";
+"main_overview_from_date" = "С %@";
 "main_overview_from_last_month" = "%@ по сравнению с прошлым месяцем";
 "main_overview_loading" = "Загрузка...";
 "main_overview_empty_categories" = "Пока нет категорий";

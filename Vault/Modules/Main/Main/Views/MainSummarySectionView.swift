@@ -8,6 +8,7 @@ final class MainSummarySectionView: UIView, LayoutScaleProviding {
     private let cardView = UIView()
     private let errorView = FullScreenCommonErrorView()
     private let titleLabel = Label()
+    private let periodDescriptionLabel = Label()
     private let amountLabel = Label()
     private let trendContainerView = UIView()
     private let trendLabel = Label()
@@ -46,6 +47,7 @@ final class MainSummarySectionView: UIView, LayoutScaleProviding {
         errorView.isHidden = true
 
         titleLabel.apply(viewModel.title)
+        periodDescriptionLabel.apply(viewModel.periodDescription)
         amountLabel.apply(viewModel.amount)
         
         if let trend = viewModel.trend {
@@ -75,8 +77,7 @@ private extension MainSummarySectionView {
     func setupLayout() {
         addSubview(cardView)
         addSubview(errorView)
-        [titleLabel, amountLabel, trendContainerView].forEach { cardView.addSubview($0) }
-        trendContainerView.addSubview(trendLabel)
+        [titleLabel, periodDescriptionLabel, amountLabel].forEach { cardView.addSubview($0) }
 
         cardView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
@@ -96,20 +97,16 @@ private extension MainSummarySectionView {
             make.top.equalTo(titleLabel.snp.bottom).offset(spaceXXS)
         }
 
-        trendContainerView.snp.makeConstraints { make in
-            make.leading.equalToSuperview().offset(spaceS)
-            make.top.equalTo(amountLabel.snp.bottom).offset(spaceS)
-            make.bottom.lessThanOrEqualToSuperview().inset(spaceS)
-        }
-
-        trendLabel.snp.makeConstraints { make in
+        periodDescriptionLabel.snp.makeConstraints { make in
             make.leading.trailing.equalToSuperview().inset(spaceS)
-            make.centerY.equalToSuperview()
+            make.top.equalTo(amountLabel.snp.bottom).offset(spaceXXS)
+            make.bottom.equalToSuperview().inset(spaceS)
         }
     }
 
     func showSkeleton() {
         titleLabel.isHidden = true
+        periodDescriptionLabel.isHidden = true
         amountLabel.isHidden = true
         trendContainerView.isHidden = true
         trendLabel.isHidden = true
@@ -119,6 +116,7 @@ private extension MainSummarySectionView {
 
     func hideSkeleton() {
         titleLabel.isHidden = false
+        periodDescriptionLabel.isHidden = false
         amountLabel.isHidden = false
         trendContainerView.isHidden = false
         trendLabel.isHidden = false
@@ -130,6 +128,7 @@ private extension MainSummarySectionView {
 extension MainSummarySectionView {
     struct ViewModel: Equatable {
         let title: Label.LabelViewModel
+        let periodDescription: Label.LabelViewModel
         let amount: Label.LabelViewModel
         let trend: Label.LabelViewModel?
         let isLoading: Bool
@@ -137,12 +136,14 @@ extension MainSummarySectionView {
 
         init(
             title: Label.LabelViewModel = .init(),
+            periodDescription: Label.LabelViewModel = .init(),
             amount: Label.LabelViewModel = .init(),
             trend: Label.LabelViewModel? = .init(),
             isLoading: Bool = false,
             errorViewModel: FullScreenCommonErrorView.ViewModel? = nil
         ) {
             self.title = title
+            self.periodDescription = periodDescription
             self.amount = amount
             self.trend = trend
             self.isLoading = isLoading

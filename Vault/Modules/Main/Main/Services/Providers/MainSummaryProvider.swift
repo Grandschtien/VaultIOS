@@ -13,13 +13,24 @@ protocol MainSummaryProviding: Sendable {
 
 final class MainSummaryProvider: MainSummaryProviding {
     private let summaryService: MainSummaryContractServicing
+    private let summaryPeriodProvider: MainSummaryPeriodProviding
 
-    init(summaryService: MainSummaryContractServicing) {
+    init(
+        summaryService: MainSummaryContractServicing,
+        summaryPeriodProvider: MainSummaryPeriodProviding
+    ) {
         self.summaryService = summaryService
+        self.summaryPeriodProvider = summaryPeriodProvider
     }
 
     func fetchSummary() async throws -> MainSummaryModel {
-        let summary = try await summaryService.getSummary(parameters: .init())
+        let period = summaryPeriodProvider.currentMonthPeriod()
+        let summary = try await summaryService.getSummary(
+            parameters: .init(
+                from: period.from,
+                to: period.to
+            )
+        )
 
         return MainSummaryModel(
             totalAmount: summary.total,

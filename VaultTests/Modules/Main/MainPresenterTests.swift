@@ -6,22 +6,31 @@ import UIKit
 final class MainPresenterTests: XCTestCase {
     private var formatter: MainValueFormatterStub!
     private var colorProvider: CategoryColorProviderStub!
+    private var summaryPeriodProvider: MainSummaryPeriodProviderStub!
     private var sut: MainPresenter!
 
     override func setUp() {
         super.setUp()
         formatter = MainValueFormatterStub()
         colorProvider = CategoryColorProviderStub()
+        summaryPeriodProvider = MainSummaryPeriodProviderStub(
+            period: .init(
+                from: Date(timeIntervalSince1970: 1),
+                to: Date(timeIntervalSince1970: 2)
+            )
+        )
         sut = MainPresenter(
             viewModel: .init(),
             formatter: formatter,
-            colorProvider: colorProvider
+            colorProvider: colorProvider,
+            summaryPeriodProvider: summaryPeriodProvider
         )
     }
 
     override func tearDown() {
         formatter = nil
         colorProvider = nil
+        summaryPeriodProvider = nil
         sut = nil
         super.tearDown()
     }
@@ -38,6 +47,7 @@ extension MainPresenterTests {
         )
 
         XCTAssertEqual(sut.viewModel.navigationTitle.text, L10n.mainOverviewTitle)
+        XCTAssertEqual(sut.viewModel.summarySection.periodDescription.text, "from-1")
         XCTAssertEqual(sut.viewModel.summarySection.amount.text, L10n.mainOverviewLoading)
         XCTAssertTrue(sut.viewModel.categoriesSection.isLoading)
         XCTAssertTrue(isExpensesState(sut.viewModel.expensesSection.state, .loading))
@@ -83,6 +93,7 @@ extension MainPresenterTests {
             )
         )
 
+        XCTAssertEqual(sut.viewModel.summarySection.periodDescription.text, "from-1")
         XCTAssertEqual(sut.viewModel.summarySection.amount.text, "amount-2450.8-USD")
         XCTAssertNil(sut.viewModel.summarySection.trend)
 
@@ -170,6 +181,10 @@ private final class MainValueFormatterStub: MainValueFormatting, @unchecked Send
         "-amount-\(amount)-\(currencyCode)"
     }
 
+    func formatSummaryPeriod(_ date: Date) -> String {
+        "from-\(Int(date.timeIntervalSince1970))"
+    }
+
     func formatSummaryChange(_ percent: Double) -> String {
         "trend-\(percent)"
     }
@@ -190,6 +205,18 @@ private final class CategoryColorProviderStub: CategoryColorProviding, @unchecke
 
     func accentColor(for value: String) -> UIColor {
         .systemMint
+    }
+}
+
+private final class MainSummaryPeriodProviderStub: MainSummaryPeriodProviding, @unchecked Sendable {
+    private let period: MainSummaryPeriod
+
+    init(period: MainSummaryPeriod) {
+        self.period = period
+    }
+
+    func currentMonthPeriod() -> MainSummaryPeriod {
+        period
     }
 }
 

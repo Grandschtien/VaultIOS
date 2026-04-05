@@ -139,6 +139,10 @@ private final class MainValueFormatterStub: MainValueFormatting, @unchecked Send
         "-amount-\(amount)-\(currencyCode)"
     }
 
+    func formatSummaryPeriod(_ date: Date) -> String {
+        "from-\(Int(date.timeIntervalSince1970))"
+    }
+
     func formatSummaryChange(_ percent: Double) -> String {
         "summary-\(percent)"
     }

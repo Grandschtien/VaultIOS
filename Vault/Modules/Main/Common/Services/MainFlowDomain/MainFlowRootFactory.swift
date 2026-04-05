@@ -9,15 +9,20 @@ final class MainFlowRootFactory: Screen {
         @SafeInject
         var expensesService: MainExpensesContractServicing
         @SafeInject
+        var summaryService: MainSummaryContractServicing
+        @SafeInject
         var currencyConversionService: UserCurrencyConverting
 
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(
             expenseGrouping: MainExpenseDateGrouping()
         )
+        let summaryPeriodProvider = MainSummaryPeriodProvider()
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
             expensesService: expensesService,
+            summaryService: summaryService,
+            summaryPeriodProvider: summaryPeriodProvider,
             currencyConversionService: currencyConversionService,
             store: store,
             observer: observer
