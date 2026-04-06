@@ -55,6 +55,18 @@ extension CategoryColorProviderTests {
             equals: Asset.Colors.interactiveElemetsPrimary.color
         )
     }
+
+    func testNormalizedHexMapsLegacyPaletteValue() {
+        XCTAssertEqual(sut.normalizedHex(from: "light_blue"), "#DBEBFC")
+    }
+
+    func testNormalizedHexKeepsHexValueUppercased() {
+        XCTAssertEqual(sut.normalizedHex(from: "#a0e7e5"), "#A0E7E5")
+    }
+
+    func testNormalizedHexReturnsNilForUnknownValue() {
+        XCTAssertNil(sut.normalizedHex(from: "unknown"))
+    }
 }
 
 private extension CategoryColorProviderTests {

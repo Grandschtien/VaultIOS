@@ -78,6 +78,7 @@ final class ExpenseCategoryPickerPresenterTests: XCTestCase {
 private final class ExpenseCategoryPickerHandlerSpy: ExpenseCategoryPickerHandler, @unchecked Sendable {
     func handleTapCategory(id: String) async {}
     func handleTapAdd() async {}
+    func handleTapCreateCategory() async {}
     func handleTapRetry() async {}
     func handleTapClose() async {}
 }

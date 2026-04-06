@@ -61,11 +61,13 @@ private final class CategoryPeriodPickerRouterSpy: CategoryPeriodPickerRoutingLo
     }
 }
 
-@MainActor
 private final class CategoryPeriodPickerOutputSpy: CategoryPeriodPickerOutput, @unchecked Sendable {
+    @MainActor
     private(set) var selectedDates: [Date] = []
 
     func handleDidConfirmCategoryPeriod(fromDate: Date) async {
-        selectedDates.append(fromDate)
+        await MainActor.run {
+            selectedDates.append(fromDate)
+        }
     }
 }

@@ -46,5 +46,6 @@ private extension CategoryViewController {
     func render(with viewModel: CategoryViewModel) {
         title = viewModel.navigationTitle.text
         contentView.configure(with: viewModel)
+        navigationItem.rightBarButtonItem = nil
     }
 }

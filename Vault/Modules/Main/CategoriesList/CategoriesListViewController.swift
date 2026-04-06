@@ -8,6 +8,7 @@ final class CategoriesListViewController: UIViewController, HasContentView {
     private let interactor: CategoriesListBusinessLogic
     private let viewModelStore: ViewModelStore<CategoriesListViewModel>
     private let collectionAdapter: CategoryCollectionViewAdapter
+    private let addBarButtonView = NavigationBarActionView()
 
     init(
         interactor: CategoriesListBusinessLogic,
@@ -46,5 +47,7 @@ private extension CategoriesListViewController {
     func render(with viewModel: CategoriesListViewModel) {
         title = viewModel.navigationTitle.text
         contentView.configure(with: viewModel)
+        addBarButtonView.configure(with: viewModel.addButton)
+        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: addBarButtonView)
     }
 }

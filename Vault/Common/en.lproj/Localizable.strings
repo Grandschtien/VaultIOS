@@ -74,6 +74,18 @@
 "category_delete" = "Delete";
 "category_edit_title" = "Edit %@";
 "category_edit_subtitle" = "Category ID: %@";
+"category_editor_add_title" = "Add Category";
+"category_editor_edit_title" = "Edit Category";
+"category_editor_add_button" = "Add Category";
+"category_editor_save_button" = "Save Changes";
+"category_editor_delete_button" = "Delete Category";
+"category_editor_name_title" = "Category Name";
+"category_editor_name_placeholder" = "Food & Dining";
+"category_editor_emoji_title" = "Select Emoji";
+"category_editor_color_title" = "Category Color";
+"category_emoji_picker_title" = "Select Emoji";
+"category_emoji_picker_search_placeholder" = "Search Emoji...";
+"category_emoji_picker_empty" = "No Emoji Found";
 "expense_entry_chooser_enter_with_ai" = "Enter With AI";
 "expense_entry_chooser_enter_manually" = "Enter Manually";
 "expense_ai_entry_title" = "AI Entry";
@@ -95,6 +107,8 @@
 "expense_manual_entry_confirm_changes" = "Confirm Changes";
 "expense_manual_entry_skip" = "Skip";
 "expense_category_picker_add" = "Add";
+"expense_category_picker_select" = "Select Category";
+"expense_category_picker_create" = "Add New Category";
 "expense_category_picker_empty" = "No categories available";
 "expense_category_picker_error" = "Unable to load categories";
 

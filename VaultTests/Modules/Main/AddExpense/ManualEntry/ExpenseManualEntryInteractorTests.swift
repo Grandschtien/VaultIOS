@@ -22,9 +22,7 @@ final class ExpenseManualEntryInteractorTests: XCTestCase {
 
         let last = presenter.presentedData.last
         XCTAssertEqual(last?.loadingState, .idle)
-        XCTAssertEqual(last?.drafts.count, 1)
-        XCTAssertEqual(last?.drafts.first?.currencyCode, "KZT")
-        XCTAssertEqual(last?.currentPage, 0)
+        XCTAssertEqual(last?.currentDraft?.currencyCode, "KZT")
         XCTAssertEqual(last?.primaryAction, .confirm)
         XCTAssertFalse(last?.isPrimaryEnabled ?? true)
         XCTAssertFalse(last?.isSkipVisible ?? true)
@@ -127,7 +125,7 @@ extension ExpenseManualEntryInteractorTests {
 
         await sut.handleTapPrimaryButton()
 
-        XCTAssertEqual(presenter.presentedData.last?.currentPage, 1)
+        XCTAssertEqual(presenter.presentedData.last?.currentDraft?.currencyCode, "USD")
         XCTAssertEqual(presenter.presentedData.last?.primaryAction, .confirm)
         XCTAssertFalse(presenter.presentedData.last?.isSkipVisible ?? true)
         let request = await repository.lastAddExpenseRequest()
@@ -148,8 +146,9 @@ extension ExpenseManualEntryInteractorTests {
 
         await sut.handleTapSkip()
 
-        XCTAssertEqual(presenter.presentedData.last?.currentPage, 1)
-        XCTAssertEqual(await repository.addExpenseCallsCount(), 0)
+        XCTAssertEqual(presenter.presentedData.last?.currentDraft?.titleText, "Taxi")
+        let addExpenseCallsCount = await repository.addExpenseCallsCount()
+        XCTAssertEqual(addExpenseCallsCount, 0)
     }
 
     func testFinalConfirmJumpsBackToFirstInvalidIncludedDraft() async {
@@ -170,8 +169,9 @@ extension ExpenseManualEntryInteractorTests {
         await sut.handleChangeCurrentPage(1)
         await sut.handleTapPrimaryButton()
 
-        XCTAssertEqual(presenter.presentedData.last?.currentPage, 0)
-        XCTAssertEqual(await repository.addExpenseCallsCount(), 0)
+        XCTAssertEqual(presenter.presentedData.last?.currentDraft?.titleText, "   ")
+        let addExpenseCallsCount = await repository.addExpenseCallsCount()
+        XCTAssertEqual(addExpenseCallsCount, 0)
     }
 
     func testHandleTapPrimaryButtonWhileLoadingIsIgnored() async {
@@ -194,7 +194,8 @@ extension ExpenseManualEntryInteractorTests {
         await fulfillment(of: [startedExpectation], timeout: 1.0)
         await sut.handleTapPrimaryButton()
 
-        XCTAssertEqual(await repository.addExpenseCallsCount(), 1)
+        let addExpenseCallsCount = await repository.addExpenseCallsCount()
+        XCTAssertEqual(addExpenseCallsCount, 1)
         await repository.resumeAddExpense()
         _ = await firstTapTask.value
     }
@@ -203,16 +204,18 @@ extension ExpenseManualEntryInteractorTests {
 @MainActor
 private extension ExpenseManualEntryInteractorTests {
     func makeSUT(
-        presenter: ExpenseManualEntryPresenterSpy = .init(),
-        router: ExpenseManualEntryRouterSpy = .init(),
+        presenter: ExpenseManualEntryPresenterSpy? = nil,
+        router: ExpenseManualEntryRouterSpy? = nil,
         repository: MainFlowRepositorySpy = .init(),
         observer: MainFlowObserverStub = .init(),
         userProfileStorageService: UserProfileStorageSpy = .init(),
         initialDrafts: [ExpenseEditableDraft] = []
     ) -> ExpenseManualEntryInteractor {
+        let resolvedPresenter = presenter ?? ExpenseManualEntryPresenterSpy()
+        let resolvedRouter = router ?? ExpenseManualEntryRouterSpy()
         return ExpenseManualEntryInteractor(
-            presenter: presenter,
-            router: router,
+            presenter: resolvedPresenter,
+            router: resolvedRouter,
             repository: repository,
             currencyCodeResolver: AddExpenseCurrencyCodeResolver(
                 observer: observer,

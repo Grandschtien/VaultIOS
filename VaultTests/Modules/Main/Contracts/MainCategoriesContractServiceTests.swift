@@ -92,6 +92,41 @@ extension MainCategoriesContractServiceTests {
 }
 
 extension MainCategoriesContractServiceTests {
+    func testUpdateCategoryForwardsBodyAndDecodesResponse() async throws {
+        let spy = AsyncNetworkClientContractSpy()
+        spy.setResponse(
+            json: ##"{"category":{"id":"cat-9","name":"Travel","icon":"✈️","color":"#A0E7E5","total_spent_usd":18}}"##
+        )
+
+        var capturedID: String?
+        var capturedDTO: CategoryCreateRequestDTO?
+        spy.onRequest = { target in
+            guard let api = target as? CategoriesAPI,
+                  case let .update(id, dto) = api else {
+                return XCTFail("Expected CategoriesAPI.update")
+            }
+
+            capturedID = id
+            capturedDTO = dto
+        }
+
+        let sut = MainCategoriesContractService(networkClient: spy)
+        let response = try await sut.updateCategory(
+            id: "cat-9",
+            request: .init(name: "Travel", icon: "✈️", color: "#A0E7E5")
+        )
+
+        XCTAssertEqual(capturedID, "cat-9")
+        XCTAssertEqual(capturedDTO?.name, "Travel")
+        XCTAssertEqual(capturedDTO?.icon, "✈️")
+        XCTAssertEqual(capturedDTO?.color, "#A0E7E5")
+        XCTAssertEqual(response.category.id, "cat-9")
+        XCTAssertEqual(response.category.color, "#A0E7E5")
+        XCTAssertEqual(response.category.totalSpentUsd, 18)
+    }
+}
+
+extension MainCategoriesContractServiceTests {
     func testDeleteCategoryForwardsID() async throws {
         let spy = AsyncNetworkClientContractSpy()
 

@@ -4,13 +4,16 @@ import Foundation
 
 struct CategoriesListViewModel: Equatable {
     let navigationTitle: Label.LabelViewModel
+    let addButton: NavigationBarActionView.ViewModel
     let state: State
 
     init(
         navigationTitle: Label.LabelViewModel = .init(),
+        addButton: NavigationBarActionView.ViewModel = .init(),
         state: State = .loading(items: [])
     ) {
         self.navigationTitle = navigationTitle
+        self.addButton = addButton
         self.state = state
     }
 }

@@ -39,10 +39,6 @@ final class CategoryPresenter: CategoryPresentationLogic {
                 textColor: Asset.Colors.textAndIconPrimary.color,
                 alignment: .left
             ),
-            editButtonTitle: L10n.categoryEditButton,
-            editButtonCommand: Command { [weak handler] in
-                await handler?.handleTapEditButton()
-            },
             content: makeContent(from: data),
             loadNextPageCommand: Command { [weak handler] in
                 await handler?.handleLoadNextPage()

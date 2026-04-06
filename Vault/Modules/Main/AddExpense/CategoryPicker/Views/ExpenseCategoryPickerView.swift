@@ -9,6 +9,7 @@ final class ExpenseCategoryPickerView: UIView, LayoutScaleProviding {
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let errorView = FullScreenCommonErrorView()
     private let emptyLabel = Label()
+    private let createButton = Button()
     private let addButton = Button()
 
     init(
@@ -30,6 +31,7 @@ final class ExpenseCategoryPickerView: UIView, LayoutScaleProviding {
         self.viewModel = viewModel
 
         headerView.apply(viewModel.header)
+        createButton.apply(viewModel.createButton)
         addButton.apply(viewModel.addButton)
 
         switch viewModel.state {
@@ -78,11 +80,17 @@ private extension ExpenseCategoryPickerView {
         addSubview(tableView)
         addSubview(errorView)
         addSubview(emptyLabel)
+        addSubview(createButton)
         addSubview(addButton)
 
         headerView.snp.makeConstraints { make in
             make.top.equalTo(safeAreaLayoutGuide)
             make.horizontalEdges.equalToSuperview()
+        }
+
+        createButton.snp.makeConstraints { make in
+            make.horizontalEdges.equalTo(safeAreaLayoutGuide).inset(spaceS)
+            make.bottom.equalTo(addButton.snp.top).offset(-spaceXS)
         }
 
         addButton.snp.makeConstraints { make in
@@ -93,7 +101,7 @@ private extension ExpenseCategoryPickerView {
         tableView.snp.makeConstraints { make in
             make.top.equalTo(headerView.snp.bottom).offset(spaceS)
             make.horizontalEdges.equalTo(safeAreaLayoutGuide).inset(spaceS)
-            make.bottom.equalTo(addButton.snp.top).offset(-spaceS)
+            make.bottom.equalTo(createButton.snp.top).offset(-spaceS)
         }
 
         errorView.snp.makeConstraints { make in
@@ -167,11 +175,22 @@ extension ExpenseCategoryPickerView: AddExpenseSheetContentHeightProviding {
             verticalFittingPriority: .fittingSizeLevel
         ).height
 
+        let createButtonHeight = createButton.systemLayoutSizeFitting(
+            CGSize(
+                width: createButton.bounds.width > .zero ? createButton.bounds.width : width,
+                height: UIView.layoutFittingCompressedSize.height
+            ),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        ).height
+
         return safeAreaInsets.top
             + headerHeight
             + spaceS
             + contentHeight(for: width)
             + spaceS
+            + createButtonHeight
+            + spaceXS
             + buttonHeight
             + safeAreaInsets.bottom
     }

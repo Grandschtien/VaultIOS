@@ -43,8 +43,20 @@ final class ExpenseCategoryPickerPresenter: ExpenseCategoryPickerPresentationLog
                 }
             ),
             state: makeState(from: data, rows: rows),
+            createButton: .init(
+                title: L10n.expenseCategoryPickerCreate,
+                titleColor: Asset.Colors.interactiveElemetsPrimary.color,
+                backgroundColor: .white,
+                font: Typography.typographySemibold16,
+                isEnabled: data.loadingState != .loading,
+                tapCommand: Command { [weak handler] in
+                    await handler?.handleTapCreateCategory()
+                },
+                leftIcon: plusSystemImage,
+                iconTintColor: Asset.Colors.interactiveElemetsPrimary.color
+            ),
             addButton: .init(
-                title: L10n.expenseCategoryPickerAdd,
+                title: L10n.expenseCategoryPickerSelect,
                 titleColor: Asset.Colors.textAndIconPrimaryInverted.color,
                 backgroundColor: Asset.Colors.interactiveElemetsPrimary.color,
                 font: Typography.typographySemibold16,

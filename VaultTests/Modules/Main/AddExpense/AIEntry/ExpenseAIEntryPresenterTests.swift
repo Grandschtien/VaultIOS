@@ -50,20 +50,15 @@ final class ExpenseAIEntryPresenterTests: XCTestCase {
         XCTAssertFalse(sut.viewModel.promptInput.isEditable)
     }
 
-    func testPresentFetchedDataBuildsNoExpenseAlert() {
+    func testPresentFetchedDataBuildsHeaderTitle() {
         sut.presentFetchedData(
             .init(
-                noExpenseAlert: .init(
-                    title: L10n.expenseAiEntryNoExpenseTitle,
-                    message: L10n.expenseAiEntryNoExpenseMessage
-                )
+                title: L10n.expenseAiEntryTitle
             )
         )
 
-        XCTAssertEqual(sut.viewModel.noExpenseAlert?.title.text, L10n.expenseAiEntryNoExpenseTitle)
-        XCTAssertEqual(sut.viewModel.noExpenseAlert?.message.text, L10n.expenseAiEntryNoExpenseMessage)
-        XCTAssertEqual(sut.viewModel.noExpenseAlert?.addManuallyButton.title, L10n.expenseAiEntryAddManually)
-        XCTAssertEqual(sut.viewModel.noExpenseAlert?.fixPromptButton.title, L10n.expenseAiEntryFixPrompt)
+        XCTAssertEqual(sut.viewModel.header.title.text, L10n.expenseAiEntryTitle)
+        XCTAssertEqual(sut.viewModel.promptInput.placeholder, L10n.expenseAiEntryPlaceholder)
     }
 }
 

@@ -42,6 +42,13 @@ final class CategoriesListPresenter: CategoriesListPresentationLogic {
                 textColor: Asset.Colors.textAndIconPrimary.color,
                 alignment: .left
             ),
+            addButton: .init(
+                content: .plus,
+                tintColor: Asset.Colors.interactiveElemetsPrimary.color,
+                tapCommand: Command { [weak handler] in
+                    await handler?.handleTapAddCategory()
+                }
+            ),
             state: makeState(
                 from: data,
                 items: items

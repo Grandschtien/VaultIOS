@@ -101,6 +101,7 @@ extension ExpenseAIEntryInteractorTests {
 
     func testHandleTapProcessNoExpenseShowsAlert() async {
         let presenter = ExpenseAIEntryPresenterSpy()
+        let router = ExpenseAIEntryRouterSpy()
         let service = AIParseServiceSpy(
             result: .success(
                 .init(
@@ -112,17 +113,16 @@ extension ExpenseAIEntryInteractorTests {
         )
         let sut = makeSUT(
             presenter: presenter,
+            router: router,
             aiParseService: service
         )
 
         await sut.handleChangePrompt("Hello")
         await sut.handleTapProcess()
 
-        XCTAssertEqual(
-            presenter.presentedData.last?.noExpenseAlert?.title,
-            L10n.expenseAiEntryNoExpenseTitle
-        )
-        XCTAssertFalse(presenter.presentedData.last?.isPromptEditable ?? true)
+        XCTAssertEqual(router.noExpenseAlertPresentationsCount, 1)
+        XCTAssertTrue(presenter.presentedData.last?.isPromptEditable ?? false)
+        XCTAssertEqual(presenter.presentedData.last?.loadingState, .idle)
     }
 
     func testHandleTapAddManuallyOpensEmptyDraftWithProfileCurrency() async {
@@ -158,12 +158,14 @@ private extension ExpenseAIEntryInteractorTests {
     }
 
     func makeSUT(
-        presenter: ExpenseAIEntryPresenterSpy = .init(),
-        router: ExpenseAIEntryRouterSpy = .init(),
+        presenter: ExpenseAIEntryPresenterSpy? = nil,
+        router: ExpenseAIEntryRouterSpy? = nil,
         aiParseService: AIParseServiceSpy? = nil,
         observer: MainFlowObserverStub = .init(),
         userProfileStorageService: UserProfileStorageSpy = .init()
     ) -> ExpenseAIEntryInteractor {
+        let resolvedPresenter = presenter ?? ExpenseAIEntryPresenterSpy()
+        let resolvedRouter = router ?? ExpenseAIEntryRouterSpy()
         let resolvedAIParseService = aiParseService ?? AIParseServiceSpy(
             result: .success(
                 .init(
@@ -175,8 +177,8 @@ private extension ExpenseAIEntryInteractorTests {
         )
 
         return ExpenseAIEntryInteractor(
-            presenter: presenter,
-            router: router,
+            presenter: resolvedPresenter,
+            router: resolvedRouter,
             aiParseService: resolvedAIParseService,
             observer: observer,
             currencyCodeResolver: AddExpenseCurrencyCodeResolver(
@@ -202,6 +204,8 @@ private final class ExpenseAIEntryRouterSpy: ExpenseAIEntryRoutingLogic {
     private(set) var closeCallsCount = 0
     private(set) var presentedErrors: [String] = []
     private(set) var openedDrafts: [ExpenseEditableDraft]?
+    private(set) var noExpenseAlertPresentationsCount = 0
+    private(set) var dismissNoExpenseAlertCallsCount = 0
 
     func close() {
         closeCallsCount += 1
@@ -209,6 +213,14 @@ private final class ExpenseAIEntryRouterSpy: ExpenseAIEntryRoutingLogic {
 
     func presentError(with text: String) {
         presentedErrors.append(text)
+    }
+
+    func presentNoExpenseAlert(output: ExpenseAIEntryNoExpenseAlertOutput) {
+        noExpenseAlertPresentationsCount += 1
+    }
+
+    func dismissNoExpenseAlert() {
+        dismissNoExpenseAlertCallsCount += 1
     }
 
     func openManualEntry(initialDrafts: [ExpenseEditableDraft]) async {

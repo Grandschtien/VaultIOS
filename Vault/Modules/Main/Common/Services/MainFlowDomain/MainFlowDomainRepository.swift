@@ -11,7 +11,8 @@ protocol MainFlowDomainRepositoryProtocol: Sendable {
     func loadNextExpensesPage() async throws
     func addExpense(_ request: ExpensesCreateRequestDTO) async throws
     func deleteExpense(id: String) async throws
-    func addCategory(_ request: CategoryCreateRequestDTO) async throws
+    func addCategory(_ request: CategoryCreateRequestDTO) async throws -> MainCategoryCardModel
+    func updateCategory(id: String, request: CategoryCreateRequestDTO) async throws -> MainCategoryCardModel
     func deleteCategory(id: String) async throws
     func clearSession() async
 }
@@ -19,6 +20,31 @@ protocol MainFlowDomainRepositoryProtocol: Sendable {
 extension MainFlowDomainRepositoryProtocol {
     func refreshCategoryFirstPage(id: String) async throws {
         try await refreshCategoryFirstPage(id: id, fromDate: nil)
+    }
+
+    func addCategory(_ request: CategoryCreateRequestDTO) async throws -> MainCategoryCardModel {
+        MainCategoryCardModel(
+            id: "",
+            name: request.name,
+            icon: request.icon,
+            color: request.color,
+            amount: .zero,
+            currency: "USD"
+        )
+    }
+
+    func updateCategory(
+        id: String,
+        request: CategoryCreateRequestDTO
+    ) async throws -> MainCategoryCardModel {
+        MainCategoryCardModel(
+            id: id,
+            name: request.name,
+            icon: request.icon,
+            color: request.color,
+            amount: .zero,
+            currency: "USD"
+        )
     }
 }
 
@@ -352,7 +378,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         }
     }
 
-    func addCategory(_ request: CategoryCreateRequestDTO) async throws {
+    func addCategory(_ request: CategoryCreateRequestDTO) async throws -> MainCategoryCardModel {
         let previousState = store.snapshot()
         let optimisticCategoryID = "optimistic-category-\(UUID().uuidString)"
         let optimisticCategory = MainCategoryCardModel(
@@ -371,8 +397,77 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         observer.publishAll(from: store)
 
         do {
-            _ = try await categoriesService.createCategory(request)
-            try await refreshCategories()
+            let response = try await categoriesService.createCategory(request)
+            let createdCategory = makeCategoryModel(from: response.category)
+
+            store.update { state in
+                state.categoriesByID[optimisticCategoryID] = nil
+                state.categoryOrder.removeAll { $0 == optimisticCategoryID }
+                state.categoriesByID[createdCategory.id] = createdCategory
+                state.categoryOrder.insert(createdCategory.id, at: .zero)
+            }
+            observer.publishAll(from: store)
+
+            try? await refreshCategories()
+
+            return observer.currentCategoriesSnapshot().categories.first {
+                $0.id == createdCategory.id
+            } ?? createdCategory
+        } catch {
+            store.replaceState(previousState)
+            observer.publishAll(from: store)
+            throw error
+        }
+    }
+
+    func updateCategory(
+        id: String,
+        request: CategoryCreateRequestDTO
+    ) async throws -> MainCategoryCardModel {
+        let previousState = store.snapshot()
+
+        store.update { state in
+            updateCategory(
+                id: id,
+                name: localizedCategoryName(from: request.name),
+                icon: request.icon,
+                color: request.color,
+                state: &state
+            )
+        }
+        observer.publishAll(from: store)
+
+        do {
+            let response = try await categoriesService.updateCategory(id: id, request: request)
+            let fallbackCategory = previousState.categoryDetailsByID[id] ?? previousState.categoriesByID[id]
+            let updatedCategory = makeEditableCategoryModel(
+                from: response.category,
+                fallbackCategory: fallbackCategory
+            )
+
+            store.update { state in
+                updateCategory(
+                    id: id,
+                    name: updatedCategory.name,
+                    icon: updatedCategory.icon,
+                    color: updatedCategory.color,
+                    state: &state
+                )
+            }
+            observer.publishAll(from: store)
+
+            try? await refreshCategories()
+
+            if previousState.categoryPagination[id]?.isLoaded == true {
+                try? await refreshCategoryFirstPage(
+                    id: id,
+                    fromDate: previousState.categoryFromDates[id]
+                )
+            }
+
+            return observer.currentCategorySnapshot(id: id).category
+                ?? observer.currentCategoriesSnapshot().categories.first(where: { $0.id == id })
+                ?? updatedCategory
         } catch {
             store.replaceState(previousState)
             observer.publishAll(from: store)
@@ -881,5 +976,53 @@ private extension MainFlowDomainRepository {
         }
 
         return expense.timeOfAdd >= fromDate
+    }
+
+    func updateCategory(
+        id: String,
+        name: String,
+        icon: String,
+        color: String,
+        state: inout MainFlowDomainState
+    ) {
+        if let category = state.categoriesByID[id] {
+            state.categoriesByID[id] = MainCategoryCardModel(
+                id: category.id,
+                name: name,
+                icon: icon,
+                color: color,
+                amount: category.amount,
+                currency: category.currency
+            )
+        }
+
+        if let category = state.categoryDetailsByID[id] {
+            state.categoryDetailsByID[id] = MainCategoryCardModel(
+                id: category.id,
+                name: name,
+                icon: icon,
+                color: color,
+                amount: category.amount,
+                currency: category.currency
+            )
+        }
+    }
+
+    func makeEditableCategoryModel(
+        from category: CategoryDTO,
+        fallbackCategory: MainCategoryCardModel?
+    ) -> MainCategoryCardModel {
+        guard let fallbackCategory else {
+            return makeCategoryModel(from: category)
+        }
+
+        return MainCategoryCardModel(
+            id: category.id,
+            name: localizedCategoryName(from: category.name),
+            icon: category.icon,
+            color: category.color,
+            amount: fallbackCategory.amount,
+            currency: fallbackCategory.currency
+        )
     }
 }

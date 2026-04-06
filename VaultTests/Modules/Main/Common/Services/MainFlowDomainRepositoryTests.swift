@@ -661,10 +661,12 @@ extension MainFlowDomainRepositoryTests {
         XCTAssertEqual(state.recentExpenseIDs, ["exp-server"])
         XCTAssertEqual(state.expensesListExpenseIDs, ["exp-server"])
         XCTAssertEqual(state.categoryExpenseIDs["cat-1"], ["exp-server"])
-        XCTAssertEqual(state.expensesByID.keys, ["exp-server"])
+        XCTAssertEqual(Array(state.expensesByID.keys), ["exp-server"])
         XCTAssertEqual(state.expensesByID["exp-server"]?.title, "Coffee")
-        XCTAssertEqual(await expensesService.listCallsCount(), 0)
-        XCTAssertEqual(await categoriesService.listCallsCount(), 1)
+        let expensesListCallCount = await expensesService.listCallsCount()
+        let categoriesListCallCount = await categoriesService.listCallsCount()
+        XCTAssertEqual(expensesListCallCount, 0)
+        XCTAssertEqual(categoriesListCallCount, 1)
     }
 }
 
@@ -757,7 +759,7 @@ private actor CategoriesServiceStub: MainCategoriesContractServicing {
 
     func listCategories() async throws -> CategoriesResponseDTO {
         listCalls += 1
-        try listResult.get()
+        return try listResult.get()
     }
 
     func getCategory(id: String) async throws -> CategoryResponseDTO {

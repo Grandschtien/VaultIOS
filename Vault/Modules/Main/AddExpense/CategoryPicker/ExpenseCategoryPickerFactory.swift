@@ -22,7 +22,10 @@ struct ExpenseCategoryPickerFactory: Screen {
             viewModel: viewModel,
             colorProvider: CategoryColorProvider()
         )
-        let router = ExpenseCategoryPickerRouter(screenRouter: navigator)
+        let router = ExpenseCategoryPickerRouter(
+            screenRouter: navigator,
+            context: context
+        )
         let interactor = ExpenseCategoryPickerInteractor(
             presenter: presenter,
             router: router,

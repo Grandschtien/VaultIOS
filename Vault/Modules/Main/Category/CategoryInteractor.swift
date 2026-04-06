@@ -10,7 +10,6 @@ protocol CategoryHandler: AnyObject, Sendable {
     func handleTapRetry() async
     func handleLoadNextPage() async
     func handleDeleteExpense(id: String) async
-    func handleTapEditButton() async
 }
 
 actor CategoryInteractor: CategoryBusinessLogic {
@@ -112,6 +111,11 @@ private extension CategoryInteractor {
     }
 
     func handleSnapshot(_ snapshot: MainFlowCategorySnapshot) async {
+        if loadingState == .loaded, snapshot.category == nil {
+            await router.close()
+            return
+        }
+
         category = snapshot.category
         expenseGroups = snapshot.expenseGroups
         deletingExpenseIDs = snapshot.deletingExpenseIDs
@@ -190,12 +194,5 @@ extension CategoryInteractor: CategoryHandler {
             await presentFetchedData()
             await router.presentError(with: L10n.mainOverviewError)
         }
-    }
-
-    func handleTapEditButton() async {
-        await router.openCategoryEdit(
-            id: categoryID,
-            name: currentNavigationTitle()
-        )
     }
 }

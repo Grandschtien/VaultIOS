@@ -11,6 +11,7 @@ protocol ExpenseCategoryPickerOutput: AnyObject, Sendable {
 protocol ExpenseCategoryPickerHandler: AnyObject, Sendable {
     func handleTapCategory(id: String) async
     func handleTapAdd() async
+    func handleTapCreateCategory() async
     func handleTapRetry() async
     func handleTapClose() async
 }
@@ -25,6 +26,7 @@ actor ExpenseCategoryPickerInteractor: ExpenseCategoryPickerBusinessLogic {
     private var loadingState: LoadingStatus = .idle
     private var categories: [ExpenseCategorySelectionModel] = []
     private var selectedCategoryID: String?
+    private var observationTask: Task<Void, Never>?
 
     init(
         presenter: ExpenseCategoryPickerPresentationLogic,
@@ -43,6 +45,8 @@ actor ExpenseCategoryPickerInteractor: ExpenseCategoryPickerBusinessLogic {
     }
 
     func fetchData() async {
+        startObservingIfNeeded()
+
         loadingState = .loading
         categories = makeSelectionModels(from: observer.currentCategoriesSnapshot().categories)
         normalizeSelection()
@@ -65,6 +69,38 @@ actor ExpenseCategoryPickerInteractor: ExpenseCategoryPickerBusinessLogic {
 }
 
 private extension ExpenseCategoryPickerInteractor {
+    func startObservingIfNeeded() {
+        guard observationTask == nil else {
+            return
+        }
+
+        let stream = observer.subscribeCategories()
+        observationTask = Task { [weak self] in
+            for await snapshot in stream {
+                guard let self else {
+                    return
+                }
+
+                await self.handleSnapshot(snapshot)
+            }
+        }
+    }
+
+    func handleSnapshot(_ snapshot: MainFlowCategoriesSnapshot) async {
+        categories = makeSelectionModels(from: snapshot.categories)
+        normalizeSelection()
+
+        switch loadingState {
+        case .loaded:
+            await presentFetchedData()
+        case .loading where !categories.isEmpty:
+            loadingState = .loaded
+            await presentFetchedData()
+        default:
+            break
+        }
+    }
+
     func presentFetchedData() async {
         await presenter.presentFetchedData(
             ExpenseCategoryPickerFetchData(
@@ -120,6 +156,14 @@ extension ExpenseCategoryPickerInteractor: ExpenseCategoryPickerHandler {
 
         await output.handleDidSelectCategory(category)
         await router.close()
+    }
+
+    func handleTapCreateCategory() async {
+        guard loadingState != .loading else {
+            return
+        }
+
+        await router.openCategoryCreate()
     }
 
     func handleTapRetry() async {

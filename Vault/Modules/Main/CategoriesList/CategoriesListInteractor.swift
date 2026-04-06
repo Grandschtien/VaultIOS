@@ -9,6 +9,7 @@ protocol CategoriesListBusinessLogic: Sendable {
 protocol CategoriesListHandler: AnyObject, Sendable {
     func handleTapRetry() async
     func handleTapCategory(id: String, name: String) async
+    func handleTapAddCategory() async
 }
 
 actor CategoriesListInteractor: CategoriesListBusinessLogic {
@@ -107,5 +108,9 @@ extension CategoriesListInteractor: CategoriesListHandler {
 
     func handleTapCategory(id: String, name: String) async {
         await router.openCategory(id: id, name: name)
+    }
+
+    func handleTapAddCategory() async {
+        await router.openCategoryCreate()
     }
 }

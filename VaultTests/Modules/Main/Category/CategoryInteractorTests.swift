@@ -225,15 +225,15 @@ private final class CategoryPresenterSpy: CategoryPresentationLogic, @unchecked 
 
 @MainActor
 private final class CategoryRouterSpy: CategoryRoutingLogic, @unchecked Sendable {
-    private(set) var openEditCalls: [(id: String, name: String)] = []
     private(set) var presentedErrors: [String] = []
-
-    func openCategoryEdit(id: String, name: String) {
-        openEditCalls.append((id, name))
-    }
+    private(set) var closeCallsCount = 0
 
     func presentError(with text: String) {
         presentedErrors.append(text)
+    }
+
+    func close() {
+        closeCallsCount += 1
     }
 }
 

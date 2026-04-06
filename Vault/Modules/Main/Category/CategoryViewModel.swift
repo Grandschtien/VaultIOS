@@ -4,21 +4,15 @@ import UIKit
 
 struct CategoryViewModel: Equatable {
     let navigationTitle: Label.LabelViewModel
-    let editButtonTitle: String
-    let editButtonCommand: Command
     let content: ContentViewModel
     let loadNextPageCommand: Command
 
     init(
         navigationTitle: Label.LabelViewModel = .init(),
-        editButtonTitle: String = "",
-        editButtonCommand: Command = .nope,
         content: ContentViewModel = .init(),
         loadNextPageCommand: Command = .nope
     ) {
         self.navigationTitle = navigationTitle
-        self.editButtonTitle = editButtonTitle
-        self.editButtonCommand = editButtonCommand
         self.content = content
         self.loadNextPageCommand = loadNextPageCommand
     }

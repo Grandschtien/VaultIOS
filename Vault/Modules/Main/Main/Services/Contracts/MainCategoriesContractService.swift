@@ -5,9 +5,16 @@ import Foundation
 
 protocol MainCategoriesContractServicing: Sendable {
     func createCategory(_ request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO
+    func updateCategory(id: String, request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO
     func listCategories() async throws -> CategoriesResponseDTO
     func getCategory(id: String) async throws -> CategoryResponseDTO
     func deleteCategory(id: String) async throws
+}
+
+extension MainCategoriesContractServicing {
+    func updateCategory(id: String, request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO {
+        try await createCategory(request)
+    }
 }
 
 final class MainCategoriesContractService: MainCategoriesContractServicing {
@@ -20,6 +27,13 @@ final class MainCategoriesContractService: MainCategoriesContractServicing {
     func createCategory(_ request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO {
         try await networkClient.request(
             CategoriesAPI.create(request),
+            responseType: CategoryResponseDTO.self
+        )
+    }
+
+    func updateCategory(id: String, request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO {
+        try await networkClient.request(
+            CategoriesAPI.update(id: id, request),
             responseType: CategoryResponseDTO.self
         )
     }

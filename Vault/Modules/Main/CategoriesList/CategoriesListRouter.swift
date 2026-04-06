@@ -7,6 +7,7 @@ import Nivelir
 @MainActor
 protocol CategoriesListRoutingLogic: Sendable {
     func openCategory(id: String, name: String)
+    func openCategoryCreate()
 }
 
 final class CategoriesListRouter: CategoriesListRoutingLogic {
@@ -31,6 +32,19 @@ final class CategoriesListRouter: CategoriesListRoutingLogic {
                     CategoryFactory(
                         categoryID: id,
                         categoryName: name,
+                        context: context
+                    )
+                )
+        })
+    }
+
+    func openCategoryCreate() {
+        screenRouter.navigate(to: { route in
+            route
+                .top(.stack)
+                .push(
+                    CategoryEditorFactory(
+                        mode: .create,
                         context: context
                     )
                 )

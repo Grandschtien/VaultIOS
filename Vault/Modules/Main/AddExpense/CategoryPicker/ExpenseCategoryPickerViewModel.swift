@@ -3,15 +3,18 @@ import UIKit
 struct ExpenseCategoryPickerViewModel: Equatable {
     let header: AddExpenseSheetHeaderView.ViewModel
     let state: State
+    let createButton: Button.ButtonViewModel
     let addButton: Button.ButtonViewModel
 
     init(
         header: AddExpenseSheetHeaderView.ViewModel = .init(),
         state: State = .loading(rows: []),
+        createButton: Button.ButtonViewModel = .init(),
         addButton: Button.ButtonViewModel = .init()
     ) {
         self.header = header
         self.state = state
+        self.createButton = createButton
         self.addButton = addButton
     }
 }

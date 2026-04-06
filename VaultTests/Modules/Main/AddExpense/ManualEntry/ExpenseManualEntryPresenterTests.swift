@@ -12,14 +12,14 @@ final class ExpenseManualEntryPresenterTests: XCTestCase {
         sut.presentFetchedData(
             ExpenseManualEntryFetchData(
                 loadingState: .loading,
-                drafts: [validDraft()],
+                currentDraft: validDraft(),
                 isPrimaryEnabled: true
             )
         )
 
         XCTAssertTrue(sut.viewModel.primaryButton.isLoading)
         XCTAssertFalse(sut.viewModel.primaryButton.isEnabled)
-        XCTAssertFalse(sut.viewModel.isScrollEnabled)
+        XCTAssertFalse(sut.viewModel.currentDraft?.amountInput.isEnabled ?? true)
         XCTAssertFalse(sut.viewModel.header.isCloseEnabled)
     }
 }
@@ -33,19 +33,17 @@ extension ExpenseManualEntryPresenterTests {
 
         sut.presentFetchedData(
             ExpenseManualEntryFetchData(
-                drafts: [validDraft(), validDraft(currencyCode: "EUR")],
-                currentPage: 0,
+                currentDraft: validDraft(),
                 primaryAction: .next,
                 isPrimaryEnabled: true,
                 isSkipVisible: true
             )
         )
 
-        XCTAssertEqual(sut.viewModel.forms.count, 2)
+        XCTAssertEqual(sut.viewModel.currentDraft?.titleField.text, "Lunch")
         XCTAssertEqual(sut.viewModel.primaryButton.title, L10n.next)
         XCTAssertEqual(sut.viewModel.skipButton?.title, L10n.expenseManualEntrySkip)
-        XCTAssertEqual(sut.viewModel.pageControl?.pageCount, 2)
-        XCTAssertEqual(sut.viewModel.pageControl?.currentPage, 0)
+        XCTAssertNotNil(sut.viewModel.currentDraft)
     }
 
     func testPresentFetchedDataBuildsAmountPlaceholderFromDraftCurrency() {
@@ -56,11 +54,11 @@ extension ExpenseManualEntryPresenterTests {
 
         sut.presentFetchedData(
             ExpenseManualEntryFetchData(
-                drafts: [validDraft(currencyCode: "EUR")]
+                currentDraft: validDraft(currencyCode: "EUR")
             )
         )
 
-        XCTAssertEqual(sut.viewModel.forms.first?.amountInput.placeholder, "€0.00")
+        XCTAssertEqual(sut.viewModel.currentDraft?.amountInput.currencyLabel.text, "€")
     }
 }
 

@@ -133,11 +133,23 @@ private final class MainValueFormatterStub: MainValueFormatting, @unchecked Send
 }
 
 private final class CategoryColorProviderStub: CategoryColorProviding, @unchecked Sendable {
+    func color(for value: String) -> UIColor {
+        .systemTeal
+    }
+
     func summaryColor(for value: String) -> UIColor {
         .systemTeal
     }
 
     func accentColor(for value: String) -> UIColor {
         .systemMint
+    }
+
+    func normalizedHex(from value: String) -> String? {
+        value
+    }
+
+    func hexString(from color: UIColor) -> String? {
+        "#008080"
     }
 }

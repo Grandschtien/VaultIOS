@@ -6,8 +6,8 @@ import Nivelir
 
 @MainActor
 protocol CategoryRoutingLogic: Sendable {
-    func openCategoryEdit(id: String, name: String)
     func presentError(with text: String)
+    func close()
 }
 
 final class CategoryRouter: CategoryRoutingLogic {
@@ -24,9 +24,20 @@ final class CategoryRouter: CategoryRoutingLogic {
         self.toastPresenter = toastPresenter
     }
 
-    func openCategoryEdit(id: String, name: String) { }
-
     func presentError(with text: String) {
         toastPresenter.present(state: .error, title: text)
+    }
+
+    func close() {
+        if let navigationController = viewController?.navigationController {
+            screenRouter.navigate(from: navigationController) { route in
+                route.pop()
+            }
+            return
+        }
+
+        screenRouter.navigate(from: viewController) { route in
+            route.dimiss()
+        }
     }
 }

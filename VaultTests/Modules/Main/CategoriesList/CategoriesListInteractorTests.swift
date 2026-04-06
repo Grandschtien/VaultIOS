@@ -119,9 +119,14 @@ private final class CategoriesListPresenterSpy: CategoriesListPresentationLogic 
 @MainActor
 private final class CategoriesListRouterSpy: CategoriesListRoutingLogic {
     private(set) var openCategoryCalls: [(id: String, name: String)] = []
+    private(set) var openCategoryCreateCallsCount = 0
 
     func openCategory(id: String, name: String) {
         openCategoryCalls.append((id, name))
+    }
+
+    func openCategoryCreate() {
+        openCategoryCreateCallsCount += 1
     }
 }
 
@@ -163,7 +168,26 @@ private actor CategoriesListRepositoryStub: MainFlowDomainRepositoryProtocol {
     func loadNextExpensesPage() async throws {}
     func addExpense(_ request: ExpensesCreateRequestDTO) async throws {}
     func deleteExpense(id: String) async throws {}
-    func addCategory(_ request: CategoryCreateRequestDTO) async throws {}
+    func addCategory(_ request: CategoryCreateRequestDTO) async throws -> MainCategoryCardModel {
+        MainCategoryCardModel(
+            id: "created",
+            name: request.name,
+            icon: request.icon,
+            color: request.color,
+            amount: .zero,
+            currency: "USD"
+        )
+    }
+    func updateCategory(id: String, request: CategoryCreateRequestDTO) async throws -> MainCategoryCardModel {
+        MainCategoryCardModel(
+            id: id,
+            name: request.name,
+            icon: request.icon,
+            color: request.color,
+            amount: .zero,
+            currency: "USD"
+        )
+    }
     func deleteCategory(id: String) async throws {}
     func clearSession() async {}
 
