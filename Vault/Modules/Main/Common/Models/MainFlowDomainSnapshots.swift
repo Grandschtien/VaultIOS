@@ -97,6 +97,7 @@ struct MainFlowPaginationState: Equatable, Sendable {
 struct MainFlowDomainState: Equatable, Sendable {
     var preferredCurrencyCode: String?
     var categoriesByID: [String: MainCategoryCardModel]
+    var categoryDetailsByID: [String: MainCategoryCardModel]
     var categoryOrder: [String]
     var expensesByID: [String: MainExpenseModel]
     var recentExpenseIDs: [String]
@@ -104,11 +105,13 @@ struct MainFlowDomainState: Equatable, Sendable {
     var expensesListPagination: MainFlowPaginationState
     var categoryExpenseIDs: [String: [String]]
     var categoryPagination: [String: MainFlowPaginationState]
+    var categoryFromDates: [String: Date]
     var pendingDeletedExpenseIDs: Set<String>
 
     init(
         preferredCurrencyCode: String? = nil,
         categoriesByID: [String: MainCategoryCardModel] = [:],
+        categoryDetailsByID: [String: MainCategoryCardModel] = [:],
         categoryOrder: [String] = [],
         expensesByID: [String: MainExpenseModel] = [:],
         recentExpenseIDs: [String] = [],
@@ -116,10 +119,12 @@ struct MainFlowDomainState: Equatable, Sendable {
         expensesListPagination: MainFlowPaginationState = .init(),
         categoryExpenseIDs: [String: [String]] = [:],
         categoryPagination: [String: MainFlowPaginationState] = [:],
+        categoryFromDates: [String: Date] = [:],
         pendingDeletedExpenseIDs: Set<String> = []
     ) {
         self.preferredCurrencyCode = preferredCurrencyCode
         self.categoriesByID = categoriesByID
+        self.categoryDetailsByID = categoryDetailsByID
         self.categoryOrder = categoryOrder
         self.expensesByID = expensesByID
         self.recentExpenseIDs = recentExpenseIDs
@@ -127,6 +132,7 @@ struct MainFlowDomainState: Equatable, Sendable {
         self.expensesListPagination = expensesListPagination
         self.categoryExpenseIDs = categoryExpenseIDs
         self.categoryPagination = categoryPagination
+        self.categoryFromDates = categoryFromDates
         self.pendingDeletedExpenseIDs = pendingDeletedExpenseIDs
     }
 }

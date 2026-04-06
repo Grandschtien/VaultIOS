@@ -6,7 +6,7 @@ protocol ExpenseManualEntryPresentationLogic: Sendable {
     func presentFetchedData(_ data: ExpenseManualEntryFetchData)
 }
 
-final class ExpenseManualEntryPresenter: ExpenseManualEntryPresentationLogic, LayoutScaleProviding {
+final class ExpenseManualEntryPresenter: ExpenseManualEntryPresentationLogic, LayoutScaleProviding, ImageProviding {
     @Published
     private(set) var viewModel: ExpenseManualEntryViewModel
 
@@ -200,7 +200,7 @@ private extension ExpenseManualEntryPresenter {
         case .next:
             return Asset.Icons.arrowRight.image
         case .confirm:
-            return UIImage(systemName: "checkmark")
+            return checkmarkImage
         }
     }
 }

@@ -1,7 +1,7 @@
 import UIKit
 import SnapKit
 
-final class ProfileCurrencyCloseBarButtonView: UIView, LayoutScaleProviding, ImageProviding {
+final class CategoryPeriodPickerCloseBarButtonView: UIView, LayoutScaleProviding, ImageProviding {
     private let button = UIButton(type: .system)
     private var tapCommand: Command = .nope
 
@@ -20,12 +20,12 @@ final class ProfileCurrencyCloseBarButtonView: UIView, LayoutScaleProviding, Ima
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(with viewModel: ProfileCurrencyViewModel.CloseButtonViewModel) {
+    func configure(with viewModel: CategoryPeriodPickerViewModel.CloseButtonViewModel) {
         tapCommand = viewModel.tapCommand
     }
 }
 
-private extension ProfileCurrencyCloseBarButtonView {
+private extension CategoryPeriodPickerCloseBarButtonView {
     func setupViews() {
         backgroundColor = .clear
         button.tintColor = Asset.Colors.textAndIconPrimary.color
@@ -35,6 +35,7 @@ private extension ProfileCurrencyCloseBarButtonView {
 
     func setupLayout() {
         addSubview(button)
+
         button.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }

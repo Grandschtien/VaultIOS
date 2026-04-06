@@ -6,7 +6,7 @@ protocol ExpenseEntryChooserPresentationLogic: Sendable {
     func presentFetchedData(_ data: ExpenseEntryChooserFetchData)
 }
 
-final class ExpenseEntryChooserPresenter: ExpenseEntryChooserPresentationLogic {
+final class ExpenseEntryChooserPresenter: ExpenseEntryChooserPresentationLogic, ImageProviding {
     @Published
     private(set) var viewModel: ExpenseEntryChooserViewModel
 
@@ -37,7 +37,7 @@ final class ExpenseEntryChooserPresenter: ExpenseEntryChooserPresentationLogic {
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapAiEntry()
                 },
-                leftIcon: UIImage(systemName: "sparkles")
+                leftIcon: sparklesImage
             ),
             manualButton: .init(
                 title: L10n.expenseEntryChooserEnterManually,
@@ -47,7 +47,7 @@ final class ExpenseEntryChooserPresenter: ExpenseEntryChooserPresentationLogic {
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapManualEntry()
                 },
-                leftIcon: UIImage(systemName: "square.and.pencil"),
+                leftIcon: squareAndPencilImage,
                 iconTintColor: Asset.Colors.textAndIconPrimary.color
             )
         )

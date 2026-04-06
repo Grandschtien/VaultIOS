@@ -1,7 +1,7 @@
 import UIKit
 import SnapKit
 
-final class ProfileCurrencyCloseBarButtonView: UIView, LayoutScaleProviding, ImageProviding {
+final class MainPeriodBarButtonView: UIView, LayoutScaleProviding, ImageProviding {
     private let button = UIButton(type: .system)
     private var tapCommand: Command = .nope
 
@@ -20,21 +20,22 @@ final class ProfileCurrencyCloseBarButtonView: UIView, LayoutScaleProviding, Ima
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(with viewModel: ProfileCurrencyViewModel.CloseButtonViewModel) {
+    func configure(with viewModel: MainViewModel.PeriodButtonViewModel) {
         tapCommand = viewModel.tapCommand
     }
 }
 
-private extension ProfileCurrencyCloseBarButtonView {
+private extension MainPeriodBarButtonView {
     func setupViews() {
         backgroundColor = .clear
         button.tintColor = Asset.Colors.textAndIconPrimary.color
-        button.setImage(xmarkImage, for: .normal)
+        button.setImage(calendarImage, for: .normal)
         button.addTarget(self, action: #selector(handleTap), for: .touchUpInside)
     }
 
     func setupLayout() {
         addSubview(button)
+
         button.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }

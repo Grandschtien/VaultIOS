@@ -9,6 +9,10 @@ protocol MainRoutingLogic: Sendable {
     func openAllCategories()
     func openAllExpenses()
     func openCategory(id: String, name: String)
+    func openPeriodPicker(
+        selectedFromDate: Date,
+        output: CategoryPeriodPickerOutput
+    )
 }
 
 final class MainRouter: MainRoutingLogic {
@@ -53,5 +57,25 @@ final class MainRouter: MainRoutingLogic {
                     )
                 )
         })
+    }
+
+    func openPeriodPicker(
+        selectedFromDate: Date,
+        output: CategoryPeriodPickerOutput
+    ) {
+        guard let viewController else {
+            return
+        }
+
+        screenRouter.navigate(from: viewController) { route in
+            route.present(
+                CategoryPeriodPickerFactory(
+                    selectedFromDate: selectedFromDate,
+                    output: output
+                )
+                .withStackContainer()
+                .withModalPresentationStyle(.pageSheet)
+            )
+        }
     }
 }

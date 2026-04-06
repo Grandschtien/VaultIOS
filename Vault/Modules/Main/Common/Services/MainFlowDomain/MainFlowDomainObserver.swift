@@ -286,7 +286,7 @@ private extension MainFlowDomainObserver {
                         categoryID,
                         MainFlowCategorySnapshot(
                             categoryID: categoryID,
-                            category: state.categoriesByID[categoryID],
+                            category: state.categoryDetailsByID[categoryID] ?? state.categoriesByID[categoryID],
                             expenseGroups: groupedExpenses(
                                 with: state.categoryExpenseIDs[categoryID] ?? [],
                                 from: state

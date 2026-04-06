@@ -20,6 +20,13 @@ protocol ImageProviding {
     var magnifyingglassImage: UIImage? { get }
     var checkmarkCircleFillImage: UIImage? { get }
     var circleImage: UIImage? { get }
+    var xmarkImage: UIImage? { get }
+    var calendarImage: UIImage? { get }
+    var chevronRightImage: UIImage? { get }
+    var checkmarkImage: UIImage? { get }
+    var sparklesImage: UIImage? { get }
+    var squareAndPencilImage: UIImage? { get }
+    var plusSystemImage: UIImage? { get }
 
     func personCropCircleImage(pointSize: CGFloat, weight: UIImage.SymbolWeight) -> UIImage?
     func plusImage(pointSize: CGFloat, weight: UIImage.SymbolWeight) -> UIImage?
@@ -38,6 +45,13 @@ extension ImageProviding {
     var magnifyingglassImage: UIImage? { UIImage(systemName: "magnifyingglass") }
     var checkmarkCircleFillImage: UIImage? { UIImage(systemName: "checkmark.circle.fill") }
     var circleImage: UIImage? { UIImage(systemName: "circle") }
+    var xmarkImage: UIImage? { UIImage(systemName: "xmark") }
+    var calendarImage: UIImage? { UIImage(systemName: "calendar") }
+    var chevronRightImage: UIImage? { UIImage(systemName: "chevron.right") }
+    var checkmarkImage: UIImage? { UIImage(systemName: "checkmark") }
+    var sparklesImage: UIImage? { UIImage(systemName: "sparkles") }
+    var squareAndPencilImage: UIImage? { UIImage(systemName: "square.and.pencil") }
+    var plusSystemImage: UIImage? { UIImage(systemName: "plus") }
 
     func personCropCircleImage(pointSize: CGFloat, weight: UIImage.SymbolWeight) -> UIImage? {
         UIImage(

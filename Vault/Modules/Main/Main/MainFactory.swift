@@ -23,10 +23,9 @@ final class MainFactory: Screen {
             currencyRateService: currencyRateService,
             userProfileStorageService: userProfileStorageService
         )
-        let summaryPeriodProvider = MainSummaryPeriodProvider()
         let summaryProvider = MainSummaryProvider(
             summaryService: summaryService,
-            summaryPeriodProvider: summaryPeriodProvider
+            summaryPeriodProvider: context.summaryPeriodProvider
         )
         let formatter = MainValueFormatter()
         let colorProvider = CategoryColorProvider()
@@ -37,7 +36,7 @@ final class MainFactory: Screen {
             viewModel: viewModel,
             formatter: formatter,
             colorProvider: colorProvider,
-            summaryPeriodProvider: summaryPeriodProvider
+            summaryPeriodProvider: context.summaryPeriodProvider
         )
         let router = MainRouter(
             screenRouter: navigator,
@@ -48,6 +47,7 @@ final class MainFactory: Screen {
             router: router,
             currencyRateProvider: currencyRateProvider,
             summaryProvider: summaryProvider,
+            summaryPeriodProvider: context.summaryPeriodProvider,
             repository: context.repository,
             observer: context.observer
         )

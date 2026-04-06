@@ -21,6 +21,7 @@ actor CategoryInteractor: CategoryBusinessLogic {
     private let repository: MainFlowDomainRepositoryProtocol
     private let observer: MainFlowDomainObserverProtocol
 
+    private var fromDate: Date
     private var loadingState: LoadingStatus = .idle
     private var category: MainCategoryCardModel?
     private var expenseGroups: [MainExpenseGroupModel] = []
@@ -32,6 +33,7 @@ actor CategoryInteractor: CategoryBusinessLogic {
     init(
         categoryID: String,
         categoryName: String?,
+        initialFromDate: Date,
         presenter: CategoryPresentationLogic,
         router: CategoryRoutingLogic,
         repository: MainFlowDomainRepositoryProtocol,
@@ -39,6 +41,7 @@ actor CategoryInteractor: CategoryBusinessLogic {
     ) {
         self.categoryID = categoryID
         self.categoryName = categoryName
+        self.fromDate = initialFromDate
         self.presenter = presenter
         self.router = router
         self.repository = repository
@@ -62,7 +65,10 @@ actor CategoryInteractor: CategoryBusinessLogic {
         await presentFetchedData()
 
         do {
-            try await repository.refreshCategoryFirstPage(id: categoryID)
+            try await repository.refreshCategoryFirstPage(
+                id: categoryID,
+                fromDate: fromDate
+            )
             syncFromObserver()
             loadingState = .loaded
         } catch {
@@ -120,6 +126,7 @@ private extension CategoryInteractor {
         await presenter.presentFetchedData(
             CategoryFetchData(
                 navigationTitle: currentNavigationTitle(),
+                fromDate: fromDate,
                 loadingState: loadingState,
                 category: category,
                 expenseGroups: expenseGroups,

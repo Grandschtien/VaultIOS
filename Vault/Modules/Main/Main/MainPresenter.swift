@@ -50,6 +50,11 @@ final class MainPresenter: MainPresentationLogic {
                 textColor: Asset.Colors.textAndIconPrimary.color,
                 alignment: .left
             ),
+            periodButton: .init(
+                tapCommand: Command { [weak handler] in
+                    await handler?.handleTapPeriodButton()
+                }
+            ),
             blockingErrorViewModel: blockingErrorViewModel,
             isInteractionBlocked: blockingErrorViewModel != nil,
             summarySection: makeSummarySectionViewModel(from: data),

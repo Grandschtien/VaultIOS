@@ -10,6 +10,7 @@ protocol MainHandler: AnyObject, Sendable {
     func handleTapSeeAllCategories() async
     func handleTapSeeAllExpenses() async
     func handleTapCategory(id: String, name: String) async
+    func handleTapPeriodButton() async
     func handleTapRetryBlockingError() async
     func handleTapRetrySummary() async
     func handleTapRetryCategories() async
@@ -21,6 +22,7 @@ actor MainInteractor: MainBusinessLogic {
     private let router: MainRoutingLogic
     private let currencyRateProvider: MainCurrencyRateProviding
     private let summaryProvider: MainSummaryProviding
+    private let summaryPeriodProvider: MainSummaryPeriodServicing
     private let repository: MainFlowDomainRepositoryProtocol
     private let observer: MainFlowDomainObserverProtocol
 
@@ -39,6 +41,7 @@ actor MainInteractor: MainBusinessLogic {
         router: MainRoutingLogic,
         currencyRateProvider: MainCurrencyRateProviding,
         summaryProvider: MainSummaryProviding,
+        summaryPeriodProvider: MainSummaryPeriodServicing,
         repository: MainFlowDomainRepositoryProtocol,
         observer: MainFlowDomainObserverProtocol
     ) {
@@ -46,6 +49,7 @@ actor MainInteractor: MainBusinessLogic {
         self.router = router
         self.currencyRateProvider = currencyRateProvider
         self.summaryProvider = summaryProvider
+        self.summaryPeriodProvider = summaryPeriodProvider
         self.repository = repository
         self.observer = observer
     }
@@ -235,6 +239,17 @@ extension MainInteractor: MainHandler {
         await router.openCategory(id: id, name: name)
     }
 
+    func handleTapPeriodButton() async {
+        guard blockingErrorDescription == nil else {
+            return
+        }
+
+        await router.openPeriodPicker(
+            selectedFromDate: summaryPeriodProvider.currentMonthPeriod().from,
+            output: self
+        )
+    }
+
     func handleTapRetryBlockingError() async {
         guard blockingErrorDescription != nil else {
             return
@@ -281,5 +296,12 @@ extension MainInteractor: MainHandler {
 
         await presentFetchedData()
         await loadExpenses()
+    }
+}
+
+extension MainInteractor: CategoryPeriodPickerOutput {
+    func handleDidConfirmCategoryPeriod(fromDate: Date) async {
+        summaryPeriodProvider.updateFromDate(fromDate)
+        await loadMainData()
     }
 }

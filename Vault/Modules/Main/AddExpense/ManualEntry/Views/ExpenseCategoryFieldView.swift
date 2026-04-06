@@ -1,7 +1,7 @@
 import UIKit
 import SnapKit
 
-final class ExpenseCategoryFieldView: UIView, LayoutScaleProviding {
+final class ExpenseCategoryFieldView: UIView, LayoutScaleProviding, ImageProviding {
     private(set) var viewModel: ViewModel = .init()
 
     private let titleLabel = Label()
@@ -58,7 +58,7 @@ private extension ExpenseCategoryFieldView {
 
         iconBackgroundView.layer.cornerRadius = sizeS
 
-        chevronImageView.image = UIImage(systemName: "chevron.right")
+        chevronImageView.image = chevronRightImage
         chevronImageView.tintColor = Asset.Colors.textAndIconPlaceseholder.color
         chevronImageView.contentMode = .scaleAspectFit
     }

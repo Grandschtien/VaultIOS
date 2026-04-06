@@ -69,6 +69,8 @@
 "other" = "Other";
 "category_edit_button" = "Edit";
 "category_monthly_spent" = "Monthly Spent";
+"category_period_picker_apply" = "Apply";
+"category_period_picker_title" = "Select Date";
 "category_delete" = "Delete";
 "category_edit_title" = "Edit %@";
 "category_edit_subtitle" = "Category ID: %@";

@@ -233,7 +233,7 @@ extension MainFlowDomainRepositoryTests {
                 .init(
                     category: "cat-1",
                     from: period.from,
-                    to: period.to,
+                    to: nil,
                     cursor: nil,
                     limit: 20
                 )
@@ -246,7 +246,7 @@ extension MainFlowDomainRepositoryTests {
             requestedSummaryByCategory.first?.parameters,
             .init(
                 from: period.from,
-                to: period.to
+                to: nil
             )
         )
         XCTAssertEqual(observer.currentCategorySnapshot(id: "cat-1").category?.amount, 9)
@@ -298,12 +298,99 @@ extension MainFlowDomainRepositoryTests {
                 .init(
                     category: "cat-1",
                     from: period.from,
-                    to: period.to,
+                    to: nil,
                     cursor: "cursor-1",
                     limit: 20
                 )
             ]
         )
+    }
+}
+
+extension MainFlowDomainRepositoryTests {
+    func testRefreshCategoryFirstPageKeepsOverviewAmountsWhenDetailUsesCustomFromDate() async throws {
+        let store = MainFlowDomainStore()
+        let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        let customFromDate = Date(timeIntervalSince1970: 1_735_680_000)
+        let categoriesService = CategoriesServiceStub(
+            listResult: .success(
+                .init(
+                    categories: [
+                        .init(
+                            id: "cat-1",
+                            name: "Food",
+                            icon: "🍴",
+                            color: "light_orange",
+                            totalSpentUsd: 15
+                        )
+                    ]
+                )
+            ),
+            getResult: .success(
+                .init(
+                    category: .init(
+                        id: "cat-1",
+                        name: "Food",
+                        icon: "🍴",
+                        color: "light_orange",
+                        totalSpentUsd: 15
+                    )
+                )
+            )
+        )
+        let summaryService = SummaryServiceStub(
+            summaryResult: .success(
+                .init(
+                    category: nil,
+                    total: 7,
+                    currency: "USD",
+                    byCategory: [
+                        .init(category: "cat-1", total: 7)
+                    ]
+                )
+            ),
+            byCategoryResult: .success(
+                .init(
+                    category: "cat-1",
+                    total: 20,
+                    currency: "USD",
+                    byCategory: nil
+                )
+            )
+        )
+        let repository = MainFlowDomainRepository(
+            categoriesService: categoriesService,
+            expensesService: ExpensesServiceStub(
+                listResults: [
+                    .success(
+                        .init(
+                            expenses: [],
+                            nextCursor: nil,
+                            hasMore: false
+                        )
+                    )
+                ]
+            ),
+            summaryService: summaryService,
+            summaryPeriodProvider: MainSummaryPeriodProviderStub(
+                period: .init(
+                    from: Date(timeIntervalSince1970: 1_735_689_600),
+                    to: Date(timeIntervalSince1970: 1_735_700_000)
+                )
+            ),
+            currencyConversionService: CurrencyConverterStub(),
+            store: store,
+            observer: observer
+        )
+
+        try await repository.refreshCategories()
+        try await repository.refreshCategoryFirstPage(
+            id: "cat-1",
+            fromDate: customFromDate
+        )
+
+        XCTAssertEqual(observer.currentOverviewSnapshot().categories.first?.amount, 7)
+        XCTAssertEqual(observer.currentCategorySnapshot(id: "cat-1").category?.amount, 20)
     }
 }
 

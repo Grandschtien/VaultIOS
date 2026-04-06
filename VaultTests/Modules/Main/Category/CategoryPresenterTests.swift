@@ -29,9 +29,12 @@ final class CategoryPresenterTests: XCTestCase {
 
 extension CategoryPresenterTests {
     func testPresentFetchedDataLoadingBuildsSkeletonContent() {
+        let fromDate = Date(timeIntervalSince1970: 10)
+
         sut.presentFetchedData(
             .init(
                 navigationTitle: "Food",
+                fromDate: fromDate,
                 loadingState: .loading
             )
         )
@@ -55,10 +58,12 @@ extension CategoryPresenterTests {
 extension CategoryPresenterTests {
     func testPresentFetchedDataLoadedMapsSummaryAndDeleteState() {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let fromDate = Date(timeIntervalSince1970: 1_699_000_000)
 
         sut.presentFetchedData(
             .init(
                 navigationTitle: "Food",
+                fromDate: fromDate,
                 loadingState: .loaded,
                 category: .init(
                     id: "cat-1",
@@ -96,7 +101,9 @@ extension CategoryPresenterTests {
         }
 
         XCTAssertEqual(content.summary.iconText, "🍴")
+        XCTAssertEqual(content.summary.title.text, L10n.mainOverviewTotalSpending)
         XCTAssertEqual(content.summary.amount.text, "amount-321.0-USD")
+        XCTAssertEqual(content.summary.note.text, "from-1699000000")
         XCTAssertEqual(sections.count, 1)
         XCTAssertEqual(sections[0].title.text, "section-1700000000")
         XCTAssertEqual(sections[0].items.count, 1)

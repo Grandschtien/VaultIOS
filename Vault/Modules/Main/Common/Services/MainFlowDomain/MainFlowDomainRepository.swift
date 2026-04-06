@@ -4,7 +4,7 @@ protocol MainFlowDomainRepositoryProtocol: Sendable {
     func refreshMainFlow() async throws
     func refreshCategories() async throws
     func refreshRecentExpenses() async throws
-    func refreshCategoryFirstPage(id: String) async throws
+    func refreshCategoryFirstPage(id: String, fromDate: Date?) async throws
     func refreshExpensesFirstPage() async throws
     func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async
     func loadNextCategoryPage(id: String) async throws
@@ -14,6 +14,12 @@ protocol MainFlowDomainRepositoryProtocol: Sendable {
     func addCategory(_ request: CategoryCreateRequestDTO) async throws
     func deleteCategory(id: String) async throws
     func clearSession() async
+}
+
+extension MainFlowDomainRepositoryProtocol {
+    func refreshCategoryFirstPage(id: String) async throws {
+        try await refreshCategoryFirstPage(id: id, fromDate: nil)
+    }
 }
 
 final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @unchecked Sendable {
@@ -72,9 +78,19 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
     }
 
     func refreshRecentExpenses() async throws {
-        let response = try await expensesService.listExpenses(
-            parameters: .init(limit: Constants.overviewExpensesLimit)
-        )
+        let parameters: ExpensesListQueryParameters
+        if let summaryPeriodProvider {
+            let period = summaryPeriodProvider.currentMonthPeriod()
+            parameters = .init(
+                from: period.from,
+                to: period.to,
+                limit: Constants.overviewExpensesLimit
+            )
+        } else {
+            parameters = .init(limit: Constants.overviewExpensesLimit)
+        }
+
+        let response = try await expensesService.listExpenses(parameters: parameters)
         let expenses = response.expenses.map(makeExpenseModel)
 
         store.update { state in
@@ -85,31 +101,50 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         observer.publishAll(from: store)
     }
 
-    func refreshCategoryFirstPage(id: String) async throws {
+    func refreshCategoryFirstPage(id: String, fromDate: Date?) async throws {
+        let resolvedFromDate = resolvedCategoryFromDate(
+            for: id,
+            overridingFromDate: fromDate
+        )
         async let categoryTask = categoriesService.getCategory(id: id)
         async let expensesTask = expensesService.listExpenses(
             parameters: makeCategoryExpensesQueryParameters(
                 categoryID: id,
+                fromDate: resolvedFromDate,
                 cursor: nil,
                 limit: Constants.listPageLimit
             )
         )
-        async let monthlyCategoryTotalTask = fetchMonthlyCategoryTotal(for: id)
+        async let categoryTotalTask = fetchCategoryTotal(
+            for: id,
+            fromDate: resolvedFromDate
+        )
 
         let categoryResponse = try await categoryTask
         let expensesResponse = try await expensesTask
-        let monthlyCategoryTotal = await monthlyCategoryTotalTask
+        let categoryTotal = await categoryTotalTask
 
-        let category = makeCategoryModel(
+        let category = makeCategoryDetailModel(
             from: categoryResponse.category,
-            monthlyTotals: monthlyCategoryTotal.map { [id: $0] }
+            total: categoryTotal
         )
         let expenses = expensesResponse.expenses.map(makeExpenseModel)
 
         store.update { state in
-            state.categoriesByID[category.id] = category
-            if !state.categoryOrder.contains(category.id) {
-                state.categoryOrder.append(category.id)
+            if let existingCategory = state.categoriesByID[category.id] {
+                state.categoriesByID[category.id] = MainCategoryCardModel(
+                    id: existingCategory.id,
+                    name: localizedCategoryName(from: categoryResponse.category.name),
+                    icon: categoryResponse.category.icon,
+                    color: categoryResponse.category.color,
+                    amount: existingCategory.amount,
+                    currency: existingCategory.currency
+                )
+            }
+
+            state.categoryDetailsByID[category.id] = category
+            if let resolvedFromDate {
+                state.categoryFromDates[id] = resolvedFromDate
             }
             merge(expenses: expenses, into: &state)
             state.categoryExpenseIDs[id] = expenses.map(\.id)
@@ -191,6 +226,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         let response = try await expensesService.listExpenses(
             parameters: makeCategoryExpensesQueryParameters(
                 categoryID: id,
+                fromDate: resolvedCategoryFromDate(for: id),
                 cursor: pagination.nextCursor,
                 limit: Constants.listPageLimit
             )
@@ -349,9 +385,11 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
 
         store.update { state in
             state.categoriesByID[id] = nil
+            state.categoryDetailsByID[id] = nil
             state.categoryOrder.removeAll { $0 == id }
             state.categoryExpenseIDs[id] = nil
             state.categoryPagination[id] = nil
+            state.categoryFromDates[id] = nil
             pruneUnreferencedExpenses(in: &state)
         }
         observer.publishAll(from: store)
@@ -425,7 +463,7 @@ private extension MainFlowDomainRepository {
 
         for categoryID in categoryIDs where state.categoryPagination[categoryID]?.isLoaded == true {
             let insertedIDs = expenses
-                .filter { $0.category == categoryID }
+                .filter { shouldIncludeInCategoryDetails($0, categoryID: categoryID, state: state) }
                 .map(\.id)
 
             state.categoryExpenseIDs[categoryID] = uniqueExpenseIDs(
@@ -473,6 +511,12 @@ private extension MainFlowDomainRepository {
 
         groupedExpenses.forEach { categoryID, expenses in
             guard var category = state.categoriesByID[categoryID] else {
+                applyCategoryDetailAmountDelta(
+                    for: expenses,
+                    categoryID: categoryID,
+                    multiplier: multiplier,
+                    state: &state
+                )
                 return
             }
 
@@ -489,7 +533,46 @@ private extension MainFlowDomainRepository {
                 currency: category.currency
             )
             state.categoriesByID[categoryID] = category
+
+            applyCategoryDetailAmountDelta(
+                for: expenses,
+                categoryID: categoryID,
+                multiplier: multiplier,
+                state: &state
+            )
         }
+    }
+
+    func applyCategoryDetailAmountDelta(
+        for expenses: [MainExpenseModel],
+        categoryID: String,
+        multiplier: Double,
+        state: inout MainFlowDomainState
+    ) {
+        guard var category = state.categoryDetailsByID[categoryID] else {
+            return
+        }
+
+        let filteredExpenses = expenses.filter {
+            shouldIncludeInCategoryDetails($0, categoryID: categoryID, state: state)
+        }
+        let delta = filteredExpenses.reduce(.zero) { partialResult, expense in
+            partialResult + expense.amount
+        } * multiplier
+
+        guard delta != .zero else {
+            return
+        }
+
+        category = MainCategoryCardModel(
+            id: category.id,
+            name: category.name,
+            icon: category.icon,
+            color: category.color,
+            amount: max(.zero, category.amount + delta),
+            currency: category.currency
+        )
+        state.categoryDetailsByID[categoryID] = category
     }
 
     func uniqueExpenseIDs(
@@ -642,6 +725,22 @@ private extension MainFlowDomainRepository {
         )
     }
 
+    func makeCategoryDetailModel(
+        from category: CategoryDTO,
+        total: Double?
+    ) -> MainCategoryCardModel {
+        let usdAmount = total ?? category.totalSpentUsd ?? .zero
+        let convertedAmount = currencyConversionService.convertUsdAmount(usdAmount)
+        return MainCategoryCardModel(
+            id: category.id,
+            name: localizedCategoryName(from: category.name),
+            icon: category.icon,
+            color: category.color,
+            amount: convertedAmount.amount,
+            currency: convertedAmount.currency
+        )
+    }
+
     func makeExpenseModel(from expense: ExpenseDTO) -> MainExpenseModel {
         let convertedAmount = currencyConversionService.convertExpense(
             amount: expense.amount,
@@ -714,20 +813,18 @@ private extension MainFlowDomainRepository {
         }
     }
 
-    func fetchMonthlyCategoryTotal(for categoryID: String) async -> Double? {
-        guard let summaryService, let summaryPeriodProvider else {
+    func fetchCategoryTotal(
+        for categoryID: String,
+        fromDate: Date?
+    ) async -> Double? {
+        guard let summaryService else {
             return nil
         }
-
-        let period = summaryPeriodProvider.currentMonthPeriod()
 
         do {
             let response = try await summaryService.getSummaryByCategory(
                 id: categoryID,
-                parameters: .init(
-                    from: period.from,
-                    to: period.to
-                )
+                parameters: .init(from: fromDate)
             )
 
             return response.total
@@ -738,24 +835,51 @@ private extension MainFlowDomainRepository {
 
     func makeCategoryExpensesQueryParameters(
         categoryID: String,
+        fromDate: Date?,
         cursor: String?,
         limit: Int
     ) -> ExpensesListQueryParameters {
-        guard let summaryPeriodProvider else {
-            return .init(
-                category: categoryID,
-                cursor: cursor,
-                limit: limit
-            )
-        }
-
-        let period = summaryPeriodProvider.currentMonthPeriod()
         return .init(
             category: categoryID,
-            from: period.from,
-            to: period.to,
+            from: fromDate,
             cursor: cursor,
             limit: limit
         )
+    }
+
+    func resolvedCategoryFromDate(
+        for categoryID: String,
+        overridingFromDate: Date? = nil
+    ) -> Date? {
+        if let overridingFromDate {
+            return normalizedCategoryFromDate(overridingFromDate)
+        }
+
+        let state = store.snapshot()
+        if let storedFromDate = state.categoryFromDates[categoryID] {
+            return storedFromDate
+        }
+
+        return summaryPeriodProvider.map { normalizedCategoryFromDate($0.currentMonthPeriod().from) }
+    }
+
+    func normalizedCategoryFromDate(_ date: Date) -> Date {
+        Calendar.current.startOfDay(for: date)
+    }
+
+    func shouldIncludeInCategoryDetails(
+        _ expense: MainExpenseModel,
+        categoryID: String,
+        state: MainFlowDomainState
+    ) -> Bool {
+        guard expense.category == categoryID else {
+            return false
+        }
+
+        guard let fromDate = state.categoryFromDates[categoryID] else {
+            return true
+        }
+
+        return expense.timeOfAdd >= fromDate
     }
 }

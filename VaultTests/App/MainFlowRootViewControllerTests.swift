@@ -11,7 +11,8 @@ final class MainFlowRootViewControllerTests: XCTestCase {
         let context = MainFlowContext(
             store: MainFlowDomainStore(),
             observer: MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping()),
-            repository: MainFlowRootRepositoryStub()
+            repository: MainFlowRootRepositoryStub(),
+            summaryPeriodProvider: MainSummaryPeriodProviderStub()
         )
         let sut = MainFlowRootViewController(
             screenNavigator: navigator,
@@ -42,7 +43,8 @@ final class MainFlowRootViewControllerTests: XCTestCase {
         let context = MainFlowContext(
             store: MainFlowDomainStore(),
             observer: MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping()),
-            repository: MainFlowRootRepositoryStub()
+            repository: MainFlowRootRepositoryStub(),
+            summaryPeriodProvider: MainSummaryPeriodProviderStub()
         )
         let sut = MainFlowRootViewController(
             screenNavigator: navigator,
@@ -77,7 +79,8 @@ final class MainFlowRootViewControllerTests: XCTestCase {
         let context = MainFlowContext(
             store: MainFlowDomainStore(),
             observer: MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping()),
-            repository: repository
+            repository: repository,
+            summaryPeriodProvider: MainSummaryPeriodProviderStub()
         )
         let sut = MainFlowRootViewController(
             screenNavigator: navigator,
@@ -121,7 +124,7 @@ private final class MainFlowRootRepositoryStub: MainFlowDomainRepositoryProtocol
     func refreshMainFlow() async throws {}
     func refreshCategories() async throws {}
     func refreshRecentExpenses() async throws {}
-    func refreshCategoryFirstPage(id: String) async throws {}
+    func refreshCategoryFirstPage(id: String, fromDate: Date?) async throws {}
     func refreshExpensesFirstPage() async throws {}
     func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {
         onHandleCurrencyDidChange?(payload)
@@ -133,4 +136,15 @@ private final class MainFlowRootRepositoryStub: MainFlowDomainRepositoryProtocol
     func addCategory(_ request: CategoryCreateRequestDTO) async throws {}
     func deleteCategory(id: String) async throws {}
     func clearSession() async {}
+}
+
+private final class MainSummaryPeriodProviderStub: MainSummaryPeriodServicing, @unchecked Sendable {
+    func currentMonthPeriod() -> MainSummaryPeriod {
+        .init(
+            from: Date(timeIntervalSince1970: 1),
+            to: Date(timeIntervalSince1970: 2)
+        )
+    }
+
+    func updateFromDate(_ fromDate: Date) {}
 }

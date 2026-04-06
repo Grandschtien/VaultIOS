@@ -65,4 +65,44 @@ extension MainSummaryPeriodProviderTests {
         )
         XCTAssertEqual(period.to, now)
     }
+
+    func testCurrentMonthPeriodUsesUpdatedFromDateWhenUserSelectsCustomPeriod() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: .zero) ?? .current
+
+        let now = calendar.date(from: DateComponents(
+            timeZone: calendar.timeZone,
+            year: 2025,
+            month: 4,
+            day: 11,
+            hour: 8,
+            minute: 30
+        )) ?? .distantPast
+        let selectedDate = calendar.date(from: DateComponents(
+            timeZone: calendar.timeZone,
+            year: 2025,
+            month: 3,
+            day: 29,
+            hour: 21,
+            minute: 15
+        )) ?? .distantPast
+        let sut = MainSummaryPeriodProvider(
+            calendar: calendar,
+            now: { now }
+        )
+
+        sut.updateFromDate(selectedDate)
+        let period = sut.currentMonthPeriod()
+
+        XCTAssertEqual(
+            period.from,
+            calendar.date(from: DateComponents(
+                timeZone: calendar.timeZone,
+                year: 2025,
+                month: 3,
+                day: 29
+            ))
+        )
+        XCTAssertEqual(period.to, now)
+    }
 }

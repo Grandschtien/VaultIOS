@@ -226,6 +226,34 @@ extension MainInteractorTests {
         XCTAssertEqual(router.openCategoryCalls.first?.id, "cat-1")
         XCTAssertEqual(router.openCategoryCalls.first?.name, "Food")
     }
+
+    func testHandleTapPeriodButtonOpensPickerFromCurrentPeriodStart() async {
+        let router = MainRouterSpy()
+        let summaryPeriodProvider = MainSummaryPeriodServiceStub(
+            period: .init(
+                from: Date(timeIntervalSince1970: 10),
+                to: Date(timeIntervalSince1970: 20)
+            )
+        )
+        let repository = MainRepositoryStub(
+            categoriesResults: [.success([])],
+            recentExpensesResults: [.success([])]
+        )
+        let sut = makeSut(
+            presenter: MainPresenterSpy(),
+            router: router,
+            summaryProvider: MainSummaryProviderStub(
+                result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
+            ),
+            summaryPeriodProvider: summaryPeriodProvider,
+            repository: repository,
+            observer: repository.observer
+        )
+
+        await sut.handleTapPeriodButton()
+
+        XCTAssertEqual(router.openPeriodPickerCalls, [Date(timeIntervalSince1970: 10)])
+    }
 }
 
 private extension MainInteractorTests {
@@ -245,6 +273,7 @@ private extension MainInteractorTests {
         router: MainRoutingLogic,
         currencyRateProvider: MainCurrencyRateProviding = MainCurrencyRateProviderStub(result: .success(())),
         summaryProvider: MainSummaryProviding,
+        summaryPeriodProvider: MainSummaryPeriodServicing = MainSummaryPeriodServiceStub(),
         repository: MainFlowDomainRepositoryProtocol,
         observer: MainFlowDomainObserverProtocol
     ) -> MainInteractor {
@@ -253,6 +282,7 @@ private extension MainInteractorTests {
             router: router,
             currencyRateProvider: currencyRateProvider,
             summaryProvider: summaryProvider,
+            summaryPeriodProvider: summaryPeriodProvider,
             repository: repository,
             observer: observer
         )
@@ -324,6 +354,7 @@ private final class MainRouterSpy: MainRoutingLogic, @unchecked Sendable {
     private(set) var openCategoriesCount: Int = .zero
     private(set) var openExpensesCount: Int = .zero
     private(set) var openCategoryCalls: [(id: String, name: String)] = []
+    private(set) var openPeriodPickerCalls: [Date] = []
 
     func openAllCategories() {
         openCategoriesCount += 1
@@ -335,6 +366,13 @@ private final class MainRouterSpy: MainRoutingLogic, @unchecked Sendable {
 
     func openCategory(id: String, name: String) {
         openCategoryCalls.append((id, name))
+    }
+
+    func openPeriodPicker(
+        selectedFromDate: Date,
+        output: CategoryPeriodPickerOutput
+    ) {
+        openPeriodPickerCalls.append(selectedFromDate)
     }
 }
 
@@ -365,6 +403,27 @@ private actor MainCurrencyRateProviderStub: MainCurrencyRateProviding {
         let index = min(syncCallsCount, max(results.count - 1, .zero))
         syncCallsCount += 1
         _ = try results[index].get()
+    }
+}
+
+private final class MainSummaryPeriodServiceStub: MainSummaryPeriodServicing, @unchecked Sendable {
+    private var period: MainSummaryPeriod
+
+    init(
+        period: MainSummaryPeriod = .init(
+            from: Date(timeIntervalSince1970: 1),
+            to: Date(timeIntervalSince1970: 2)
+        )
+    ) {
+        self.period = period
+    }
+
+    func currentMonthPeriod() -> MainSummaryPeriod {
+        period
+    }
+
+    func updateFromDate(_ fromDate: Date) {
+        period = .init(from: fromDate, to: period.to)
     }
 }
 
@@ -417,7 +476,7 @@ private actor MainRepositoryStub: MainFlowDomainRepositoryProtocol {
         observer.publishAll(from: store)
     }
 
-    func refreshCategoryFirstPage(id: String) async throws {}
+    func refreshCategoryFirstPage(id: String, fromDate: Date?) async throws {}
     func refreshExpensesFirstPage() async throws {}
     func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {}
     func loadNextCategoryPage(id: String) async throws {}

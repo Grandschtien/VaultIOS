@@ -4,6 +4,7 @@ import XCTest
 @MainActor
 final class CategoryInteractorTests: XCTestCase {
     func testFetchDataBuildsLoadedState() async {
+        let initialFromDate = Date(timeIntervalSince1970: 10)
         let presenter = CategoryPresenterSpy()
         let repository = CategoryRepositoryStub(
             refreshResults: [
@@ -22,7 +23,8 @@ final class CategoryInteractorTests: XCTestCase {
             presenter: presenter,
             router: CategoryRouterSpy(),
             repository: repository,
-            observer: repository.observer
+            observer: repository.observer,
+            initialFromDate: initialFromDate
         )
 
         await sut.fetchData()
@@ -36,12 +38,16 @@ final class CategoryInteractorTests: XCTestCase {
         assertStatus(first.loadingState, is: .loading)
         assertStatus(last.loadingState, is: .loaded)
         XCTAssertEqual(last.navigationTitle, "Food")
+        XCTAssertEqual(last.fromDate, initialFromDate)
         XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 1)
+        let requestedFromDates = await repository.requestedRefreshFromDates()
+        XCTAssertEqual(requestedFromDates, [initialFromDate])
     }
 }
 
 extension CategoryInteractorTests {
     func testHandleLoadNextPageAppendsExpenses() async {
+        let initialFromDate = Date(timeIntervalSince1970: 10)
         let presenter = CategoryPresenterSpy()
         let repository = CategoryRepositoryStub(
             refreshResults: [
@@ -68,7 +74,8 @@ extension CategoryInteractorTests {
             presenter: presenter,
             router: CategoryRouterSpy(),
             repository: repository,
-            observer: repository.observer
+            observer: repository.observer,
+            initialFromDate: initialFromDate
         )
 
         await sut.fetchData()
@@ -87,6 +94,7 @@ extension CategoryInteractorTests {
 
 extension CategoryInteractorTests {
     func testHandleDeleteExpenseFailureRestoresStateAndShowsError() async {
+        let initialFromDate = Date(timeIntervalSince1970: 10)
         let presenter = CategoryPresenterSpy()
         let router = CategoryRouterSpy()
         let repository = CategoryRepositoryStub(
@@ -106,7 +114,8 @@ extension CategoryInteractorTests {
             presenter: presenter,
             router: router,
             repository: repository,
-            observer: repository.observer
+            observer: repository.observer,
+            initialFromDate: initialFromDate
         )
 
         await sut.fetchData()
@@ -139,11 +148,13 @@ private extension CategoryInteractorTests {
         presenter: CategoryPresentationLogic,
         router: CategoryRoutingLogic,
         repository: MainFlowDomainRepositoryProtocol,
-        observer: MainFlowDomainObserverProtocol
+        observer: MainFlowDomainObserverProtocol,
+        initialFromDate: Date = Date(timeIntervalSince1970: 1)
     ) -> CategoryInteractor {
         CategoryInteractor(
             categoryID: "cat-1",
             categoryName: "Food",
+            initialFromDate: initialFromDate,
             presenter: presenter,
             router: router,
             repository: repository,
@@ -233,6 +244,7 @@ private actor CategoryRepositoryStub: MainFlowDomainRepositoryProtocol {
     private let refreshResults: [Result<CategoryPayload, Error>]
     private let nextPageResults: [Result<CategoryPayload, Error>]
     private let deleteResults: [Result<Void, Error>]
+    private var refreshFromDates: [Date?] = []
     private var refreshCallCount: Int = .zero
     private var nextPageCallCount: Int = .zero
     private var deleteCallCount: Int = .zero
@@ -254,10 +266,11 @@ private actor CategoryRepositoryStub: MainFlowDomainRepositoryProtocol {
     func refreshCategories() async throws {}
     func refreshRecentExpenses() async throws {}
 
-    func refreshCategoryFirstPage(id: String) async throws {
+    func refreshCategoryFirstPage(id: String, fromDate: Date?) async throws {
         let index = min(refreshCallCount, max(refreshResults.count - 1, .zero))
         let payload = try refreshResults[index].get()
         refreshCallCount += 1
+        refreshFromDates.append(fromDate)
         apply(payload: payload, replaceExpenses: true)
     }
 
@@ -304,9 +317,13 @@ private actor CategoryRepositoryStub: MainFlowDomainRepositoryProtocol {
     func deleteCategory(id: String) async throws {}
     func clearSession() async {}
 
+    func requestedRefreshFromDates() -> [Date?] {
+        refreshFromDates
+    }
+
     func apply(payload: CategoryPayload, replaceExpenses: Bool) {
         store.update { state in
-            state.categoriesByID[payload.category.id] = payload.category
+            state.categoryDetailsByID[payload.category.id] = payload.category
             if !state.categoryOrder.contains(payload.category.id) {
                 state.categoryOrder.append(payload.category.id)
             }

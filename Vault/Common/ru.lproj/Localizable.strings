@@ -68,6 +68,8 @@
 "other" = "Другое";
 "category_edit_button" = "Изменить";
 "category_monthly_spent" = "Потрачено за месяц";
+"category_period_picker_apply" = "Применить";
+"category_period_picker_title" = "Выберите дату";
 "category_delete" = "Удалить";
 "category_edit_title" = "Изменить %@";
 "category_edit_subtitle" = "ID категории: %@";

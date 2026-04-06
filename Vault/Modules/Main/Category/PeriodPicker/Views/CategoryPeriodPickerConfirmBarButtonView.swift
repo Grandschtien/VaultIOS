@@ -1,12 +1,12 @@
 import UIKit
 import SnapKit
 
-final class ProfileCurrencyCloseBarButtonView: UIView, LayoutScaleProviding, ImageProviding {
+final class CategoryPeriodPickerConfirmBarButtonView: UIView {
     private let button = UIButton(type: .system)
     private var tapCommand: Command = .nope
 
     override var intrinsicContentSize: CGSize {
-        CGSize(width: sizeM, height: sizeM)
+        button.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
     }
 
     override init(frame: CGRect) {
@@ -20,21 +20,24 @@ final class ProfileCurrencyCloseBarButtonView: UIView, LayoutScaleProviding, Ima
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(with viewModel: ProfileCurrencyViewModel.CloseButtonViewModel) {
+    func configure(with viewModel: CategoryPeriodPickerViewModel.ConfirmButtonViewModel) {
         tapCommand = viewModel.tapCommand
+        button.setTitle(viewModel.title, for: .normal)
+        invalidateIntrinsicContentSize()
     }
 }
 
-private extension ProfileCurrencyCloseBarButtonView {
+private extension CategoryPeriodPickerConfirmBarButtonView {
     func setupViews() {
         backgroundColor = .clear
-        button.tintColor = Asset.Colors.textAndIconPrimary.color
-        button.setImage(xmarkImage, for: .normal)
+        button.setTitleColor(Asset.Colors.interactiveElemetsPrimary.color, for: .normal)
+        button.titleLabel?.font = Typography.typographyMedium16
         button.addTarget(self, action: #selector(handleTap), for: .touchUpInside)
     }
 
     func setupLayout() {
         addSubview(button)
+
         button.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }

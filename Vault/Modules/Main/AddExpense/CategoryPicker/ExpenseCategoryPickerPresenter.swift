@@ -6,7 +6,7 @@ protocol ExpenseCategoryPickerPresentationLogic: Sendable {
     func presentFetchedData(_ data: ExpenseCategoryPickerFetchData)
 }
 
-final class ExpenseCategoryPickerPresenter: ExpenseCategoryPickerPresentationLogic {
+final class ExpenseCategoryPickerPresenter: ExpenseCategoryPickerPresentationLogic, ImageProviding {
     private enum Constants {
         static let loadingRowsCount = 6
     }
@@ -52,7 +52,7 @@ final class ExpenseCategoryPickerPresenter: ExpenseCategoryPickerPresentationLog
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapAdd()
                 },
-                leftIcon: UIImage(systemName: "plus")
+                leftIcon: plusSystemImage
             )
         )
     }

@@ -156,7 +156,7 @@ private actor CategoriesListRepositoryStub: MainFlowDomainRepositoryProtocol {
     }
 
     func refreshRecentExpenses() async throws {}
-    func refreshCategoryFirstPage(id: String) async throws {}
+    func refreshCategoryFirstPage(id: String, fromDate: Date?) async throws {}
     func refreshExpensesFirstPage() async throws {}
     func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {}
     func loadNextCategoryPage(id: String) async throws {}

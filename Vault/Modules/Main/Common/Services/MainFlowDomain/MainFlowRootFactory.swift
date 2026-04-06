@@ -30,7 +30,8 @@ final class MainFlowRootFactory: Screen {
         let context = MainFlowContext(
             store: store,
             observer: observer,
-            repository: repository
+            repository: repository,
+            summaryPeriodProvider: summaryPeriodProvider
         )
 
         return MainFlowRootViewController(

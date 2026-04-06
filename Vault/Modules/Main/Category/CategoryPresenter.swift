@@ -105,7 +105,7 @@ private extension CategoryPresenter {
             cardBorderColor: summaryColor.withAlphaComponent(0.8),
             iconBackgroundColor: colorProvider.accentColor(for: category?.color ?? ""),
             title: .init(
-                text: L10n.categoryMonthlySpent,
+                text: L10n.mainOverviewTotalSpending,
                 font: Typography.typographyMedium12,
                 textColor: Asset.Colors.textAndIconSecondary.color,
                 alignment: .left
@@ -117,7 +117,7 @@ private extension CategoryPresenter {
                 alignment: .left
             ),
             note: .init(
-                text: "",
+                text: formatter.formatSummaryPeriod(data.fromDate),
                 font: Typography.typographyMedium12,
                 textColor: Asset.Colors.textAndIconSecondary.color,
                 alignment: .left

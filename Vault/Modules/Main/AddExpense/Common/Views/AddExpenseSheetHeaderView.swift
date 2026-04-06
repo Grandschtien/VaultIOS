@@ -1,7 +1,7 @@
 import UIKit
 import SnapKit
 
-final class AddExpenseSheetHeaderView: UIView, LayoutScaleProviding {
+final class AddExpenseSheetHeaderView: UIView, LayoutScaleProviding, ImageProviding {
     private(set) var viewModel: ViewModel = .init()
 
     private let titleLabel = Label()
@@ -31,7 +31,7 @@ private extension AddExpenseSheetHeaderView {
         backgroundColor = .clear
 
         closeButton.tintColor = Asset.Colors.textAndIconSecondary.color
-        closeButton.setImage(UIImage(systemName: "xmark"), for: .normal)
+        closeButton.setImage(xmarkImage, for: .normal)
         closeButton.addTarget(self, action: #selector(handleTapClose), for: .touchUpInside)
     }
 

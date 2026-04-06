@@ -68,6 +68,8 @@
 "other" = "Басқа";
 "category_edit_button" = "Өңдеу";
 "category_monthly_spent" = "Айлық шығын";
+"category_period_picker_apply" = "Қолдану";
+"category_period_picker_title" = "Күнді таңдаңыз";
 "category_delete" = "Жою";
 "category_edit_title" = "%@ өңдеу";
 "category_edit_subtitle" = "Санат ID: %@";

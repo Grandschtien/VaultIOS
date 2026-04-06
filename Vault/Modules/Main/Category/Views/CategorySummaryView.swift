@@ -10,6 +10,7 @@ final class CategorySummaryView: UIView, LayoutScaleProviding {
     private let iconLabel = Label()
     private let titleLabel = Label()
     private let amountLabel = Label()
+    private let noteLabel = Label()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -42,6 +43,7 @@ final class CategorySummaryView: UIView, LayoutScaleProviding {
         cardView.layer.borderColor = viewModel.cardBorderColor.cgColor
         titleLabel.apply(viewModel.title)
         amountLabel.apply(viewModel.amount)
+        noteLabel.apply(viewModel.note)
         iconBackgroundView.backgroundColor = viewModel.iconBackgroundColor
     }
 }
@@ -61,7 +63,7 @@ private extension CategorySummaryView {
 
     func setupLayout() {
         addSubview(cardView)
-        [iconBackgroundView, titleLabel, amountLabel].forEach {
+        [iconBackgroundView, titleLabel, amountLabel, noteLabel].forEach {
             cardView.addSubview($0)
         }
         iconBackgroundView.addSubview(iconLabel)
@@ -90,6 +92,12 @@ private extension CategorySummaryView {
             make.leading.equalTo(titleLabel)
             make.trailing.equalToSuperview().inset(spaceS)
             make.top.equalTo(titleLabel.snp.bottom).offset(spaceXXS)
+        }
+
+        noteLabel.snp.makeConstraints { make in
+            make.leading.equalTo(titleLabel)
+            make.trailing.equalToSuperview().inset(spaceS)
+            make.top.equalTo(amountLabel.snp.bottom).offset(spaceXXS)
             make.bottom.equalToSuperview().inset(spaceS)
         }
     }
@@ -98,6 +106,7 @@ private extension CategorySummaryView {
         iconLabel.isHidden = true
         titleLabel.isHidden = true
         amountLabel.isHidden = true
+        noteLabel.isHidden = true
 
         cardView.showAnimatedGradientSkeleton()
     }
@@ -106,6 +115,7 @@ private extension CategorySummaryView {
         iconLabel.isHidden = false
         titleLabel.isHidden = false
         amountLabel.isHidden = false
+        noteLabel.isHidden = false
 
         cardView.hideSkeleton()
     }
