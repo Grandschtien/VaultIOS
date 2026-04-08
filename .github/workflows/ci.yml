@@ -2,26 +2,48 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: macos-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Build
+      - name: Resolve Package Dependencies
         run: |
           xcodebuild \
-            -scheme YourScheme \
+            -project Vault.xcodeproj \
+            -resolvePackageDependencies
+
+      - name: Build For Testing
+        run: |
+          xcodebuild \
+            -project Vault.xcodeproj \
+            -scheme Vault \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
-            build
+            -derivedDataPath /tmp/VaultCI \
+            CODE_SIGNING_ALLOWED=NO \
+            build-for-testing
 
       - name: Test
         run: |
           xcodebuild \
-            -scheme YourScheme \
+            -project Vault.xcodeproj \
+            -scheme Vault \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
-            test
+            -derivedDataPath /tmp/VaultCI \
+            test-without-building
