@@ -1,0 +1,21 @@
+name: PR Size
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  pr-size:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref }}
+
+      - name: Check PR size
+        run: ./scripts/check-pr-size.sh origin/${{ github.base_ref }} HEAD

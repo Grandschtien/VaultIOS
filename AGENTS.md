@@ -5,6 +5,29 @@
 - Platform: iPhone-first iOS application
 - Goal: users add expenses in free-form text, the LLM parses them into structured entries, and the user confirms or corrects the result before saving
 
+## Task execution rules
+- Before any implementation, create an explicit plan.
+- Do not start coding until the plan is written.
+- Implement only one task at a time.
+- Keep each PR under 500 changed lines total (added + deleted).
+- Prefer the smallest viable change.
+- Do not refactor unrelated code.
+- Do not rename files or symbols unless the task explicitly requires it.
+- If the change would exceed 500 lines, split the work into smaller subtasks first.
+
+## Output format for every task
+1. Plan
+2. Risks
+3. Files to change
+4. Implementation
+5. Verification steps
+
+## Review guidelines
+- Check architecture consistency
+- Check edge cases
+- Check regressions
+- Check that no unrelated files were changed
+
 ## Technical Rules
 - Architecture: `Clean architecture`
   - Presenter - is used for preapre data to pass it into view. It MUST prepare viewModel and assign it into its internal viewModel property. No viewModel setup outside of presenter.
