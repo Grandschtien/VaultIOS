@@ -2,6 +2,19 @@
 
 import Foundation
 
+struct CategoriesQueryParameters: Equatable, Sendable {
+    let from: Date?
+    let to: Date?
+
+    init(
+        from: Date? = nil,
+        to: Date? = nil
+    ) {
+        self.from = from
+        self.to = to
+    }
+}
+
 struct CategoryCreateRequestDTO: Codable, Equatable, Sendable {
     let name: String
     let icon: String

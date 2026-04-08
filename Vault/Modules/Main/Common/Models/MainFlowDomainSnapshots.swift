@@ -34,6 +34,7 @@ struct MainFlowCategoriesSnapshot: Equatable, Sendable {
 
 struct MainFlowCategorySnapshot: Equatable, Sendable {
     let categoryID: String
+    let period: MainSummaryPeriod?
     let category: MainCategoryCardModel?
     let expenseGroups: [MainExpenseGroupModel]
     let deletingExpenseIDs: Set<String>
@@ -41,12 +42,14 @@ struct MainFlowCategorySnapshot: Equatable, Sendable {
 
     init(
         categoryID: String,
+        period: MainSummaryPeriod? = nil,
         category: MainCategoryCardModel? = nil,
         expenseGroups: [MainExpenseGroupModel] = [],
         deletingExpenseIDs: Set<String> = [],
         hasMore: Bool = false
     ) {
         self.categoryID = categoryID
+        self.period = period
         self.category = category
         self.expenseGroups = expenseGroups
         self.deletingExpenseIDs = deletingExpenseIDs
@@ -105,7 +108,7 @@ struct MainFlowDomainState: Equatable, Sendable {
     var expensesListPagination: MainFlowPaginationState
     var categoryExpenseIDs: [String: [String]]
     var categoryPagination: [String: MainFlowPaginationState]
-    var categoryFromDates: [String: Date]
+    var categoryPeriods: [String: MainSummaryPeriod]
     var pendingDeletedExpenseIDs: Set<String>
 
     init(
@@ -119,7 +122,7 @@ struct MainFlowDomainState: Equatable, Sendable {
         expensesListPagination: MainFlowPaginationState = .init(),
         categoryExpenseIDs: [String: [String]] = [:],
         categoryPagination: [String: MainFlowPaginationState] = [:],
-        categoryFromDates: [String: Date] = [:],
+        categoryPeriods: [String: MainSummaryPeriod] = [:],
         pendingDeletedExpenseIDs: Set<String> = []
     ) {
         self.preferredCurrencyCode = preferredCurrencyCode
@@ -132,7 +135,7 @@ struct MainFlowDomainState: Equatable, Sendable {
         self.expensesListPagination = expensesListPagination
         self.categoryExpenseIDs = categoryExpenseIDs
         self.categoryPagination = categoryPagination
-        self.categoryFromDates = categoryFromDates
+        self.categoryPeriods = categoryPeriods
         self.pendingDeletedExpenseIDs = pendingDeletedExpenseIDs
     }
 }

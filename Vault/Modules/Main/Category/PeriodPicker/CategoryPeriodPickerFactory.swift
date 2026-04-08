@@ -3,13 +3,16 @@ import Nivelir
 
 struct CategoryPeriodPickerFactory: Screen {
     private let selectedFromDate: Date
+    private let selectedToDate: Date
     private let output: CategoryPeriodPickerOutput
 
     init(
         selectedFromDate: Date,
+        selectedToDate: Date,
         output: CategoryPeriodPickerOutput
     ) {
         self.selectedFromDate = selectedFromDate
+        self.selectedToDate = selectedToDate
         self.output = output
     }
 
@@ -21,7 +24,8 @@ struct CategoryPeriodPickerFactory: Screen {
             presenter: presenter,
             router: router,
             output: output,
-            selectedDate: selectedFromDate
+            fromDate: selectedFromDate,
+            toDate: selectedToDate
         )
 
         let viewModelStore = ViewModelStore(

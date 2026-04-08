@@ -244,8 +244,10 @@ extension MainInteractor: MainHandler {
             return
         }
 
+        let period = summaryPeriodProvider.currentMonthPeriod()
         await router.openPeriodPicker(
-            selectedFromDate: summaryPeriodProvider.currentMonthPeriod().from,
+            selectedFromDate: period.from,
+            selectedToDate: period.to,
             output: self
         )
     }
@@ -300,8 +302,11 @@ extension MainInteractor: MainHandler {
 }
 
 extension MainInteractor: CategoryPeriodPickerOutput {
-    func handleDidConfirmCategoryPeriod(fromDate: Date) async {
-        summaryPeriodProvider.updateFromDate(fromDate)
+    func handleDidConfirmCategoryPeriod(fromDate: Date, to date: Date) async {
+        summaryPeriodProvider.updatePeriod(
+            from: fromDate,
+            to: date
+        )
         await loadMainData()
     }
 }

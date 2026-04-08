@@ -23,6 +23,8 @@ final class CategoryPeriodPickerConfirmBarButtonView: UIView {
     func configure(with viewModel: CategoryPeriodPickerViewModel.ConfirmButtonViewModel) {
         tapCommand = viewModel.tapCommand
         button.setTitle(viewModel.title, for: .normal)
+        button.isEnabled = viewModel.isEnabled
+        button.alpha = viewModel.isEnabled ? 1 : 0.5
         invalidateIntrinsicContentSize()
     }
 }

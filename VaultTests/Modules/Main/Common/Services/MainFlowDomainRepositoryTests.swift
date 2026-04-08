@@ -60,7 +60,7 @@ final class MainFlowDomainRepositoryTests: XCTestCase {
 }
 
 extension MainFlowDomainRepositoryTests {
-    func testRefreshCategoriesUsesMonthlySummaryTotalsWhenAvailable() async throws {
+    func testRefreshCategoriesForwardsCurrentPeriodToCategoriesRequest() async throws {
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
         let categoriesService = CategoriesServiceStub(
@@ -72,28 +72,15 @@ extension MainFlowDomainRepositoryTests {
                             name: "Food",
                             icon: "🍴",
                             color: "light_orange",
-                            totalSpentUsd: 15
+                            totalSpentUsd: 7
                         ),
                         .init(
                             id: "cat-2",
                             name: "Taxi",
                             icon: "🚕",
                             color: "light_blue",
-                            totalSpentUsd: 40
+                            totalSpentUsd: 18
                         )
-                    ]
-                )
-            )
-        )
-        let summaryService = SummaryServiceStub(
-            summaryResult: .success(
-                .init(
-                    category: nil,
-                    total: 25,
-                    currency: "USD",
-                    byCategory: [
-                        .init(category: "cat-1", total: 7),
-                        .init(category: "cat-2", total: 18)
                     ]
                 )
             )
@@ -105,7 +92,6 @@ extension MainFlowDomainRepositoryTests {
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
             expensesService: ExpensesServiceStub(listResults: []),
-            summaryService: summaryService,
             summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
             currencyConversionService: CurrencyConverterStub(),
             store: store,
@@ -115,13 +101,13 @@ extension MainFlowDomainRepositoryTests {
         try await repository.refreshCategories()
 
         let state = store.snapshot()
-        let requestedSummaryParameters = await summaryService.requestedParameters()
+        let requestedListParameters = await categoriesService.requestedListParameters()
         XCTAssertEqual(state.categoriesByID["cat-1"]?.amount, 7)
         XCTAssertEqual(state.categoriesByID["cat-2"]?.amount, 18)
-        XCTAssertEqual(requestedSummaryParameters, [.init(from: period.from, to: period.to)])
+        XCTAssertEqual(requestedListParameters, [.init(from: period.from, to: period.to)])
     }
 
-    func testRefreshCategoriesFallsBackToCategoriesTotalsWhenMonthlySummaryFails() async throws {
+    func testRefreshCategoriesUsesPlainRequestWhenNoSummaryPeriodProviderExists() async throws {
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
         let categoriesService = CategoriesServiceStub(
@@ -142,13 +128,6 @@ extension MainFlowDomainRepositoryTests {
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
             expensesService: ExpensesServiceStub(listResults: []),
-            summaryService: SummaryServiceStub(summaryResult: .failure(RepositoryTestError.any)),
-            summaryPeriodProvider: MainSummaryPeriodProviderStub(
-                period: .init(
-                    from: Date(timeIntervalSince1970: 1),
-                    to: Date(timeIntervalSince1970: 2)
-                )
-            ),
             currencyConversionService: CurrencyConverterStub(),
             store: store,
             observer: observer
@@ -157,6 +136,7 @@ extension MainFlowDomainRepositoryTests {
         try await repository.refreshCategories()
 
         XCTAssertEqual(store.snapshot().categoriesByID["cat-1"]?.amount, 15)
+        XCTAssertEqual(await categoriesService.requestedListParameters(), [.init()])
     }
 }
 
@@ -233,24 +213,28 @@ extension MainFlowDomainRepositoryTests {
                 .init(
                     category: "cat-1",
                     from: period.from,
-                    to: nil,
+                    to: period.to,
                     cursor: nil,
                     limit: 20
                 )
             ]
         )
-        let requestedSummaryByCategory = await summaryService.requestedByCategoryParameters()
-        XCTAssertEqual(requestedSummaryByCategory.count, 1)
-        XCTAssertEqual(requestedSummaryByCategory.first?.id, "cat-1")
+        let requestedGetParameters = await categoriesService.requestedGetParameters()
         XCTAssertEqual(
-            requestedSummaryByCategory.first?.parameters,
-            .init(
-                from: period.from,
-                to: nil
-            )
+            requestedGetParameters,
+            [
+                .init(
+                    id: "cat-1",
+                    parameters: .init(
+                        from: period.from,
+                        to: period.to
+                    )
+                )
+            ]
         )
         XCTAssertEqual(observer.currentCategorySnapshot(id: "cat-1").category?.amount, 9)
         XCTAssertEqual(observer.currentCategorySnapshot(id: "cat-1").expenseGroups.flatMap(\.expenses).count, 1)
+        XCTAssertEqual(observer.currentCategorySnapshot(id: "cat-1").period, period)
     }
 
     func testLoadNextCategoryPageRequestsCurrentMonthExpenses() async throws {
@@ -298,7 +282,7 @@ extension MainFlowDomainRepositoryTests {
                 .init(
                     category: "cat-1",
                     from: period.from,
-                    to: nil,
+                    to: period.to,
                     cursor: "cursor-1",
                     limit: 20
                 )
@@ -392,6 +376,99 @@ extension MainFlowDomainRepositoryTests {
         XCTAssertEqual(observer.currentOverviewSnapshot().categories.first?.amount, 7)
         XCTAssertEqual(observer.currentCategorySnapshot(id: "cat-1").category?.amount, 20)
     }
+
+    func testRefreshCategoryFirstPageFailureResetsStoredScopeAndDropsOldCursor() async {
+        let store = MainFlowDomainStore()
+        let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        let januaryPeriod = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 1_735_689_600),
+            to: Date(timeIntervalSince1970: 1_736_553_000)
+        )
+        let februaryPeriod = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 1_738_368_000),
+            to: Date(timeIntervalSince1970: 1_740_787_199)
+        )
+        let januaryExpense = MainExpenseModel(
+            id: "exp-jan",
+            title: "Coffee",
+            description: "Morning",
+            amount: 4,
+            currency: "USD",
+            category: "cat-1",
+            timeOfAdd: Date(timeIntervalSince1970: 1_736_000_000)
+        )
+
+        store.update { state in
+            state.expensesByID[januaryExpense.id] = januaryExpense
+            state.categoryExpenseIDs["cat-1"] = [januaryExpense.id]
+            state.categoryPagination["cat-1"] = .init(
+                nextCursor: "january-cursor",
+                hasMore: true,
+                isLoaded: true
+            )
+            state.categoryPeriods["cat-1"] = januaryPeriod
+        }
+        observer.publishAll(from: store)
+
+        let categoriesService = CategoriesServiceStub(
+            listResult: .success(.init(categories: [])),
+            getResult: .success(
+                .init(
+                    category: .init(
+                        id: "cat-1",
+                        name: "Food",
+                        icon: "🍴",
+                        color: "light_orange",
+                        totalSpentUsd: 15
+                    )
+                )
+            )
+        )
+        let expensesService = ExpensesServiceStub(
+            listResults: [.failure(RepositoryTestError.any)]
+        )
+        let repository = MainFlowDomainRepository(
+            categoriesService: categoriesService,
+            expensesService: expensesService,
+            currencyConversionService: CurrencyConverterStub(),
+            store: store,
+            observer: observer
+        )
+
+        do {
+            try await repository.refreshCategoryFirstPage(
+                id: "cat-1",
+                fromDate: februaryPeriod.from,
+                toDate: februaryPeriod.to
+            )
+            XCTFail("Expected refresh to fail")
+        } catch {}
+
+        let state = store.snapshot()
+        XCTAssertEqual(state.categoryPeriods["cat-1"], februaryPeriod)
+        XCTAssertEqual(state.categoryPagination["cat-1"], .init())
+        XCTAssertEqual(state.categoryExpenseIDs["cat-1"], [])
+        XCTAssertTrue(state.expensesByID.isEmpty)
+
+        let requestedParameters = await expensesService.requestedParameters()
+        XCTAssertEqual(
+            requestedParameters,
+            [
+                .init(
+                    category: "cat-1",
+                    from: februaryPeriod.from,
+                    to: februaryPeriod.to,
+                    cursor: nil,
+                    limit: 20
+                )
+            ]
+        )
+
+        try? await repository.loadNextCategoryPage(id: "cat-1")
+
+        let finalParameters = await expensesService.requestedParameters()
+        XCTAssertEqual(finalParameters, requestedParameters)
+    }
 }
 
 extension MainFlowDomainRepositoryTests {
@@ -443,6 +520,94 @@ extension MainFlowDomainRepositoryTests {
             XCTAssertEqual(store.snapshot().categoryExpenseIDs["cat-1"], ["exp-1"])
             XCTAssertEqual(observer.currentCategorySnapshot(id: "cat-1").expenseGroups.flatMap(\.expenses).count, 1)
         }
+    }
+}
+
+extension MainFlowDomainRepositoryTests {
+    func testAddExpenseDoesNotInsertIntoCategoryDetailsWhenExpenseIsAfterStoredToDate() async throws {
+        let store = MainFlowDomainStore()
+        let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        let period = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 10),
+            to: Date(timeIntervalSince1970: 20)
+        )
+        let category = MainCategoryCardModel(
+            id: "cat-1",
+            name: "Food",
+            icon: "🍴",
+            color: "light_orange",
+            amount: 10,
+            currency: "USD"
+        )
+
+        store.update { state in
+            state.categoriesByID[category.id] = category
+            state.categoryDetailsByID[category.id] = category
+            state.categoryOrder = [category.id]
+            state.categoryPeriods[category.id] = period
+            state.categoryExpenseIDs[category.id] = []
+            state.categoryPagination[category.id] = .init(hasMore: false, isLoaded: true)
+        }
+        observer.publishAll(from: store)
+
+        let categoriesService = CategoriesServiceStub(
+            listResult: .success(
+                .init(
+                    categories: [
+                        .init(
+                            id: "cat-1",
+                            name: "Food",
+                            icon: "🍴",
+                            color: "light_orange",
+                            totalSpentUsd: 15
+                        )
+                    ]
+                )
+            )
+        )
+        let expensesService = ExpensesServiceStub(
+            listResults: [],
+            createResult: .success(
+                .init(
+                    expenses: [
+                        .init(
+                            id: "exp-server",
+                            title: "Coffee",
+                            description: "Morning",
+                            amount: 4,
+                            currency: "USD",
+                            category: "cat-1",
+                            timeOfAdd: Date(timeIntervalSince1970: 25)
+                        )
+                    ]
+                )
+            )
+        )
+        let repository = MainFlowDomainRepository(
+            categoriesService: categoriesService,
+            expensesService: expensesService,
+            currencyConversionService: CurrencyConverterStub(),
+            store: store,
+            observer: observer
+        )
+
+        try await repository.addExpense(
+            .init(
+                expenses: [
+                    .init(
+                        title: "Coffee",
+                        description: "Morning",
+                        amount: 4,
+                        currency: "USD",
+                        category: "cat-1",
+                        timeOfAdd: Date(timeIntervalSince1970: 25)
+                    )
+                ]
+            )
+        )
+
+        XCTAssertEqual(store.snapshot().categoryExpenseIDs["cat-1"], [])
+        XCTAssertTrue(observer.currentCategorySnapshot(id: "cat-1").expenseGroups.isEmpty)
     }
 }
 
@@ -744,6 +909,8 @@ private actor CategoriesServiceStub: MainCategoriesContractServicing {
     private let listResult: Result<CategoriesResponseDTO, Error>
     private let getResult: Result<CategoryResponseDTO, Error>
     private var listCalls = 0
+    private var listParametersHistory: [CategoriesQueryParameters] = []
+    private var getParametersHistory: [(id: String, parameters: CategoriesQueryParameters)] = []
 
     init(
         listResult: Result<CategoriesResponseDTO, Error>,
@@ -762,14 +929,35 @@ private actor CategoriesServiceStub: MainCategoriesContractServicing {
         return try listResult.get()
     }
 
+    func listCategories(parameters: CategoriesQueryParameters) async throws -> CategoriesResponseDTO {
+        listParametersHistory.append(parameters)
+        return try await listCategories()
+    }
+
     func getCategory(id: String) async throws -> CategoryResponseDTO {
         try getResult.get()
+    }
+
+    func getCategory(
+        id: String,
+        parameters: CategoriesQueryParameters
+    ) async throws -> CategoryResponseDTO {
+        getParametersHistory.append((id, parameters))
+        return try await getCategory(id: id)
     }
 
     func deleteCategory(id: String) async throws {}
 
     func listCallsCount() -> Int {
         listCalls
+    }
+
+    func requestedListParameters() -> [CategoriesQueryParameters] {
+        listParametersHistory
+    }
+
+    func requestedGetParameters() -> [(id: String, parameters: CategoriesQueryParameters)] {
+        getParametersHistory
     }
 }
 

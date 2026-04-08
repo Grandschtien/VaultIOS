@@ -11,6 +11,7 @@ protocol MainRoutingLogic: Sendable {
     func openCategory(id: String, name: String)
     func openPeriodPicker(
         selectedFromDate: Date,
+        selectedToDate: Date,
         output: CategoryPeriodPickerOutput
     )
 }
@@ -61,6 +62,7 @@ final class MainRouter: MainRoutingLogic {
 
     func openPeriodPicker(
         selectedFromDate: Date,
+        selectedToDate: Date,
         output: CategoryPeriodPickerOutput
     ) {
         guard let viewController else {
@@ -71,6 +73,7 @@ final class MainRouter: MainRoutingLogic {
             route.present(
                 CategoryPeriodPickerFactory(
                     selectedFromDate: selectedFromDate,
+                    selectedToDate: selectedToDate,
                     output: output
                 )
                 .withStackContainer()

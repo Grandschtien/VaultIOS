@@ -243,7 +243,7 @@ private actor ExpesiesListRepositoryStub: MainFlowDomainRepositoryProtocol {
     }
 
     func refreshRecentExpenses() async throws {}
-    func refreshCategoryFirstPage(id: String, fromDate: Date?) async throws {}
+    func refreshCategoryFirstPage(id: String, fromDate: Date?, toDate: Date?) async throws {}
     func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {}
 
     func refreshExpensesFirstPage() async throws {

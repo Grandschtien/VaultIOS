@@ -5,7 +5,7 @@ import Nivelir
 
 @MainActor
 final class MainFlowRootViewControllerTests: XCTestCase {
-    func testHomeTabUsesMainScreenAndStatsTabRemainsPlaceholder() {
+    func testHomeTabUsesMainScreenAndStatsTabUsesAnalyticsScreenWithoutProfileButton() {
         let window = UIWindow(frame: .init(x: 0, y: 0, width: 375, height: 812))
         let navigator = ScreenNavigator(window: window)
         let context = MainFlowContext(
@@ -34,7 +34,9 @@ final class MainFlowRootViewControllerTests: XCTestCase {
         }
 
         XCTAssertTrue(homeNavigation.viewControllers.first is MainViewController)
-        XCTAssertEqual(statsNavigation.viewControllers.first?.title, L10n.mainTabStats)
+        XCTAssertTrue(statsNavigation.viewControllers.first is AnalyticsViewController)
+        XCTAssertNil(statsNavigation.viewControllers.first?.navigationItem.rightBarButtonItem)
+        XCTAssertNotNil(homeNavigation.viewControllers.first?.navigationItem.rightBarButtonItem)
     }
 
     func testCenterActionPresentsAddExpenseChooserWithoutChangingSelectedTab() async {
@@ -124,7 +126,7 @@ private final class MainFlowRootRepositoryStub: MainFlowDomainRepositoryProtocol
     func refreshMainFlow() async throws {}
     func refreshCategories() async throws {}
     func refreshRecentExpenses() async throws {}
-    func refreshCategoryFirstPage(id: String, fromDate: Date?) async throws {}
+    func refreshCategoryFirstPage(id: String, fromDate: Date?, toDate: Date?) async throws {}
     func refreshExpensesFirstPage() async throws {}
     func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {
         onHandleCurrencyDidChange?(payload)
@@ -146,5 +148,5 @@ private final class MainSummaryPeriodProviderStub: MainSummaryPeriodServicing, @
         )
     }
 
-    func updateFromDate(_ fromDate: Date) {}
+    func updatePeriod(from: Date, to: Date) {}
 }

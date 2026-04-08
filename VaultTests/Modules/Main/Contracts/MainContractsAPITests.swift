@@ -20,8 +20,31 @@ final class MainContractsAPITests: XCTestCase {
 }
 
 extension MainContractsAPITests {
+    func testCategoriesListWithRangeBuildsExpectedQuery() {
+        let from = Date(timeIntervalSince1970: 1_772_265_600)
+        let to = Date(timeIntervalSince1970: 1_774_943_999)
+        let target = CategoriesAPI.list(
+            .init(
+                from: from,
+                to: to
+            )
+        )
+
+        XCTAssertEqual(target.path, "/categories")
+        XCTAssertEqual(target.method.rawValue, "GET")
+
+        guard case let .query(query, _) = target.requestType else {
+            return XCTFail("Expected query request type")
+        }
+
+        XCTAssertEqual(query["from"] as? String, "2026-03-01T00:00:00Z")
+        XCTAssertEqual(query["to"] as? String, "2026-03-31T23:59:59Z")
+    }
+}
+
+extension MainContractsAPITests {
     func testCategoriesGetAndDeleteBuildExpectedPaths() {
-        let getTarget = CategoriesAPI.get(id: "cat-1")
+        let getTarget = CategoriesAPI.get(id: "cat-1", parameters: .init())
         let deleteTarget = CategoriesAPI.delete(id: "cat-1")
 
         XCTAssertEqual(getTarget.path, "/categories/cat-1")
@@ -34,6 +57,30 @@ extension MainContractsAPITests {
         else {
             return XCTFail("Expected plain request type")
         }
+    }
+}
+
+extension MainContractsAPITests {
+    func testCategoriesGetWithRangeBuildsExpectedQuery() {
+        let from = Date(timeIntervalSince1970: 1_772_265_600)
+        let to = Date(timeIntervalSince1970: 1_774_943_999)
+        let target = CategoriesAPI.get(
+            id: "cat-1",
+            parameters: .init(
+                from: from,
+                to: to
+            )
+        )
+
+        XCTAssertEqual(target.path, "/categories/cat-1")
+        XCTAssertEqual(target.method.rawValue, "GET")
+
+        guard case let .query(query, _) = target.requestType else {
+            return XCTFail("Expected query request type")
+        }
+
+        XCTAssertEqual(query["from"] as? String, "2026-03-01T00:00:00Z")
+        XCTAssertEqual(query["to"] as? String, "2026-03-31T23:59:59Z")
     }
 }
 

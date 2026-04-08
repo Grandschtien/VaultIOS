@@ -367,7 +367,7 @@ private final class CategoryEditorRepositorySpy: MainFlowDomainRepositoryProtoco
 
     func refreshRecentExpenses() async throws {}
 
-    func refreshCategoryFirstPage(id: String, fromDate: Date?) async throws {
+    func refreshCategoryFirstPage(id: String, fromDate: Date?, toDate: Date?) async throws {
         if let refreshCategoryError {
             throw refreshCategoryError
         }

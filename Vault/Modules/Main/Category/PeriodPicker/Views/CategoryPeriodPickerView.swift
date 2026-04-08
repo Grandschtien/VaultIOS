@@ -3,7 +3,10 @@ import SnapKit
 
 final class CategoryPeriodPickerView: UIView, LayoutScaleProviding {
     private var viewModel: CategoryPeriodPickerViewModel = .init()
-    private var isApplyingSelection = false
+    private var isApplyingViewModel = false
+    private let fieldsStackView = UIStackView()
+    private let fromFieldView = CategoryPeriodPickerFieldView()
+    private let toFieldView = CategoryPeriodPickerFieldView()
     private let calendarView = UICalendarView()
     private lazy var selectionBehavior = UICalendarSelectionSingleDate(delegate: self)
 
@@ -20,32 +23,50 @@ final class CategoryPeriodPickerView: UIView, LayoutScaleProviding {
 
     func configure(with viewModel: CategoryPeriodPickerViewModel) {
         self.viewModel = viewModel
+        fromFieldView.configure(with: viewModel.fromField)
+        toFieldView.configure(with: viewModel.toField)
         calendarView.availableDateRange = DateInterval(
             start: viewModel.calendar.minimumDate,
             end: viewModel.calendar.maximumDate
         )
-        isApplyingSelection = true
+        isApplyingViewModel = true
+        calendarView.visibleDateComponents = Calendar.current.dateComponents(
+            [.year, .month, .day],
+            from: viewModel.calendar.visibleMonthDate
+        )
         selectionBehavior.selectedDate = Calendar.current.dateComponents(
             [.year, .month, .day],
             from: viewModel.calendar.selectedDate
         )
-        isApplyingSelection = false
+        isApplyingViewModel = false
     }
 }
 
 private extension CategoryPeriodPickerView {
     func setupViews() {
         backgroundColor = Asset.Colors.backgroundPrimary.color
+
+        fieldsStackView.axis = .vertical
+        fieldsStackView.spacing = spaceS
+
         calendarView.selectionBehavior = selectionBehavior
         calendarView.locale = Locale.current
         calendarView.tintColor = Asset.Colors.interactiveElemetsPrimary.color
     }
 
     func setupLayout() {
+        addSubview(fieldsStackView)
         addSubview(calendarView)
 
-        calendarView.snp.makeConstraints { make in
+        [fromFieldView, toFieldView].forEach { fieldsStackView.addArrangedSubview($0) }
+
+        fieldsStackView.snp.makeConstraints { make in
             make.top.equalTo(safeAreaLayoutGuide).offset(spaceS)
+            make.horizontalEdges.equalTo(safeAreaLayoutGuide).inset(spaceS)
+        }
+
+        calendarView.snp.makeConstraints { make in
+            make.top.equalTo(fieldsStackView.snp.bottom).offset(spaceS)
             make.horizontalEdges.equalTo(safeAreaLayoutGuide).inset(spaceS)
             make.bottom.lessThanOrEqualTo(safeAreaLayoutGuide).inset(spaceS)
         }
@@ -57,7 +78,7 @@ extension CategoryPeriodPickerView: UICalendarSelectionSingleDateDelegate {
         _ selection: UICalendarSelectionSingleDate,
         didSelectDate dateComponents: DateComponents?
     ) {
-        guard !isApplyingSelection else {
+        guard !isApplyingViewModel else {
             return
         }
 

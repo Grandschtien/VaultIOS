@@ -4,7 +4,7 @@ protocol MainFlowDomainRepositoryProtocol: Sendable {
     func refreshMainFlow() async throws
     func refreshCategories() async throws
     func refreshRecentExpenses() async throws
-    func refreshCategoryFirstPage(id: String, fromDate: Date?) async throws
+    func refreshCategoryFirstPage(id: String, fromDate: Date?, toDate: Date?) async throws
     func refreshExpensesFirstPage() async throws
     func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async
     func loadNextCategoryPage(id: String) async throws
@@ -19,7 +19,19 @@ protocol MainFlowDomainRepositoryProtocol: Sendable {
 
 extension MainFlowDomainRepositoryProtocol {
     func refreshCategoryFirstPage(id: String) async throws {
-        try await refreshCategoryFirstPage(id: id, fromDate: nil)
+        try await refreshCategoryFirstPage(
+            id: id,
+            fromDate: nil,
+            toDate: nil
+        )
+    }
+
+    func refreshCategoryFirstPage(id: String, fromDate: Date?) async throws {
+        try await refreshCategoryFirstPage(
+            id: id,
+            fromDate: fromDate,
+            toDate: nil
+        )
     }
 
     func addCategory(_ request: CategoryCreateRequestDTO) async throws -> MainCategoryCardModel {
@@ -62,6 +74,8 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
     private let currencyConversionService: UserCurrencyConverting
     private let store: MainFlowDomainStoreProtocol
     private let observer: MainFlowDomainObserverProtocol
+    private let now: @Sendable () -> Date
+    private let periodResolver: MainPeriodRangeResolver
 
     init(
         categoriesService: MainCategoriesContractServicing,
@@ -70,7 +84,9 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         summaryPeriodProvider: MainSummaryPeriodProviding? = nil,
         currencyConversionService: UserCurrencyConverting,
         store: MainFlowDomainStoreProtocol,
-        observer: MainFlowDomainObserverProtocol
+        observer: MainFlowDomainObserverProtocol,
+        calendar: Calendar = .current,
+        now: @escaping @Sendable () -> Date = Date.init
     ) {
         self.categoriesService = categoriesService
         self.expensesService = expensesService
@@ -79,6 +95,8 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         self.currencyConversionService = currencyConversionService
         self.store = store
         self.observer = observer
+        self.now = now
+        periodResolver = MainPeriodRangeResolver(calendar: calendar)
     }
 
     func refreshMainFlow() async throws {
@@ -88,12 +106,12 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
     }
 
     func refreshCategories() async throws {
-        async let categoriesTask = categoriesService.listCategories()
-        async let monthlyTotalsTask = fetchMonthlyCategoryTotals()
-
-        let response = try await categoriesTask
-        let monthlyTotals = await monthlyTotalsTask
-        let categories = response.categories.map { makeCategoryModel(from: $0, monthlyTotals: monthlyTotals) }
+        let response = try await categoriesService.listCategories(
+            parameters: makeCategoriesQueryParameters(
+                period: summaryPeriodProvider?.currentMonthPeriod()
+            )
+        )
+        let categories = response.categories.map { makeCategoryModel(from: $0) }
 
         store.update { state in
             categories.forEach { state.categoriesByID[$0.id] = $0 }
@@ -127,23 +145,35 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         observer.publishAll(from: store)
     }
 
-    func refreshCategoryFirstPage(id: String, fromDate: Date?) async throws {
-        let resolvedFromDate = resolvedCategoryFromDate(
+    func refreshCategoryFirstPage(
+        id: String,
+        fromDate: Date?,
+        toDate: Date?
+    ) async throws {
+        let resolvedPeriod = resolvedCategoryPeriod(
             for: id,
-            overridingFromDate: fromDate
+            overridingFromDate: fromDate,
+            overridingToDate: toDate
         )
-        async let categoryTask = categoriesService.getCategory(id: id)
+        resetCategoryScopeIfNeeded(
+            id: id,
+            period: resolvedPeriod
+        )
+        async let categoryTask = categoriesService.getCategory(
+            id: id,
+            parameters: makeCategoriesQueryParameters(period: resolvedPeriod)
+        )
         async let expensesTask = expensesService.listExpenses(
             parameters: makeCategoryExpensesQueryParameters(
                 categoryID: id,
-                fromDate: resolvedFromDate,
+                period: resolvedPeriod,
                 cursor: nil,
                 limit: Constants.listPageLimit
             )
         )
         async let categoryTotalTask = fetchCategoryTotal(
             for: id,
-            fromDate: resolvedFromDate
+            period: resolvedPeriod
         )
 
         let categoryResponse = try await categoryTask
@@ -169,9 +199,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
             }
 
             state.categoryDetailsByID[category.id] = category
-            if let resolvedFromDate {
-                state.categoryFromDates[id] = resolvedFromDate
-            }
+            state.categoryPeriods[id] = resolvedPeriod
             merge(expenses: expenses, into: &state)
             state.categoryExpenseIDs[id] = expenses.map(\.id)
             state.categoryPagination[id] = .init(
@@ -252,7 +280,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         let response = try await expensesService.listExpenses(
             parameters: makeCategoryExpensesQueryParameters(
                 categoryID: id,
-                fromDate: resolvedCategoryFromDate(for: id),
+                period: resolvedCategoryPeriod(for: id),
                 cursor: pagination.nextCursor,
                 limit: Constants.listPageLimit
             )
@@ -461,7 +489,8 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
             if previousState.categoryPagination[id]?.isLoaded == true {
                 try? await refreshCategoryFirstPage(
                     id: id,
-                    fromDate: previousState.categoryFromDates[id]
+                    fromDate: previousState.categoryPeriods[id]?.from,
+                    toDate: previousState.categoryPeriods[id]?.to
                 )
             }
 
@@ -484,7 +513,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
             state.categoryOrder.removeAll { $0 == id }
             state.categoryExpenseIDs[id] = nil
             state.categoryPagination[id] = nil
-            state.categoryFromDates[id] = nil
+            state.categoryPeriods[id] = nil
             pruneUnreferencedExpenses(in: &state)
         }
         observer.publishAll(from: store)
@@ -805,11 +834,9 @@ private extension MainFlowDomainRepository {
     }
 
     func makeCategoryModel(
-        from category: CategoryDTO,
-        monthlyTotals: [String: Double]? = nil
+        from category: CategoryDTO
     ) -> MainCategoryCardModel {
-        let usdAmount = monthlyTotals?[category.id] ?? category.totalSpentUsd ?? .zero
-        let convertedAmount = currencyConversionService.convertUsdAmount(usdAmount)
+        let convertedAmount = currencyConversionService.convertUsdAmount(category.totalSpentUsd ?? 0.0)
         return MainCategoryCardModel(
             id: category.id,
             name: localizedCategoryName(from: category.name),
@@ -910,7 +937,7 @@ private extension MainFlowDomainRepository {
 
     func fetchCategoryTotal(
         for categoryID: String,
-        fromDate: Date?
+        period: MainSummaryPeriod?
     ) async -> Double? {
         guard let summaryService else {
             return nil
@@ -919,7 +946,10 @@ private extension MainFlowDomainRepository {
         do {
             let response = try await summaryService.getSummaryByCategory(
                 id: categoryID,
-                parameters: .init(from: fromDate)
+                parameters: .init(
+                    from: period?.from,
+                    to: period?.to
+                )
             )
 
             return response.total
@@ -930,36 +960,83 @@ private extension MainFlowDomainRepository {
 
     func makeCategoryExpensesQueryParameters(
         categoryID: String,
-        fromDate: Date?,
+        period: MainSummaryPeriod?,
         cursor: String?,
         limit: Int
     ) -> ExpensesListQueryParameters {
         return .init(
             category: categoryID,
-            from: fromDate,
+            from: period?.from,
+            to: period?.to,
             cursor: cursor,
             limit: limit
         )
     }
 
-    func resolvedCategoryFromDate(
+    func makeCategoriesQueryParameters(
+        period: MainSummaryPeriod?
+    ) -> CategoriesQueryParameters {
+        .init(
+            from: period?.from,
+            to: period?.to
+        )
+    }
+
+    func resolvedCategoryPeriod(
         for categoryID: String,
-        overridingFromDate: Date? = nil
-    ) -> Date? {
+        overridingFromDate: Date? = nil,
+        overridingToDate: Date? = nil
+    ) -> MainSummaryPeriod? {
         if let overridingFromDate {
-            return normalizedCategoryFromDate(overridingFromDate)
+            return explicitCategoryPeriod(
+                fromDate: overridingFromDate,
+                toDate: overridingToDate
+            )
         }
 
         let state = store.snapshot()
-        if let storedFromDate = state.categoryFromDates[categoryID] {
-            return storedFromDate
+        if let storedPeriod = state.categoryPeriods[categoryID] {
+            return normalizedStoredCategoryPeriod(storedPeriod)
         }
 
-        return summaryPeriodProvider.map { normalizedCategoryFromDate($0.currentMonthPeriod().from) }
+        return summaryPeriodProvider.map { period in
+            normalizedStoredCategoryPeriod(period.currentMonthPeriod())
+        }
     }
 
-    func normalizedCategoryFromDate(_ date: Date) -> Date {
-        Calendar.current.startOfDay(for: date)
+    func explicitCategoryPeriod(
+        fromDate: Date,
+        toDate: Date?
+    ) -> MainSummaryPeriod {
+        periodResolver.resolvedPeriod(
+            from: fromDate,
+            to: toDate,
+            now: now()
+        )
+    }
+
+    func normalizedStoredCategoryPeriod(_ period: MainSummaryPeriod) -> MainSummaryPeriod {
+        MainSummaryPeriod(
+            from: periodResolver.startOfDay(for: period.from),
+            to: period.to
+        )
+    }
+
+    func resetCategoryScopeIfNeeded(
+        id: String,
+        period: MainSummaryPeriod?
+    ) {
+        let currentState = store.snapshot()
+        guard currentState.categoryPeriods[id] != period else {
+            return
+        }
+
+        store.update { state in
+            state.categoryPeriods[id] = period
+            state.categoryExpenseIDs[id] = []
+            state.categoryPagination[id] = .init()
+            pruneUnreferencedExpenses(in: &state)
+        }
     }
 
     func shouldIncludeInCategoryDetails(
@@ -971,11 +1048,12 @@ private extension MainFlowDomainRepository {
             return false
         }
 
-        guard let fromDate = state.categoryFromDates[categoryID] else {
+        guard let period = state.categoryPeriods[categoryID].map(normalizedStoredCategoryPeriod) else {
             return true
         }
 
-        return expense.timeOfAdd >= fromDate
+        return expense.timeOfAdd >= period.from
+            && expense.timeOfAdd <= period.to
     }
 
     func updateCategory(

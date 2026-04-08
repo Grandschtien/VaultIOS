@@ -23,7 +23,7 @@ final class CategoryFactory: Screen {
         @SafeInject
         var toastPresenter: ToastPresenting
 
-        let initialFromDate = context.summaryPeriodProvider.currentMonthPeriod().from
+        let initialPeriod = context.summaryPeriodProvider.currentMonthPeriod()
         let viewModel = CategoryViewModel()
         let presenter = CategoryPresenter(
             viewModel: viewModel,
@@ -37,7 +37,7 @@ final class CategoryFactory: Screen {
         let interactor = CategoryInteractor(
             categoryID: categoryID,
             categoryName: categoryName,
-            initialFromDate: initialFromDate,
+            initialPeriod: initialPeriod,
             presenter: presenter,
             router: router,
             repository: context.repository,

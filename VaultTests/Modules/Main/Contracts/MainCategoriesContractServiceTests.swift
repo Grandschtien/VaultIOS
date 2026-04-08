@@ -36,26 +36,30 @@ final class MainCategoriesContractServiceTests: XCTestCase {
 }
 
 extension MainCategoriesContractServiceTests {
-    func testListCategoriesForwardsListAndDecodesResponse() async throws {
+    func testListCategoriesForwardsRangeAndDecodesResponse() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
             json: #"{"categories":[{"id":"cat-1","name":"Food","icon":"🍔","color":"light_green","total_spent_usd":10},{"id":"cat-2","name":"Taxi","icon":"🚕","color":"light_blue","total_spent_usd":20.2}]}"#
         )
 
-        var didCallList = false
+        let parameters = CategoriesQueryParameters(
+            from: Date(timeIntervalSince1970: 1_772_265_600),
+            to: Date(timeIntervalSince1970: 1_774_943_999)
+        )
+        var capturedParameters: CategoriesQueryParameters?
         spy.onRequest = { target in
             guard let api = target as? CategoriesAPI,
-                  case .list = api else {
+                  case let .list(requestParameters) = api else {
                 return XCTFail("Expected CategoriesAPI.list")
             }
 
-            didCallList = true
+            capturedParameters = requestParameters
         }
 
         let sut = MainCategoriesContractService(networkClient: spy)
-        let response = try await sut.listCategories()
+        let response = try await sut.listCategories(parameters: parameters)
 
-        XCTAssertTrue(didCallList)
+        XCTAssertEqual(capturedParameters, parameters)
         XCTAssertEqual(response.categories.count, 2)
         XCTAssertEqual(response.categories.first?.id, "cat-1")
         XCTAssertEqual(response.categories.last?.id, "cat-2")
@@ -65,26 +69,36 @@ extension MainCategoriesContractServiceTests {
 }
 
 extension MainCategoriesContractServiceTests {
-    func testGetCategoryForwardsIDAndDecodesResponse() async throws {
+    func testGetCategoryForwardsIDAndRangeAndDecodesResponse() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
             json: #"{"category":{"id":"cat-7","name":"Groceries","icon":"🛒","color":"light_orange","total_spent_usd":45}}"#
         )
 
         var capturedID: String?
+        let parameters = CategoriesQueryParameters(
+            from: Date(timeIntervalSince1970: 1_772_265_600),
+            to: Date(timeIntervalSince1970: 1_774_943_999)
+        )
+        var capturedParameters: CategoriesQueryParameters?
         spy.onRequest = { target in
             guard let api = target as? CategoriesAPI,
-                  case let .get(id) = api else {
+                  case let .get(id, requestParameters) = api else {
                 return XCTFail("Expected CategoriesAPI.get")
             }
 
             capturedID = id
+            capturedParameters = requestParameters
         }
 
         let sut = MainCategoriesContractService(networkClient: spy)
-        let response = try await sut.getCategory(id: "cat-7")
+        let response = try await sut.getCategory(
+            id: "cat-7",
+            parameters: parameters
+        )
 
         XCTAssertEqual(capturedID, "cat-7")
+        XCTAssertEqual(capturedParameters, parameters)
         XCTAssertEqual(response.category.id, "cat-7")
         XCTAssertEqual(response.category.name, "Groceries")
         XCTAssertEqual(response.category.totalSpentUsd, 45)

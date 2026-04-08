@@ -20,7 +20,7 @@ actor CategoryInteractor: CategoryBusinessLogic {
     private let repository: MainFlowDomainRepositoryProtocol
     private let observer: MainFlowDomainObserverProtocol
 
-    private var fromDate: Date
+    private var period: MainSummaryPeriod
     private var loadingState: LoadingStatus = .idle
     private var category: MainCategoryCardModel?
     private var expenseGroups: [MainExpenseGroupModel] = []
@@ -32,7 +32,7 @@ actor CategoryInteractor: CategoryBusinessLogic {
     init(
         categoryID: String,
         categoryName: String?,
-        initialFromDate: Date,
+        initialPeriod: MainSummaryPeriod,
         presenter: CategoryPresentationLogic,
         router: CategoryRoutingLogic,
         repository: MainFlowDomainRepositoryProtocol,
@@ -40,7 +40,7 @@ actor CategoryInteractor: CategoryBusinessLogic {
     ) {
         self.categoryID = categoryID
         self.categoryName = categoryName
-        self.fromDate = initialFromDate
+        period = initialPeriod
         self.presenter = presenter
         self.router = router
         self.repository = repository
@@ -66,7 +66,8 @@ actor CategoryInteractor: CategoryBusinessLogic {
         do {
             try await repository.refreshCategoryFirstPage(
                 id: categoryID,
-                fromDate: fromDate
+                fromDate: period.from,
+                toDate: period.to
             )
             syncFromObserver()
             loadingState = .loaded
@@ -104,10 +105,11 @@ private extension CategoryInteractor {
 
     func syncFromObserver() {
         let snapshot = observer.currentCategorySnapshot(id: categoryID)
-        category = snapshot.category
-        expenseGroups = snapshot.expenseGroups
-        deletingExpenseIDs = snapshot.deletingExpenseIDs
-        hasMore = snapshot.hasMore
+        guard snapshot.period == period else {
+            return
+        }
+
+        apply(snapshot)
     }
 
     func handleSnapshot(_ snapshot: MainFlowCategorySnapshot) async {
@@ -116,21 +118,30 @@ private extension CategoryInteractor {
             return
         }
 
-        category = snapshot.category
-        expenseGroups = snapshot.expenseGroups
-        deletingExpenseIDs = snapshot.deletingExpenseIDs
-        hasMore = snapshot.hasMore
+        guard snapshot.period == period else {
+            return
+        }
+
+        apply(snapshot)
 
         if loadingState == .loaded || snapshot.hasContent || !snapshot.deletingExpenseIDs.isEmpty {
             await presentFetchedData()
         }
     }
 
+    func apply(_ snapshot: MainFlowCategorySnapshot) {
+        category = snapshot.category
+        expenseGroups = snapshot.expenseGroups
+        deletingExpenseIDs = snapshot.deletingExpenseIDs
+        hasMore = snapshot.hasMore
+    }
+
     func presentFetchedData() async {
         await presenter.presentFetchedData(
             CategoryFetchData(
                 navigationTitle: currentNavigationTitle(),
-                fromDate: fromDate,
+                fromDate: period.from,
+                toDate: period.to,
                 loadingState: loadingState,
                 category: category,
                 expenseGroups: expenseGroups,

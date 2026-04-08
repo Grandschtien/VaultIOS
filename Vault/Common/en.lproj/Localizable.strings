@@ -48,6 +48,13 @@
 "registration_error_password_mismatch" = "Passwords do not match";
 "registration_error_select_currency" = "Please select currency";
 
+"analytics_empty" = "No analytics yet for this month";
+"analytics_of_total" = "%@ of total";
+"analytics_spent" = "Spent";
+"analytics_this_month" = "This Month";
+"analytics_top_categories" = "Top Categories";
+"analytics_unknown_category" = "Unknown Category";
+
 "main_add_expense_title" = "Add Expense";
 "main_tab_home" = "Home";
 "main_tab_stats" = "Stats";
@@ -70,7 +77,9 @@
 "category_edit_button" = "Edit";
 "category_monthly_spent" = "Monthly Spent";
 "category_period_picker_apply" = "Apply";
-"category_period_picker_title" = "Select Date";
+"category_period_picker_from" = "From";
+"category_period_picker_title" = "Select Period";
+"category_period_picker_to" = "To";
 "category_delete" = "Delete";
 "category_edit_title" = "Edit %@";
 "category_edit_subtitle" = "Category ID: %@";

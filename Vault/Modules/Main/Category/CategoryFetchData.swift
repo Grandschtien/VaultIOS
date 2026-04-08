@@ -5,6 +5,7 @@ import Foundation
 struct CategoryFetchData: Sendable {
     let navigationTitle: String
     let fromDate: Date
+    let toDate: Date
     let loadingState: LoadingStatus
     let category: MainCategoryCardModel?
     let expenseGroups: [MainExpenseGroupModel]
@@ -15,6 +16,7 @@ struct CategoryFetchData: Sendable {
     init(
         navigationTitle: String = "",
         fromDate: Date = Date(),
+        toDate: Date = Date(),
         loadingState: LoadingStatus = .idle,
         category: MainCategoryCardModel? = nil,
         expenseGroups: [MainExpenseGroupModel] = [],
@@ -24,6 +26,7 @@ struct CategoryFetchData: Sendable {
     ) {
         self.navigationTitle = navigationTitle
         self.fromDate = fromDate
+        self.toDate = toDate
         self.loadingState = loadingState
         self.category = category
         self.expenseGroups = expenseGroups
