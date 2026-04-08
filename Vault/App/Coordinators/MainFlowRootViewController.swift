@@ -71,7 +71,9 @@ private extension MainFlowRootViewController {
         let homeController = MainFactory(context: context).build(
             navigator: screenNavigator
         )
-        let statsController = MainFlowPlaceholderViewController(titleText: L10n.mainTabStats)
+        let analyticsController = AnalyticsFactory(context: context).build(
+            navigator: screenNavigator
+        )
         homeController.title = L10n.mainOverviewTitle
 
         homeController.tabBarItem = UITabBarItem(
@@ -80,15 +82,18 @@ private extension MainFlowRootViewController {
             selectedImage: houseFillImage
         )
 
-        statsController.tabBarItem = UITabBarItem(
+        analyticsController.tabBarItem = UITabBarItem(
             title: L10n.mainTabStats,
             image: chartPieImage,
             selectedImage: chartPieFillImage
         )
 
         viewControllers = [
-            makeNavigationController(rootController: homeController),
-            makeNavigationController(rootController: statsController)
+            makeNavigationController(
+                rootController: homeController,
+                showsProfileButton: true
+            ),
+            analyticsController
         ]
     }
 
@@ -125,7 +130,10 @@ private extension MainFlowRootViewController {
         }
     }
 
-    func makeNavigationController(rootController: UIViewController) -> UINavigationController {
+    func makeNavigationController(
+        rootController: UIViewController,
+        showsProfileButton: Bool
+    ) -> UINavigationController {
         let navigationController = UINavigationController(rootViewController: rootController)
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
@@ -143,7 +151,9 @@ private extension MainFlowRootViewController {
         navigationController.navigationBar.prefersLargeTitles = false
 
         rootController.navigationItem.largeTitleDisplayMode = .never
-        rootController.navigationItem.rightBarButtonItem = UIBarButtonItem(customView: makeProfileButton())
+        rootController.navigationItem.rightBarButtonItem = showsProfileButton
+            ? UIBarButtonItem(customView: makeProfileButton())
+            : nil
 
         return navigationController
     }
@@ -197,20 +207,3 @@ private extension MainFlowRootViewController {
 }
 
 extension MainFlowRootViewController: UITabBarControllerDelegate {}
-
-private final class MainFlowPlaceholderViewController: UIViewController {
-    init(titleText: String) {
-        super.init(nibName: nil, bundle: nil)
-        title = titleText
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = Asset.Colors.backgroundPrimary.color
-    }
-}

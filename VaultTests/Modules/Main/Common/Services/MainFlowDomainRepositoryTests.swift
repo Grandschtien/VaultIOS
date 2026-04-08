@@ -136,7 +136,8 @@ extension MainFlowDomainRepositoryTests {
         try await repository.refreshCategories()
 
         XCTAssertEqual(store.snapshot().categoriesByID["cat-1"]?.amount, 15)
-        XCTAssertEqual(await categoriesService.requestedListParameters(), [.init()])
+        let requestedListParameters = await categoriesService.requestedListParameters()
+        XCTAssertEqual(requestedListParameters, [.init()])
     }
 }
 
@@ -220,17 +221,14 @@ extension MainFlowDomainRepositoryTests {
             ]
         )
         let requestedGetParameters = await categoriesService.requestedGetParameters()
+        XCTAssertEqual(requestedGetParameters.count, 1)
+        XCTAssertEqual(requestedGetParameters.first?.id, "cat-1")
         XCTAssertEqual(
-            requestedGetParameters,
-            [
-                .init(
-                    id: "cat-1",
-                    parameters: .init(
-                        from: period.from,
-                        to: period.to
-                    )
-                )
-            ]
+            requestedGetParameters.first?.parameters,
+            .init(
+                from: period.from,
+                to: period.to
+            )
         )
         XCTAssertEqual(observer.currentCategorySnapshot(id: "cat-1").category?.amount, 9)
         XCTAssertEqual(observer.currentCategorySnapshot(id: "cat-1").expenseGroups.flatMap(\.expenses).count, 1)

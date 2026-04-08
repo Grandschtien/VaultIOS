@@ -208,18 +208,20 @@ extension MainSummaryPeriodProviderTests {
         )) ?? .distantPast
         let sut = MainSummaryPeriodProvider(
             calendar: calendar,
-            now: { currentDate.value }
+            now: currentDate.reader()
         )
 
         sut.updatePeriod(from: selectedDate, to: explicitToDate)
-        currentDate.value = calendar.date(from: DateComponents(
+        currentDate.update(
+            calendar.date(from: DateComponents(
             timeZone: calendar.timeZone,
             year: 2025,
             month: 4,
             day: 20,
             hour: 8,
             minute: 30
-        )) ?? .distantPast
+            )) ?? .distantPast
+        )
 
         let period = sut.currentMonthPeriod()
 
@@ -358,9 +360,28 @@ extension MainSummaryPeriodProviderTests {
 }
 
 private final class MutableDateBox: @unchecked Sendable {
-    var value: Date
+    private let lock = NSLock()
+    private var value: Date
 
     init(_ value: Date) {
         self.value = value
+    }
+
+    func current() -> Date {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
+
+    func reader() -> @Sendable () -> Date {
+        { [self] in
+            current()
+        }
+    }
+
+    func update(_ value: Date) {
+        lock.lock()
+        self.value = value
+        lock.unlock()
     }
 }

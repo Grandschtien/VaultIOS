@@ -293,10 +293,14 @@ extension MainInteractorTests {
         )
         await waitForUpdates()
 
+        let summaryFetchCalls = await summaryProvider.recordedFetchCallsCount()
+        let refreshCategoriesCalls = await repository.refreshCategoriesCalls()
+        let refreshRecentExpensesCalls = await repository.refreshRecentExpensesCalls()
+
         XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), expectedPeriod)
-        XCTAssertEqual(await summaryProvider.recordedFetchCallsCount(), 1)
-        XCTAssertEqual(await repository.refreshCategoriesCalls(), 1)
-        XCTAssertEqual(await repository.refreshRecentExpensesCalls(), 1)
+        XCTAssertEqual(summaryFetchCalls, 1)
+        XCTAssertEqual(refreshCategoriesCalls, 1)
+        XCTAssertEqual(refreshRecentExpensesCalls, 1)
         XCTAssertEqual(presenter.presentedData.last?.summary?.totalAmount, 100)
     }
 }
