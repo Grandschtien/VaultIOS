@@ -1,0 +1,114 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "F7DEC34D",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : true,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "186377D5",
+      "localizations" : [
+
+      ],
+      "name" : "subscriptions",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "1.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "DFC0F2CC",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "300 AI enters per month and monthly analytics",
+              "displayName" : "Plus",
+              "locale" : "en_US"
+            },
+            {
+              "description" : "300 AI ввовдов и месячная аналитика",
+              "displayName" : "Плюс",
+              "locale" : "ru"
+            }
+          ],
+          "productID" : "vault.subscription.plus",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Plus",
+          "subscriptionGroupID" : "186377D5",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "2.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "2A6E71B1",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "600 AI enters, month analytics and expensies history",
+              "displayName" : "Plus",
+              "locale" : "en_US"
+            },
+            {
+              "description" : "600 AI вводов, месячная аналитика и история расходов",
+              "displayName" : "Премиум",
+              "locale" : "ru"
+            }
+          ],
+          "productID" : "vault.subscription.premium",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Premium",
+          "subscriptionGroupID" : "186377D5",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

@@ -153,6 +153,63 @@ private extension AppAssembly {
         }
         .inObjectScope(.transient)
 
+        container.register(SubscriptionContractServicing.self) { resolver in
+            guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
+                fatalError("Failed to resolve AsyncNetworkClient for SubscriptionContractService")
+            }
+
+            return SubscriptionContractService(networkClient: networkClient)
+        }
+        .inObjectScope(.transient)
+
+        container.register(SubscriptionAppAccountTokenProviding.self) { resolver in
+            guard let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self) else {
+                fatalError("Failed to resolve UserProfileStorageService for SubscriptionAppAccountTokenProvider")
+            }
+
+            return SubscriptionAppAccountTokenProvider(
+                userProfileStorageService: userProfileStorageService
+            )
+        }
+        .inObjectScope(.transient)
+
+        container.register(SubscriptionStoreKitServicing.self) { resolver in
+            guard let appAccountTokenProvider = resolver.resolve(SubscriptionAppAccountTokenProviding.self) else {
+                fatalError("Failed to resolve SubscriptionAppAccountTokenProvider for SubscriptionStoreKitService")
+            }
+
+            return SubscriptionStoreKitService(
+                appAccountTokenProvider: appAccountTokenProvider
+            )
+        }
+        .inObjectScope(.transient)
+
+        container.register(SubscriptionAccessServicing.self) { resolver in
+            guard let profileService = resolver.resolve(ProfileContractServicing.self),
+                  let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self) else {
+                fatalError("Failed to resolve dependencies for SubscriptionAccessService")
+            }
+
+            return SubscriptionAccessService(
+                profileService: profileService,
+                userProfileStorageService: userProfileStorageService
+            )
+        }
+        .inObjectScope(.container)
+
+        container.register(SubscriptionTransactionObserverServiceProtocol.self) { resolver in
+            guard let storeKitService = resolver.resolve(SubscriptionStoreKitServicing.self),
+                  let contractService = resolver.resolve(SubscriptionContractServicing.self) else {
+                fatalError("Failed to resolve dependencies for SubscriptionTransactionObserverService")
+            }
+
+            return SubscriptionTransactionObserverService(
+                storeKitService: storeKitService,
+                contractService: contractService
+            )
+        }
+        .inObjectScope(.container)
+
         container.register(UserCurrencyConverting.self) { resolver in
             guard let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self) else {
                 fatalError("Failed to resolve UserProfileStorageService for UserCurrencyConversionService")

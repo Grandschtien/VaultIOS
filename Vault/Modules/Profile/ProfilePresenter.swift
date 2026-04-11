@@ -107,7 +107,10 @@ private extension ProfilePresenter {
                     font: Typography.typographyRegular14,
                     textColor: Asset.Colors.textAndIconPrimaryInverted.color.withAlphaComponent(0.75),
                     alignment: .left
-                )
+                ),
+                tapCommand: Command { [weak handler] in
+                    await handler?.handleTapSubscription()
+                }
             ),
             generalSectionTitle: .init(
                 text: L10n.profileGeneral,
@@ -217,17 +220,7 @@ private extension ProfilePresenter {
     }
 
     func displayTier(from rawTier: String) -> String {
-        let trimmed = rawTier.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return ""
-        }
-
-        return trimmed
-            .replacingOccurrences(of: "_", with: " ")
-            .lowercased()
-            .split(separator: " ")
-            .map { $0.capitalized }
-            .joined(separator: " ")
+        SubscriptionPlanResolver.currentPlan(from: rawTier).title
     }
 
     func membershipTitle(from tier: String) -> String {

@@ -241,6 +241,39 @@ extension ProfileInteractorTests {
 }
 
 extension ProfileInteractorTests {
+    func testHandleTapSubscriptionWhenProfileLoadedOpensSubscription() async {
+        let presenter = ProfilePresenterSpy()
+        let router = ProfileRouterSpy()
+        let profileService = ProfileServiceStub(
+            results: [
+                .success(
+                    .init(
+                        id: "user-1",
+                        email: "sarah@example.com",
+                        name: "Sarah Connor",
+                        currency: "USD",
+                        preferredLanguage: "en-US",
+                        tier: "ACTIVE",
+                        tierValidUntil: nil
+                    )
+                )
+            ]
+        )
+        let sut = makeSut(
+            presenter: presenter,
+            router: router,
+            profileService: profileService
+        )
+
+        await sut.fetchData()
+        await sut.handleTapSubscription()
+
+        XCTAssertEqual(router.openSubscriptionCallsCount, 1)
+        XCTAssertEqual(router.lastOpenedSubscriptionTier, "ACTIVE")
+    }
+}
+
+extension ProfileInteractorTests {
     func testHandleTapSaveCurrencyPostsCurrencyChangedNotificationAndPersistsProfile() async {
         let presenter = ProfilePresenterSpy()
         let router = ProfileRouterSpy()
@@ -367,7 +400,9 @@ private final class ProfilePresenterSpy: ProfilePresentationLogic {
 @MainActor
 private final class ProfileRouterSpy: ProfileRoutingLogic {
     private(set) var openCurrencySelectionCallsCount = 0
+    private(set) var openSubscriptionCallsCount = 0
     private(set) var lastOpenedCurrencyCode: String?
+    private(set) var lastOpenedSubscriptionTier: String?
     private(set) var presentedErrors: [String] = []
 
     func openCurrencySelection(
@@ -376,6 +411,14 @@ private final class ProfileRouterSpy: ProfileRoutingLogic {
     ) {
         openCurrencySelectionCallsCount += 1
         lastOpenedCurrencyCode = currentCurrencyCode
+    }
+
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    ) {
+        openSubscriptionCallsCount += 1
+        lastOpenedSubscriptionTier = currentTier
     }
 
     func presentError(with text: String) {

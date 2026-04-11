@@ -68,8 +68,8 @@ extension ProfilePresenterTests {
 
         XCTAssertEqual(content.avatar.initials.text, "SC")
         XCTAssertEqual(content.name.text, "Sarah Connor")
-        XCTAssertEqual(content.membership.text, L10n.profileMemberStatus("Premium Active"))
-        XCTAssertEqual(content.plan.title.text, "Premium Active")
+        XCTAssertEqual(content.membership.text, L10n.profileMemberStatus(L10n.subscriptionPremium))
+        XCTAssertEqual(content.plan.title.text, L10n.subscriptionPremium)
         XCTAssertEqual(content.rows.count, 2)
         XCTAssertEqual(content.rows[0].title.text, L10n.profileCurrency)
         XCTAssertTrue(content.rows[0].subtitle.text.contains("GBP"))
@@ -126,6 +126,7 @@ private final class ProfileHandlerSpy: ProfileHandler, @unchecked Sendable {
     var onHandleLogout: (() -> Void)?
     var onHandleTapCurrency: (() -> Void)?
     var onHandleTapSaveCurrency: (() -> Void)?
+    var onHandleTapSubscription: (() -> Void)?
 
     func handleTapRetry() async {
         onHandleRetry?()
@@ -141,5 +142,9 @@ private final class ProfileHandlerSpy: ProfileHandler, @unchecked Sendable {
 
     func handleTapSaveCurrency() async {
         onHandleTapSaveCurrency?()
+    }
+
+    func handleTapSubscription() async {
+        onHandleTapSubscription?()
     }
 }

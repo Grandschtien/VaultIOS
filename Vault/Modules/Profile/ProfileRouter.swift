@@ -10,6 +10,10 @@ protocol ProfileRoutingLogic: Sendable {
         currentCurrencyCode: String,
         output: ProfileCurrencySelectionOutput
     )
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    )
     func presentError(with text: String)
 }
 
@@ -43,6 +47,23 @@ final class ProfileRouter: ProfileRoutingLogic {
                 .top(.stack)
                 .present(currencyScreen)
         })
+    }
+
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    ) {
+        let subscriptionScreen = SubscriptionFactory(
+            currentTier: currentTier,
+            output: output
+        )
+            .withModalPresentationStyle(.pageSheet)
+
+        screenRouter.navigate { route in
+            route
+                .top(.stack)
+                .present(subscriptionScreen)
+        }
     }
 
     func presentError(with text: String) {

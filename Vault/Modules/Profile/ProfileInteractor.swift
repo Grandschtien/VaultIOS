@@ -11,6 +11,7 @@ protocol ProfileHandler: AnyObject, Sendable {
     func handleTapLogout() async
     func handleTapCurrency() async
     func handleTapSaveCurrency() async
+    func handleTapSubscription() async
 }
 
 actor ProfileInteractor: ProfileBusinessLogic {
@@ -244,6 +245,17 @@ extension ProfileInteractor: ProfileHandler {
             await router.presentError(with: saveFailedMessage(from: error))
         }
     }
+
+    func handleTapSubscription() async {
+        guard loadingState == .loaded else {
+            return
+        }
+
+        await router.openSubscription(
+            currentTier: profile?.tier ?? "",
+            output: self
+        )
+    }
 }
 
 extension ProfileInteractor: ProfileCurrencySelectionOutput {
@@ -256,5 +268,11 @@ extension ProfileInteractor: ProfileCurrencySelectionOutput {
 private extension ProfileInteractor {
     enum ProfileSaveError: Error {
         case missingEmail
+    }
+}
+
+extension ProfileInteractor: SubscriptionOutput {
+    func handleSubscriptionDidSync() async {
+        await fetchData()
     }
 }

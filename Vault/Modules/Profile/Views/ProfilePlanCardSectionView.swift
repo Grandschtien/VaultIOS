@@ -9,6 +9,7 @@ final class ProfilePlanCardSectionView: UIView, LayoutScaleProviding {
     private let subtitleLabel = Label()
 
     private var isSkeletonAnimating = false
+    private var tapCommand: Command = .nope
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -25,6 +26,8 @@ final class ProfilePlanCardSectionView: UIView, LayoutScaleProviding {
         iconView.image = viewModel.icon
         titleLabel.apply(viewModel.title)
         subtitleLabel.apply(viewModel.subtitle)
+        tapCommand = viewModel.tapCommand
+        isUserInteractionEnabled = viewModel.tapCommand != .nope
     }
 
     func setLoading(_ isLoading: Bool) {
@@ -38,6 +41,8 @@ final class ProfilePlanCardSectionView: UIView, LayoutScaleProviding {
 
 private extension ProfilePlanCardSectionView {
     func setupViews() {
+        let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+        addGestureRecognizer(tapRecognizer)
         cardView.backgroundColor = Asset.Colors.interactiveElemetsPrimary.color
         cardView.layer.cornerRadius = sizeL
         cardView.clipsToBounds = true
@@ -101,5 +106,10 @@ private extension ProfilePlanCardSectionView {
         titleLabel.isHidden = false
         subtitleLabel.isHidden = false
         cardView.hideSkeleton()
+    }
+
+    @objc
+    func handleTap() {
+        tapCommand.execute()
     }
 }
