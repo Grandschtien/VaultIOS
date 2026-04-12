@@ -48,6 +48,26 @@ extension AnalyticsPresenterTests {
 }
 
 extension AnalyticsPresenterTests {
+    func testPresentFetchedDataLockedBuildsLockedState() {
+        sut.presentFetchedData(
+            .init(
+                selectedPeriod: .init(
+                    from: Date(timeIntervalSince1970: 1_775_001_600),
+                    to: Date(timeIntervalSince1970: 1_775_433_600)
+                ),
+                isLocked: true
+            )
+        )
+
+        guard case let .locked(lockedViewModel) = sut.viewModel.state else {
+            return XCTFail("Expected locked state")
+        }
+
+        XCTAssertEqual(lockedViewModel.button.title, L10n.analyticsSubscribeToSee)
+    }
+}
+
+extension AnalyticsPresenterTests {
     func testPresentFetchedDataLoadedBuildsChartAndRows() {
         sut.presentFetchedData(
             .init(

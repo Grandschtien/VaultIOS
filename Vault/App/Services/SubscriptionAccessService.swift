@@ -78,8 +78,8 @@ private extension SubscriptionAccessService {
     }
 
     func currentUserID() -> String? {
-        let userID = userProfileStorageService.loadProfile()?.userId
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let userID = (userProfileStorageService.loadProfile()?.userId ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
 
         return userID.isEmpty ? nil : userID
     }

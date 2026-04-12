@@ -263,6 +263,53 @@ extension MainInteractorTests {
         )
     }
 
+    func testHandleTapPeriodButtonWithRegularTierOpensSubscription() async {
+        let router = MainRouterSpy()
+        let repository = MainRepositoryStub(
+            categoriesResults: [.success([])],
+            recentExpensesResults: [.success([])]
+        )
+        let subscriptionAccessService = SubscriptionAccessServiceStub(currentTier: "REGULAR")
+        let sut = makeSut(
+            presenter: MainPresenterSpy(),
+            router: router,
+            summaryProvider: MainSummaryProviderStub(
+                result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
+            ),
+            subscriptionAccessService: subscriptionAccessService,
+            repository: repository,
+            observer: repository.observer
+        )
+
+        await sut.handleTapPeriodButton()
+
+        XCTAssertTrue(router.openPeriodPickerCalls.isEmpty)
+        XCTAssertEqual(router.lastOpenedSubscriptionTier, "REGULAR")
+    }
+
+    func testHandleSubscriptionDidSyncRefreshesCurrentTier() async {
+        let repository = MainRepositoryStub(
+            categoriesResults: [.success([])],
+            recentExpensesResults: [.success([])]
+        )
+        let subscriptionAccessService = SubscriptionAccessServiceStub(currentTier: "REGULAR")
+        let sut = makeSut(
+            presenter: MainPresenterSpy(),
+            router: MainRouterSpy(),
+            summaryProvider: MainSummaryProviderStub(
+                result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
+            ),
+            subscriptionAccessService: subscriptionAccessService,
+            repository: repository,
+            observer: repository.observer
+        )
+
+        await sut.handleSubscriptionDidSync()
+        let refreshCallsCount = await subscriptionAccessService.refreshCallsCount()
+
+        XCTAssertEqual(refreshCallsCount, 1)
+    }
+
     func testHandleDidConfirmCategoryPeriodUpdatesPeriodAndReloadsMainData() async {
         let presenter = MainPresenterSpy()
         let summaryProvider = MainSummaryProviderStub(
@@ -323,6 +370,7 @@ private extension MainInteractorTests {
         currencyRateProvider: MainCurrencyRateProviding = MainCurrencyRateProviderStub(result: .success(())),
         summaryProvider: MainSummaryProviding,
         summaryPeriodProvider: MainSummaryPeriodServicing = MainSummaryPeriodServiceStub(),
+        subscriptionAccessService: SubscriptionAccessServicing = SubscriptionAccessServiceStub(currentTier: "PLUS"),
         repository: MainFlowDomainRepositoryProtocol,
         observer: MainFlowDomainObserverProtocol
     ) -> MainInteractor {
@@ -332,6 +380,7 @@ private extension MainInteractorTests {
             currencyRateProvider: currencyRateProvider,
             summaryProvider: summaryProvider,
             summaryPeriodProvider: summaryPeriodProvider,
+            subscriptionAccessService: subscriptionAccessService,
             repository: repository,
             observer: observer
         )
@@ -404,6 +453,7 @@ private final class MainRouterSpy: MainRoutingLogic, @unchecked Sendable {
     private(set) var openExpensesCount: Int = .zero
     private(set) var openCategoryCalls: [(id: String, name: String)] = []
     private(set) var openPeriodPickerCalls: [MainSummaryPeriod] = []
+    private(set) var lastOpenedSubscriptionTier: String?
 
     func openAllCategories() {
         openCategoriesCount += 1
@@ -415,6 +465,13 @@ private final class MainRouterSpy: MainRoutingLogic, @unchecked Sendable {
 
     func openCategory(id: String, name: String) {
         openCategoryCalls.append((id, name))
+    }
+
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    ) {
+        lastOpenedSubscriptionTier = currentTier
     }
 
     func openPeriodPicker(
@@ -462,6 +519,28 @@ private actor MainCurrencyRateProviderStub: MainCurrencyRateProviding {
         let index = min(syncCallsCount, max(results.count - 1, .zero))
         syncCallsCount += 1
         _ = try results[index].get()
+    }
+}
+
+private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
+    private let tier: String
+    private var refreshCalls = 0
+
+    init(currentTier: String) {
+        tier = currentTier
+    }
+
+    func currentTier() async -> String {
+        tier
+    }
+
+    func refreshCurrentTier() async -> String {
+        refreshCalls += 1
+        return tier
+    }
+
+    func refreshCallsCount() -> Int {
+        refreshCalls
     }
 }
 

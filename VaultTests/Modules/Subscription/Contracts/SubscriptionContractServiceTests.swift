@@ -5,7 +5,7 @@ final class SubscriptionContractServiceTests: XCTestCase {
     func testApprovePurchaseForwardsPayload() async throws {
         let spy = AsyncNetworkClientContractSpy()
         let request = SubscriptionApproveRequestDTO(
-            signedTransaction: "signed-transaction"
+            signedTransactionInfo: "signed-transaction"
         )
         var capturedRequest: SubscriptionApproveRequestDTO?
 
@@ -35,7 +35,7 @@ extension SubscriptionContractServiceTests {
         do {
             try await sut.approvePurchase(
                 .init(
-                    signedTransaction: "signed-transaction"
+                    signedTransactionInfo: "signed-transaction"
                 )
             )
             XCTFail("Expected throw")

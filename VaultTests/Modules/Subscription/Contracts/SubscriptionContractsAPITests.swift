@@ -5,7 +5,7 @@ final class SubscriptionContractsAPITests: XCTestCase {
     func testApproveBuildsExpectedConfiguration() {
         let target = SubscriptionAPI.approve(
             .init(
-                signedTransaction: "signed-transaction"
+                signedTransactionInfo: "signed-transaction"
             )
         )
 

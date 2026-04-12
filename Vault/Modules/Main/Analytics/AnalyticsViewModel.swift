@@ -19,7 +19,12 @@ extension AnalyticsViewModel {
         case loading
         case error(FullScreenCommonErrorView.ViewModel)
         case empty(Label.LabelViewModel)
+        case locked(LockedViewModel)
         case loaded(ContentViewModel)
+    }
+
+    struct LockedViewModel: Equatable {
+        let button: Button.ButtonViewModel
     }
 
     struct ContentViewModel: Equatable {

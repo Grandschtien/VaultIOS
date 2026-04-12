@@ -18,6 +18,8 @@ final class MainFactory: Screen {
         var currencyRateService: MainCurrencyRateContractServicing
         @SafeInject
         var userProfileStorageService: UserProfileStorageServiceProtocol
+        @SafeInject
+        var subscriptionAccessService: SubscriptionAccessServicing
 
         let currencyRateProvider = MainCurrencyRateProvider(
             currencyRateService: currencyRateService,
@@ -48,6 +50,7 @@ final class MainFactory: Screen {
             currencyRateProvider: currencyRateProvider,
             summaryProvider: summaryProvider,
             summaryPeriodProvider: context.summaryPeriodProvider,
+            subscriptionAccessService: subscriptionAccessService,
             repository: context.repository,
             observer: context.observer
         )

@@ -390,23 +390,23 @@ private final class SubscriptionStoreKitServiceStub: SubscriptionStoreKitServici
 
 private extension SubscriptionStoreKitServiceStub {
     actor State {
-        private var loadCallsCount = 0
-        private var finishedTransactionIDs: [String] = []
+        private var recordedLoadCallsCount = 0
+        private var recordedFinishedTransactionIDs: [String] = []
 
         func incrementLoadCallsCount() {
-            loadCallsCount += 1
+            recordedLoadCallsCount += 1
         }
 
         func appendFinishedTransactionID(_ transactionID: String) {
-            finishedTransactionIDs.append(transactionID)
+            recordedFinishedTransactionIDs.append(transactionID)
         }
 
         func loadCallsCount() -> Int {
-            loadCallsCount
+            recordedLoadCallsCount
         }
 
         func finishedTransactionIDs() -> [String] {
-            finishedTransactionIDs
+            recordedFinishedTransactionIDs
         }
     }
 }

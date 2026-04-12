@@ -113,7 +113,7 @@ private extension SubscriptionStoreKitClientSpy {
     actor State {
         private var capturedProductIDs: [String] = []
         private var capturedAppAccountTokens: [UUID] = []
-        private var finishedTransactionIDs: [String] = []
+        private var recordedFinishedTransactionIDs: [String] = []
 
         func recordPurchase(productID: String, appAccountToken: UUID) {
             capturedProductIDs.append(productID)
@@ -121,7 +121,7 @@ private extension SubscriptionStoreKitClientSpy {
         }
 
         func recordFinish(transactionID: String) {
-            finishedTransactionIDs.append(transactionID)
+            recordedFinishedTransactionIDs.append(transactionID)
         }
 
         func purchaseProductIDs() -> [String] {
@@ -133,7 +133,7 @@ private extension SubscriptionStoreKitClientSpy {
         }
 
         func finishedTransactionIDs() -> [String] {
-            finishedTransactionIDs
+            recordedFinishedTransactionIDs
         }
     }
 }

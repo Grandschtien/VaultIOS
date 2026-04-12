@@ -24,9 +24,9 @@ final class SubscriptionTransactionObserverServiceTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 100_000_000)
 
         let approvedRequests = await contractService.approvedRequests()
-        let finishedIDs = storeKitService.finishedTransactionIDs()
+        let finishedIDs = await storeKitService.finishedTransactionIDs()
 
-        XCTAssertEqual(approvedRequests, [.init(signedTransaction: "signed-transaction")])
+        XCTAssertEqual(approvedRequests, [.init(signedTransactionInfo: "signed-transaction")])
         XCTAssertEqual(finishedIDs, ["transaction-1"])
     }
 }
@@ -56,9 +56,9 @@ extension SubscriptionTransactionObserverServiceTests {
         try? await Task.sleep(nanoseconds: 100_000_000)
 
         let approvedRequests = await contractService.approvedRequests()
-        let finishedIDs = storeKitService.finishedTransactionIDs()
+        let finishedIDs = await storeKitService.finishedTransactionIDs()
 
-        XCTAssertEqual(approvedRequests, [.init(signedTransaction: "signed-transaction-2")])
+        XCTAssertEqual(approvedRequests, [.init(signedTransactionInfo: "signed-transaction-2")])
         XCTAssertTrue(finishedIDs.isEmpty)
     }
 }
@@ -71,8 +71,7 @@ private extension SubscriptionTransactionObserverServiceTests {
 
 private final class SubscriptionTransactionObserverStoreKitServiceSpy: SubscriptionStoreKitServicing, @unchecked Sendable {
     private let updates: [SubscriptionVerifiedPurchase]
-    private let lock = NSLock()
-    private var finishedIDs: [String] = []
+    private let state = State()
 
     init(updates: [SubscriptionVerifiedPurchase]) {
         self.updates = updates
@@ -87,9 +86,7 @@ private final class SubscriptionTransactionObserverStoreKitServiceSpy: Subscript
     }
 
     func finishPurchase(transactionID: String) async throws {
-        lock.lock()
-        finishedIDs.append(transactionID)
-        lock.unlock()
+        await state.appendFinishedTransactionID(transactionID)
     }
 
     func makeTransactionUpdatesStream() -> AsyncStream<SubscriptionVerifiedPurchase> {
@@ -101,10 +98,22 @@ private final class SubscriptionTransactionObserverStoreKitServiceSpy: Subscript
         }
     }
 
-    func finishedTransactionIDs() -> [String] {
-        lock.lock()
-        defer { lock.unlock() }
-        return finishedIDs
+    func finishedTransactionIDs() async -> [String] {
+        await state.finishedTransactionIDs()
+    }
+}
+
+private extension SubscriptionTransactionObserverStoreKitServiceSpy {
+    actor State {
+        private var recordedFinishedTransactionIDs: [String] = []
+
+        func appendFinishedTransactionID(_ transactionID: String) {
+            recordedFinishedTransactionIDs.append(transactionID)
+        }
+
+        func finishedTransactionIDs() -> [String] {
+            recordedFinishedTransactionIDs
+        }
     }
 }
 
