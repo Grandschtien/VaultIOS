@@ -237,7 +237,7 @@ private extension ProfilePresenter {
         }
 
         let formatter = DateFormatter()
-        formatter.dateFormat = "dd.mm.yyyy"
+        formatter.dateFormat = "dd.MM.yyyy"
 
         return L10n.profileValidUntil(formatter.string(from: date))
     }
