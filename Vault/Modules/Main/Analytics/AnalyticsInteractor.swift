@@ -156,6 +156,8 @@ private extension AnalyticsInteractor {
 
 extension AnalyticsInteractor: AnalyticsHandler {
     func handleTapRetry() async {
+        currentTier = await subscriptionAccessService.currentTier()
+
         guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
             return
         }
@@ -167,6 +169,8 @@ extension AnalyticsInteractor: AnalyticsHandler {
     }
 
     func handleTapMonthFilter() async {
+        currentTier = await subscriptionAccessService.currentTier()
+
         guard SubscriptionPlanResolver.hasPremiumTier(for: currentTier) else {
             await router.openSubscription(
                 currentTier: currentTier,
@@ -184,6 +188,8 @@ extension AnalyticsInteractor: AnalyticsHandler {
     }
 
     func handleTapCategory(id: String, name: String) async {
+        currentTier = await subscriptionAccessService.currentTier()
+
         guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
             return
         }
