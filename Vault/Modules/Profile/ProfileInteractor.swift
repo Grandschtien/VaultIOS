@@ -21,6 +21,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
     private let currencyRateService: MainCurrencyRateContractServicing
     private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let authSessionService: AuthSessionServiceProtocol
+    private let subscriptionAccessService: SubscriptionAccessServicing
 
     private var loadingState: LoadingStatus = .idle
     private var isSavingCurrency: Bool = false
@@ -34,7 +35,8 @@ actor ProfileInteractor: ProfileBusinessLogic {
         profileService: ProfileContractServicing,
         currencyRateService: MainCurrencyRateContractServicing,
         userProfileStorageService: UserProfileStorageServiceProtocol,
-        authSessionService: AuthSessionServiceProtocol
+        authSessionService: AuthSessionServiceProtocol,
+        subscriptionAccessService: SubscriptionAccessServicing
     ) {
         self.presenter = presenter
         self.router = router
@@ -42,6 +44,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
         self.currencyRateService = currencyRateService
         self.userProfileStorageService = userProfileStorageService
         self.authSessionService = authSessionService
+        self.subscriptionAccessService = subscriptionAccessService
     }
 
     func fetchData() async {
@@ -273,6 +276,7 @@ private extension ProfileInteractor {
 
 extension ProfileInteractor: SubscriptionOutput {
     func handleSubscriptionDidSync() async {
+        _ = await subscriptionAccessService.refreshCurrentTier()
         await fetchData()
     }
 }

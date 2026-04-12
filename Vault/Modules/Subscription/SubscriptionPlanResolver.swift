@@ -12,6 +12,14 @@ enum SubscriptionPlanResolver {
         currentProductID(from: rawTier) != nil
     }
 
+    static func hasPremiumTier(for rawTier: String) -> Bool {
+        if case .premium = normalizedTier(from: rawTier) {
+            return true
+        }
+
+        return false
+    }
+
     static func description(for productID: String) -> String {
         switch productID {
         case SubscriptionCatalog.plus.id:

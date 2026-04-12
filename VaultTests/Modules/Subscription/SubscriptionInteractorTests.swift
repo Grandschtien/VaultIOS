@@ -232,6 +232,24 @@ extension SubscriptionInteractorTests {
     }
 }
 
+extension SubscriptionInteractorTests {
+    func testSubscriptionRouterPresentMessageStripsEnvironmentSuffix() {
+        let sanitizedText = SubscriptionToastMessageSanitizer.sanitize(
+            "Purchase successful [Environment: Xcode]"
+        )
+
+        XCTAssertEqual(sanitizedText, "Purchase successful")
+    }
+
+    func testSubscriptionRouterPresentErrorKeepsMessageWithoutEnvironmentSuffix() {
+        let sanitizedText = SubscriptionToastMessageSanitizer.sanitize(
+            "Unable to verify purchase"
+        )
+
+        XCTAssertEqual(sanitizedText, "Unable to verify purchase")
+    }
+}
+
 private extension SubscriptionInteractorTests {
     var defaultPlans: [SubscriptionStorePlan] {
         [

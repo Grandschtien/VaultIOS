@@ -224,6 +224,7 @@ protocol MainSummaryPeriodProviding: Sendable {
 
 protocol MainSummaryPeriodUpdating: Sendable {
     func updatePeriod(from: Date, to: Date)
+    func resetToCurrentMonth()
 }
 
 typealias MainSummaryPeriodServicing = MainSummaryPeriodProviding & MainSummaryPeriodUpdating
@@ -259,6 +260,12 @@ final class MainSummaryPeriodProvider: MainSummaryPeriodServicing, @unchecked Se
         )
         lock.withLock {
             selectedPeriod = period
+        }
+    }
+
+    func resetToCurrentMonth() {
+        lock.withLock {
+            selectedPeriod = nil
         }
     }
 }

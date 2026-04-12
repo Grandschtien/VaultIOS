@@ -274,6 +274,45 @@ extension ProfileInteractorTests {
 }
 
 extension ProfileInteractorTests {
+    func testHandleSubscriptionDidSyncRefreshesTierAccessAndReloadsProfile() async {
+        let presenter = ProfilePresenterSpy()
+        let router = ProfileRouterSpy()
+        let profileService = ProfileServiceStub(
+            results: [
+                .success(
+                    .init(
+                        id: "user-1",
+                        email: "sarah@example.com",
+                        name: "Sarah Connor",
+                        currency: "USD",
+                        preferredLanguage: "en-US",
+                        tier: "PLUS",
+                        tierValidUntil: nil
+                    )
+                )
+            ]
+        )
+        let subscriptionAccessService = SubscriptionAccessServiceSpy()
+        let sut = makeSut(
+            presenter: presenter,
+            router: router,
+            profileService: profileService,
+            subscriptionAccessService: subscriptionAccessService
+        )
+
+        await sut.handleSubscriptionDidSync()
+
+        let refreshCallsCount = await subscriptionAccessService.refreshCurrentTierCallsCount()
+        let serviceCallsCount = await profileService.callsCount()
+
+        XCTAssertEqual(refreshCallsCount, 1)
+        XCTAssertEqual(serviceCallsCount, 1)
+        XCTAssertEqual(presenter.presentedData.last?.profile?.tier, "PLUS")
+        assertStatus(presenter.presentedData.last?.loadingState ?? .idle, is: .loaded)
+    }
+}
+
+extension ProfileInteractorTests {
     func testHandleTapSaveCurrencyPostsCurrencyChangedNotificationAndPersistsProfile() async {
         let presenter = ProfilePresenterSpy()
         let router = ProfileRouterSpy()
@@ -361,7 +400,8 @@ private extension ProfileInteractorTests {
         router: ProfileRoutingLogic,
         profileService: ProfileContractServicing,
         localProfileStorage: UserProfileStorageServiceProtocol = UserProfileStorageServiceSpy(),
-        authSessionService: AuthSessionServiceProtocol = AuthSessionServiceSpy(logoutResult: .success(()))
+        authSessionService: AuthSessionServiceProtocol = AuthSessionServiceSpy(logoutResult: .success(())),
+        subscriptionAccessService: SubscriptionAccessServicing = SubscriptionAccessServiceSpy()
     ) -> ProfileInteractor {
         ProfileInteractor(
             presenter: presenter,
@@ -369,7 +409,8 @@ private extension ProfileInteractorTests {
             profileService: profileService,
             currencyRateService: CurrencyRateServiceStub(),
             userProfileStorageService: localProfileStorage,
-            authSessionService: authSessionService
+            authSessionService: authSessionService,
+            subscriptionAccessService: subscriptionAccessService
         )
     }
 
@@ -461,6 +502,33 @@ private actor AuthSessionServiceSpy: AuthSessionServiceProtocol {
 
     func currentLogoutFromBackendCallsCount() -> Int {
         logoutFromBackendCallsCount
+    }
+}
+
+private actor SubscriptionAccessServiceSpy: SubscriptionAccessServicing {
+    private var currentTierResult: String
+    private var refreshTierResult: String
+    private var refreshCallsCount = 0
+
+    init(
+        currentTierResult: String = "REGULAR",
+        refreshTierResult: String = "PLUS"
+    ) {
+        self.currentTierResult = currentTierResult
+        self.refreshTierResult = refreshTierResult
+    }
+
+    func currentTier() async -> String {
+        currentTierResult
+    }
+
+    func refreshCurrentTier() async -> String {
+        refreshCallsCount += 1
+        return refreshTierResult
+    }
+
+    func refreshCurrentTierCallsCount() -> Int {
+        refreshCallsCount
     }
 }
 

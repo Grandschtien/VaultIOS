@@ -31,6 +31,7 @@ actor MainInteractor: MainBusinessLogic {
     private var summaryState: LoadingStatus = .idle
     private var categoriesState: LoadingStatus = .idle
     private var expensesState: LoadingStatus = .idle
+    private var currentTier: String = ""
 
     private var summary: MainSummaryModel?
     private var categories: [MainCategoryCardModel] = []
@@ -64,6 +65,11 @@ actor MainInteractor: MainBusinessLogic {
     func fetchData() async {
         guard await validateLaunchCurrencyRate() else {
             return
+        }
+
+        currentTier = await subscriptionAccessService.currentTier()
+        if SubscriptionPlanResolver.hasPremiumTier(for: currentTier) == false {
+            summaryPeriodProvider.resetToCurrentMonth()
         }
 
         startObservingIfNeeded()
@@ -247,8 +253,8 @@ extension MainInteractor: MainHandler {
             return
         }
 
-        let currentTier = await subscriptionAccessService.currentTier()
-        guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
+        currentTier = await subscriptionAccessService.currentTier()
+        guard SubscriptionPlanResolver.hasPremiumTier(for: currentTier) else {
             await router.openSubscription(
                 currentTier: currentTier,
                 output: self
@@ -325,6 +331,9 @@ extension MainInteractor: CategoryPeriodPickerOutput {
 
 extension MainInteractor: SubscriptionOutput {
     func handleSubscriptionDidSync() async {
-        _ = await subscriptionAccessService.refreshCurrentTier()
+        currentTier = await subscriptionAccessService.refreshCurrentTier()
+        if SubscriptionPlanResolver.hasPremiumTier(for: currentTier) == false {
+            summaryPeriodProvider.resetToCurrentMonth()
+        }
     }
 }

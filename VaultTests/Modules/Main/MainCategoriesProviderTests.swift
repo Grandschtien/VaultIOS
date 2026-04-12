@@ -125,7 +125,7 @@ extension MainCategoriesProviderTests {
         let categories = try await sut.fetchCategories()
 
         XCTAssertEqual(categories.count, 1)
-        XCTAssertEqual(categories[0].name, "Прочее")
+        XCTAssertEqual(categories[0].name, "Другое")
     }
 }
 

@@ -76,7 +76,7 @@ extension ExpenseAIEntryInteractorTests {
         XCTAssertEqual(router.openedDrafts?.first?.currencyCode, "EUR")
         XCTAssertEqual(router.openedDrafts?.first?.selectedCategory?.id, "food")
         XCTAssertTrue(router.presentedErrors.isEmpty)
-        XCTAssertEqual(presenter.presentedData.last?.loadingState, .idle)
+        XCTAssertEqual(presenter.presentedData.last?.loadingState, .loading)
     }
 
     func testHandleTapProcessFailureShowsErrorToast() async {

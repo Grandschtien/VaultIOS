@@ -12,6 +12,13 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  PROJECT_PATH: Vault.xcodeproj
+  SCHEME: Vault
+  DESTINATION: platform=iOS Simulator,name=iPhone 17
+  DERIVED_DATA_PATH: /tmp/VaultCI/DerivedData
+  SOURCE_PACKAGES_PATH: /tmp/VaultCI/SourcePackages
+
 jobs:
   build-and-test:
     runs-on: macos-latest
@@ -23,27 +30,56 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Configure NetworkClient access
+        env:
+          NETWORK_CLIENT_TOKEN: ${{ secrets.NETWORK_CLIENT }}
+        run: |
+          if [ -z "$NETWORK_CLIENT_TOKEN" ]; then
+            echo "NETWORK_CLIENT secret is required to resolve the NetworkClient package."
+            exit 1
+          fi
+
+          echo "::add-mask::$NETWORK_CLIENT_TOKEN"
+          git config --global url."https://x-access-token:${NETWORK_CLIENT_TOKEN}@github.com/Grandschtien/NetworkClient.git".insteadOf "https://github.com/Grandschtien/NetworkClient.git"
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.SOURCE_PACKAGES_PATH }}
+          key: ${{ runner.os }}-swift-packages-${{ hashFiles('Vault.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swift-packages-
+
       - name: Resolve Package Dependencies
         run: |
+          set -o pipefail
           xcodebuild \
-            -project Vault.xcodeproj \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME" \
+            -clonedSourcePackagesDirPath "$SOURCE_PACKAGES_PATH" \
             -resolvePackageDependencies
 
       - name: Build For Testing
         run: |
+          set -o pipefail
           xcodebuild \
-            -project Vault.xcodeproj \
-            -scheme Vault \
-            -destination 'platform=iOS Simulator,name=iPhone 17' \
-            -derivedDataPath /tmp/VaultCI \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            -clonedSourcePackagesDirPath "$SOURCE_PACKAGES_PATH" \
+            -disableAutomaticPackageResolution \
             CODE_SIGNING_ALLOWED=NO \
             build-for-testing
 
       - name: Test
         run: |
+          set -o pipefail
           xcodebuild \
-            -project Vault.xcodeproj \
-            -scheme Vault \
-            -destination 'platform=iOS Simulator,name=iPhone 17' \
-            -derivedDataPath /tmp/VaultCI \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            -clonedSourcePackagesDirPath "$SOURCE_PACKAGES_PATH" \
+            -disableAutomaticPackageResolution \
             test-without-building

@@ -47,6 +47,9 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
 
     func fetchData() async {
         currentTier = await subscriptionAccessService.currentTier()
+        if SubscriptionPlanResolver.hasPremiumTier(for: currentTier) == false {
+            summaryPeriodProvider.resetToCurrentMonth()
+        }
         guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
             data = nil
             loadingState = .idle
@@ -164,7 +167,11 @@ extension AnalyticsInteractor: AnalyticsHandler {
     }
 
     func handleTapMonthFilter() async {
-        guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
+        guard SubscriptionPlanResolver.hasPremiumTier(for: currentTier) else {
+            await router.openSubscription(
+                currentTier: currentTier,
+                output: self
+            )
             return
         }
 
@@ -213,6 +220,9 @@ extension AnalyticsInteractor: CategoryPeriodPickerOutput {
 extension AnalyticsInteractor: SubscriptionOutput {
     func handleSubscriptionDidSync() async {
         currentTier = await subscriptionAccessService.refreshCurrentTier()
+        if SubscriptionPlanResolver.hasPremiumTier(for: currentTier) == false {
+            summaryPeriodProvider.resetToCurrentMonth()
+        }
 
         guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
             data = nil

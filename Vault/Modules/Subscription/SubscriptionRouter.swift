@@ -34,10 +34,16 @@ final class SubscriptionRouter: SubscriptionRoutingLogic {
     }
 
     func presentError(with text: String) {
-        toastPresenter.present(state: .error, title: text)
+        toastPresenter.present(
+            state: .error,
+            title: SubscriptionToastMessageSanitizer.sanitize(text)
+        )
     }
 
     func presentMessage(with text: String) {
-        toastPresenter.present(state: .neutral, title: text)
+        toastPresenter.present(
+            state: .neutral,
+            title: SubscriptionToastMessageSanitizer.sanitize(text)
+        )
     }
 }
