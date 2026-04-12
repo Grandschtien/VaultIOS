@@ -75,7 +75,7 @@ extension CategoriesListCategoriesProviderTests {
         XCTAssertEqual(categories[0].amount, 9.25)
         XCTAssertEqual(categories[1].amount, .zero)
         XCTAssertTrue(categories.allSatisfy { $0.currency == "EUR" })
-        XCTAssertEqual(categories[1].name, "Прочее")
+        XCTAssertEqual(categories[1].name, "Другое")
         XCTAssertEqual(cache.categories(), categories)
     }
 }

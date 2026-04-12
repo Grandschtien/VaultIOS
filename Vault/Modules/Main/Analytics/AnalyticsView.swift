@@ -13,6 +13,8 @@ final class AnalyticsView: UIView, LayoutScaleProviding {
     private let loadingView = AnalyticsLoadingView()
     private let errorView = FullScreenCommonErrorView()
     private let emptyLabel = Label()
+    private let lockedOverlayView = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let lockedButton = Button()
     private let tableAdapter: AnalyticsCategorySummaryTableAdapter
     private let monthPill = AnalyticsMonthBarButtonView()
     private var tableHeightConstraint: Constraint?
@@ -50,6 +52,8 @@ final class AnalyticsView: UIView, LayoutScaleProviding {
         case let .empty(emptyViewModel):
             monthPill.configure(with: viewModel.monthBarButton)
             showEmptyState(emptyViewModel)
+        case let .locked(lockedViewModel):
+            showLockedState(lockedViewModel)
         case let .loaded(contentViewModel):
             monthPill.configure(with: viewModel.monthBarButton)
             showLoadedState(contentViewModel)
@@ -72,6 +76,7 @@ private extension AnalyticsView {
         emptyLabel.isHidden = true
         loadingView.isHidden = true
         errorView.isHidden = true
+        lockedOverlayView.isHidden = true
     }
 
     func setupLayout() {
@@ -79,10 +84,12 @@ private extension AnalyticsView {
         addSubview(loadingView)
         addSubview(errorView)
         addSubview(emptyLabel)
+        addSubview(lockedOverlayView)
 
         scrollView.addSubview(contentView)
         contentView.addSubview(stackView)
         contentView.addSubview(monthPill)
+        lockedOverlayView.contentView.addSubview(lockedButton)
     
         [
             periodTitleLabel,
@@ -114,6 +121,16 @@ private extension AnalyticsView {
             make.horizontalEdges.equalTo(safeAreaLayoutGuide).inset(spaceL)
         }
 
+        lockedOverlayView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+
+        lockedButton.snp.makeConstraints { make in
+            make.center.equalTo(safeAreaLayoutGuide)
+            make.leading.greaterThanOrEqualTo(safeAreaLayoutGuide).offset(spaceL)
+            make.trailing.lessThanOrEqualTo(safeAreaLayoutGuide).inset(spaceL)
+        }
+
         contentView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
             make.width.equalTo(scrollView.snp.width)
@@ -139,6 +156,7 @@ private extension AnalyticsView {
         scrollView.isHidden = true
         errorView.isHidden = true
         emptyLabel.isHidden = true
+        lockedOverlayView.isHidden = true
         loadingView.isHidden = false
         loadingView.startAnimating()
     }
@@ -146,6 +164,7 @@ private extension AnalyticsView {
     func showErrorState(_ viewModel: FullScreenCommonErrorView.ViewModel) {
         scrollView.isHidden = true
         emptyLabel.isHidden = true
+        lockedOverlayView.isHidden = true
         loadingView.stopAnimating()
         loadingView.isHidden = true
         errorView.isHidden = false
@@ -155,15 +174,27 @@ private extension AnalyticsView {
     func showEmptyState(_ viewModel: Label.LabelViewModel) {
         scrollView.isHidden = true
         errorView.isHidden = true
+        lockedOverlayView.isHidden = true
         loadingView.stopAnimating()
         loadingView.isHidden = true
         emptyLabel.isHidden = false
         emptyLabel.apply(viewModel)
     }
 
+    func showLockedState(_ viewModel: AnalyticsViewModel.LockedViewModel) {
+        scrollView.isHidden = true
+        errorView.isHidden = true
+        emptyLabel.isHidden = true
+        loadingView.stopAnimating()
+        loadingView.isHidden = true
+        lockedOverlayView.isHidden = false
+        lockedButton.apply(viewModel.button)
+    }
+
     func showLoadedState(_ viewModel: AnalyticsViewModel.ContentViewModel) {
         errorView.isHidden = true
         emptyLabel.isHidden = true
+        lockedOverlayView.isHidden = true
         loadingView.stopAnimating()
         loadingView.isHidden = true
         scrollView.isHidden = false

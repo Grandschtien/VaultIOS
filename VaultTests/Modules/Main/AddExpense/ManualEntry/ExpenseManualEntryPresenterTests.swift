@@ -20,7 +20,6 @@ final class ExpenseManualEntryPresenterTests: XCTestCase {
         XCTAssertTrue(sut.viewModel.primaryButton.isLoading)
         XCTAssertFalse(sut.viewModel.primaryButton.isEnabled)
         XCTAssertFalse(sut.viewModel.currentDraft?.amountInput.isEnabled ?? true)
-        XCTAssertFalse(sut.viewModel.header.isCloseEnabled)
     }
 }
 

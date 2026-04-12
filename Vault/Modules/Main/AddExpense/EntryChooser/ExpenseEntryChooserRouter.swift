@@ -5,6 +5,10 @@ import Nivelir
 protocol ExpenseEntryChooserRoutingLogic: Sendable {
     func openAiEntry()
     func openManualEntry()
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    )
     func close()
 }
 
@@ -40,6 +44,23 @@ final class ExpenseEntryChooserRouter: ExpenseEntryChooserRoutingLogic {
             route.dimissAndPresent(
                 screens.manualEntryScreen()
                     .withBottomSheet(.init(detents: [.content]))
+            )
+        }
+    }
+
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    ) {
+        let container = viewController?.navigationController ?? viewController
+
+        screenRouter.navigate(from: container) { route in
+            route.dimissAndPresent(
+                SubscriptionFactory(
+                    currentTier: currentTier,
+                    output: output
+                )
+                .withModalPresentationStyle(.pageSheet)
             )
         }
     }

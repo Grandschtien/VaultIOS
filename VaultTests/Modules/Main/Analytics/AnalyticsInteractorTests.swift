@@ -14,7 +14,8 @@ final class AnalyticsInteractorTests: XCTestCase {
             router: AnalyticsRouterSpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: summaryPeriodProvider
+            summaryPeriodProvider: summaryPeriodProvider,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
         await sut.fetchData()
@@ -43,7 +44,8 @@ extension AnalyticsInteractorTests {
             router: AnalyticsRouterSpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: summaryPeriodProvider
+            summaryPeriodProvider: summaryPeriodProvider,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
         await sut.fetchData()
@@ -74,7 +76,8 @@ extension AnalyticsInteractorTests {
             router: AnalyticsRouterSpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: summaryPeriodProvider
+            summaryPeriodProvider: summaryPeriodProvider,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
         await sut.fetchData()
@@ -107,7 +110,8 @@ extension AnalyticsInteractorTests {
             router: AnalyticsRouterSpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: summaryPeriodProvider
+            summaryPeriodProvider: summaryPeriodProvider,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
         await sut.fetchData()
@@ -134,9 +138,11 @@ extension AnalyticsInteractorTests {
             router: router,
             dataProvider: AnalyticsDataProviderStub(results: []),
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod)
+            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PLUS")
         )
 
+        await sut.fetchData()
         await sut.handleTapCategory(id: "food", name: "Food")
 
         XCTAssertEqual(router.openCategoryCalls.count, 1)
@@ -157,12 +163,32 @@ extension AnalyticsInteractorTests {
             router: router,
             dataProvider: AnalyticsDataProviderStub(results: []),
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: currentPeriod)
+            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: currentPeriod),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
+        await sut.fetchData()
         await sut.handleTapMonthFilter()
 
         XCTAssertEqual(router.openPeriodPickerCalls, [currentPeriod])
+    }
+
+    func testHandleTapMonthFilterWithPlusTierOpensSubscription() async {
+        let router = AnalyticsRouterSpy()
+        let sut = AnalyticsInteractor(
+            presenter: AnalyticsPresenterSpy(),
+            router: router,
+            dataProvider: AnalyticsDataProviderStub(results: []),
+            observer: AnalyticsObserverStub(),
+            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PLUS")
+        )
+
+        await sut.fetchData()
+        await sut.handleTapMonthFilter()
+
+        XCTAssertTrue(router.openPeriodPickerCalls.isEmpty)
+        XCTAssertEqual(router.lastOpenedSubscriptionTier, "PLUS")
     }
 }
 
@@ -184,7 +210,8 @@ extension AnalyticsInteractorTests {
             router: AnalyticsRouterSpy(),
             dataProvider: dataProvider,
             observer: observer,
-            summaryPeriodProvider: summaryPeriodProvider
+            summaryPeriodProvider: summaryPeriodProvider,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
         await sut.fetchData()
@@ -209,6 +236,103 @@ extension AnalyticsInteractorTests {
         )
         XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), aprilCustomPeriod)
         XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 140)
+    }
+
+    func testFetchDataWithPlusTierResetsPeriodToCurrentMonthAndLoadsAnalytics() async {
+        let presenter = AnalyticsPresenterSpy()
+        let summaryPeriodProvider = MainSummaryPeriodServiceStub(
+            period: marchCustomPeriod,
+            defaultPeriod: aprilCurrentPeriod
+        )
+        let dataProvider = AnalyticsDataProviderStub(
+            results: [.success(makeData(monthStart: aprilStart, totalAmount: 120))]
+        )
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            dataProvider: dataProvider,
+            observer: AnalyticsObserverStub(),
+            summaryPeriodProvider: summaryPeriodProvider,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PLUS")
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+
+        let fetchCalls = await dataProvider.recordedFetchCalls()
+
+        XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), aprilCurrentPeriod)
+        XCTAssertEqual(summaryPeriodProvider.resetCallsCount, 1)
+        XCTAssertEqual(fetchCalls, [aprilCurrentPeriod])
+        XCTAssertEqual(presenter.presentedData.last?.data?.monthStart, aprilStart)
+    }
+
+    func testFetchDataWithRegularTierShowsLockedStateWithoutLoadingData() async {
+        let presenter = AnalyticsPresenterSpy()
+        let observer = AnalyticsObserverStub()
+        let dataProvider = AnalyticsDataProviderStub(results: [])
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            dataProvider: dataProvider,
+            observer: observer,
+            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "REGULAR")
+        )
+
+        await sut.fetchData()
+        let recordedFetchCalls = await dataProvider.recordedFetchCalls()
+
+        XCTAssertEqual(recordedFetchCalls, [])
+        XCTAssertEqual(observer.subscribeOverviewCallsCount, 0)
+        XCTAssertEqual(presenter.presentedData.last?.isLocked, true)
+    }
+
+    func testHandleTapSubscribeOpensSubscription() async {
+        let router = AnalyticsRouterSpy()
+        let sut = AnalyticsInteractor(
+            presenter: AnalyticsPresenterSpy(),
+            router: router,
+            dataProvider: AnalyticsDataProviderStub(results: []),
+            observer: AnalyticsObserverStub(),
+            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "REGULAR")
+        )
+
+        await sut.fetchData()
+        await sut.handleTapSubscribe()
+
+        XCTAssertEqual(router.lastOpenedSubscriptionTier, "REGULAR")
+    }
+
+    func testHandleSubscriptionDidSyncRefreshesTierAndLoadsAnalyticsWhenUnlocked() async {
+        let presenter = AnalyticsPresenterSpy()
+        let dataProvider = AnalyticsDataProviderStub(
+            results: [.success(makeData(monthStart: aprilStart, totalAmount: 220))]
+        )
+        let subscriptionAccessService = SubscriptionAccessServiceStub(
+            currentTier: "REGULAR",
+            refreshedTier: "PLUS"
+        )
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            dataProvider: dataProvider,
+            observer: AnalyticsObserverStub(),
+            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
+            subscriptionAccessService: subscriptionAccessService
+        )
+
+        await sut.fetchData()
+        await sut.handleSubscriptionDidSync()
+        await waitForUpdates()
+        let refreshCallsCount = await subscriptionAccessService.refreshCallsCount()
+        let recordedFetchCalls = await dataProvider.recordedFetchCalls()
+
+        XCTAssertEqual(refreshCallsCount, 1)
+        XCTAssertEqual(recordedFetchCalls, [aprilCurrentPeriod])
+        XCTAssertEqual(presenter.presentedData.last?.isLocked, false)
+        XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 220)
     }
 }
 
@@ -318,9 +442,17 @@ private final class AnalyticsPresenterSpy: AnalyticsPresentationLogic {
 private final class AnalyticsRouterSpy: AnalyticsRoutingLogic {
     private(set) var openCategoryCalls: [(String, String)] = []
     private(set) var openPeriodPickerCalls: [MainSummaryPeriod] = []
+    private(set) var lastOpenedSubscriptionTier: String?
 
     func openCategory(id: String, name: String) {
         openCategoryCalls.append((id, name))
+    }
+
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    ) {
+        lastOpenedSubscriptionTier = currentTier
     }
 
     func openPeriodPicker(
@@ -339,9 +471,11 @@ private final class AnalyticsRouterSpy: AnalyticsRoutingLogic {
 
 private final class AnalyticsObserverStub: MainFlowDomainObserverProtocol, @unchecked Sendable {
     private var continuation: AsyncStream<MainFlowOverviewSnapshot>.Continuation?
+    private(set) var subscribeOverviewCallsCount = 0
 
     func subscribeOverview() -> AsyncStream<MainFlowOverviewSnapshot> {
-        AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
+        subscribeOverviewCallsCount += 1
+        return AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             self.continuation = continuation
             continuation.yield(.init())
         }
@@ -418,9 +552,15 @@ private actor AnalyticsDataProviderStub: AnalyticsDataProviding {
 
 private final class MainSummaryPeriodServiceStub: MainSummaryPeriodServicing, @unchecked Sendable {
     private var period: MainSummaryPeriod
+    private let defaultPeriod: MainSummaryPeriod
+    private(set) var resetCallsCount = 0
 
-    init(period: MainSummaryPeriod) {
+    init(
+        period: MainSummaryPeriod,
+        defaultPeriod: MainSummaryPeriod? = nil
+    ) {
         self.period = period
+        self.defaultPeriod = defaultPeriod ?? period
     }
 
     func currentMonthPeriod() -> MainSummaryPeriod {
@@ -432,5 +572,37 @@ private final class MainSummaryPeriodServiceStub: MainSummaryPeriodServicing, @u
             from: from,
             to: to
         )
+    }
+
+    func resetToCurrentMonth() {
+        resetCallsCount += 1
+        period = defaultPeriod
+    }
+}
+
+private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
+    private let tier: String
+    private let refreshedTier: String
+    private var refreshCalls = 0
+
+    init(
+        currentTier: String,
+        refreshedTier: String? = nil
+    ) {
+        tier = currentTier
+        self.refreshedTier = refreshedTier ?? currentTier
+    }
+
+    func currentTier() async -> String {
+        tier
+    }
+
+    func refreshCurrentTier() async -> String {
+        refreshCalls += 1
+        return refreshedTier
+    }
+
+    func refreshCallsCount() -> Int {
+        refreshCalls
     }
 }

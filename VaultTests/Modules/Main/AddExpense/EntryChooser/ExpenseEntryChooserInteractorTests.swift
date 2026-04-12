@@ -8,7 +8,8 @@ final class ExpenseEntryChooserInteractorTests: XCTestCase {
         let router = ExpenseEntryChooserRouterSpy()
         let sut = ExpenseEntryChooserInteractor(
             presenter: presenter,
-            router: router
+            router: router,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PLUS")
         )
 
         await sut.fetchData()
@@ -20,7 +21,8 @@ final class ExpenseEntryChooserInteractorTests: XCTestCase {
         let router = ExpenseEntryChooserRouterSpy()
         let sut = ExpenseEntryChooserInteractor(
             presenter: ExpenseEntryChooserPresenterSpy(),
-            router: router
+            router: router,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PLUS")
         )
 
         await sut.handleTapAiEntry()
@@ -28,11 +30,26 @@ final class ExpenseEntryChooserInteractorTests: XCTestCase {
         XCTAssertEqual(router.openAiEntryCallsCount, 1)
     }
 
+    func testHandleTapAiEntryWithRegularTierRoutesToSubscription() async {
+        let router = ExpenseEntryChooserRouterSpy()
+        let sut = ExpenseEntryChooserInteractor(
+            presenter: ExpenseEntryChooserPresenterSpy(),
+            router: router,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "REGULAR")
+        )
+
+        await sut.handleTapAiEntry()
+
+        XCTAssertEqual(router.openAiEntryCallsCount, 0)
+        XCTAssertEqual(router.lastOpenedSubscriptionTier, "REGULAR")
+    }
+
     func testHandleTapManualEntryRoutesToManualScreen() async {
         let router = ExpenseEntryChooserRouterSpy()
         let sut = ExpenseEntryChooserInteractor(
             presenter: ExpenseEntryChooserPresenterSpy(),
-            router: router
+            router: router,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PLUS")
         )
 
         await sut.handleTapManualEntry()
@@ -44,7 +61,8 @@ final class ExpenseEntryChooserInteractorTests: XCTestCase {
         let router = ExpenseEntryChooserRouterSpy()
         let sut = ExpenseEntryChooserInteractor(
             presenter: ExpenseEntryChooserPresenterSpy(),
-            router: router
+            router: router,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PLUS")
         )
 
         await sut.handleTapClose()
@@ -67,6 +85,7 @@ private final class ExpenseEntryChooserRouterSpy: ExpenseEntryChooserRoutingLogi
     private(set) var openAiEntryCallsCount = 0
     private(set) var openManualEntryCallsCount = 0
     private(set) var closeCallsCount = 0
+    private(set) var lastOpenedSubscriptionTier: String?
 
     func openAiEntry() {
         openAiEntryCallsCount += 1
@@ -76,7 +95,30 @@ private final class ExpenseEntryChooserRouterSpy: ExpenseEntryChooserRoutingLogi
         openManualEntryCallsCount += 1
     }
 
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    ) {
+        lastOpenedSubscriptionTier = currentTier
+    }
+
     func close() {
         closeCallsCount += 1
+    }
+}
+
+private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
+    private let tier: String
+
+    init(currentTier: String) {
+        tier = currentTier
+    }
+
+    func currentTier() async -> String {
+        tier
+    }
+
+    func refreshCurrentTier() async -> String {
+        tier
     }
 }

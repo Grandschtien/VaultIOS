@@ -81,6 +81,7 @@
 - In unit tests you need to test corner cases/happy pass/negative pass
 - Try to minimaze amount of tests per one test case
 - If it's test for one class but for different use cases divide it into extensions of test case
+- Write tests for presenters, interactors, services and repositories only. Do not write them for view controllers, views, view models and Nivelir actions and routers
 
 ## Architecture rules
 

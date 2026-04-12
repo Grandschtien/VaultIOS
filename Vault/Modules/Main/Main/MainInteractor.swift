@@ -23,6 +23,7 @@ actor MainInteractor: MainBusinessLogic {
     private let currencyRateProvider: MainCurrencyRateProviding
     private let summaryProvider: MainSummaryProviding
     private let summaryPeriodProvider: MainSummaryPeriodServicing
+    private let subscriptionAccessService: SubscriptionAccessServicing
     private let repository: MainFlowDomainRepositoryProtocol
     private let observer: MainFlowDomainObserverProtocol
 
@@ -30,6 +31,7 @@ actor MainInteractor: MainBusinessLogic {
     private var summaryState: LoadingStatus = .idle
     private var categoriesState: LoadingStatus = .idle
     private var expensesState: LoadingStatus = .idle
+    private var currentTier: String = ""
 
     private var summary: MainSummaryModel?
     private var categories: [MainCategoryCardModel] = []
@@ -42,6 +44,7 @@ actor MainInteractor: MainBusinessLogic {
         currencyRateProvider: MainCurrencyRateProviding,
         summaryProvider: MainSummaryProviding,
         summaryPeriodProvider: MainSummaryPeriodServicing,
+        subscriptionAccessService: SubscriptionAccessServicing,
         repository: MainFlowDomainRepositoryProtocol,
         observer: MainFlowDomainObserverProtocol
     ) {
@@ -50,6 +53,7 @@ actor MainInteractor: MainBusinessLogic {
         self.currencyRateProvider = currencyRateProvider
         self.summaryProvider = summaryProvider
         self.summaryPeriodProvider = summaryPeriodProvider
+        self.subscriptionAccessService = subscriptionAccessService
         self.repository = repository
         self.observer = observer
     }
@@ -61,6 +65,11 @@ actor MainInteractor: MainBusinessLogic {
     func fetchData() async {
         guard await validateLaunchCurrencyRate() else {
             return
+        }
+
+        currentTier = await subscriptionAccessService.currentTier()
+        if SubscriptionPlanResolver.hasPremiumTier(for: currentTier) == false {
+            summaryPeriodProvider.resetToCurrentMonth()
         }
 
         startObservingIfNeeded()
@@ -244,6 +253,15 @@ extension MainInteractor: MainHandler {
             return
         }
 
+        currentTier = await subscriptionAccessService.currentTier()
+        guard SubscriptionPlanResolver.hasPremiumTier(for: currentTier) else {
+            await router.openSubscription(
+                currentTier: currentTier,
+                output: self
+            )
+            return
+        }
+
         let period = summaryPeriodProvider.currentMonthPeriod()
         await router.openPeriodPicker(
             selectedFromDate: period.from,
@@ -308,5 +326,14 @@ extension MainInteractor: CategoryPeriodPickerOutput {
             to: date
         )
         await loadMainData()
+    }
+}
+
+extension MainInteractor: SubscriptionOutput {
+    func handleSubscriptionDidSync() async {
+        currentTier = await subscriptionAccessService.refreshCurrentTier()
+        if SubscriptionPlanResolver.hasPremiumTier(for: currentTier) == false {
+            summaryPeriodProvider.resetToCurrentMonth()
+        }
     }
 }

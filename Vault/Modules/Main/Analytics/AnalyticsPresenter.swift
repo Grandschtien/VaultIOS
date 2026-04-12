@@ -45,6 +45,10 @@ final class AnalyticsPresenter: AnalyticsPresentationLogic {
 
 private extension AnalyticsPresenter {
     func makeState(from data: AnalyticsFetchData) -> AnalyticsViewModel.State {
+        if data.isLocked {
+            return .locked(makeLockedViewModel())
+        }
+
         if let model = data.data, model.isEmpty == false {
             return .loaded(
                 makeContentViewModel(
@@ -70,6 +74,21 @@ private extension AnalyticsPresenter {
                 )
             )
         }
+    }
+
+    func makeLockedViewModel() -> AnalyticsViewModel.LockedViewModel {
+        .init(
+            button: .init(
+                title: L10n.analyticsSubscribeToSee,
+                titleColor: Asset.Colors.textAndIconPrimaryInverted.color,
+                backgroundColor: Asset.Colors.interactiveElemetsPrimary.color,
+                font: Typography.typographySemibold16,
+                isEnabled: true,
+                tapCommand: Command { [weak handler] in
+                    await handler?.handleTapSubscribe()
+                }
+            )
+        )
     }
 
     func makeContentViewModel(

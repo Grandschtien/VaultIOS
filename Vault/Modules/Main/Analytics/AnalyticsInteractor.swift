@@ -8,6 +8,7 @@ protocol AnalyticsHandler: AnyObject, Sendable {
     func handleTapRetry() async
     func handleTapMonthFilter() async
     func handleTapCategory(id: String, name: String) async
+    func handleTapSubscribe() async
 }
 
 actor AnalyticsInteractor: AnalyticsBusinessLogic {
@@ -16,9 +17,11 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
     private let dataProvider: AnalyticsDataProviding
     private let observer: MainFlowDomainObserverProtocol
     private let summaryPeriodProvider: MainSummaryPeriodServicing
+    private let subscriptionAccessService: SubscriptionAccessServicing
 
     private var loadingState: LoadingStatus = .idle
     private var data: AnalyticsDataModel?
+    private var currentTier: String = ""
     private var observationTask: Task<Void, Never>?
     private var didReceiveInitialObserverEvent = false
 
@@ -27,13 +30,15 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
         router: AnalyticsRoutingLogic,
         dataProvider: AnalyticsDataProviding,
         observer: MainFlowDomainObserverProtocol,
-        summaryPeriodProvider: MainSummaryPeriodServicing
+        summaryPeriodProvider: MainSummaryPeriodServicing,
+        subscriptionAccessService: SubscriptionAccessServicing
     ) {
         self.presenter = presenter
         self.router = router
         self.dataProvider = dataProvider
         self.observer = observer
         self.summaryPeriodProvider = summaryPeriodProvider
+        self.subscriptionAccessService = subscriptionAccessService
     }
 
     deinit {
@@ -41,6 +46,20 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
     }
 
     func fetchData() async {
+        currentTier = await subscriptionAccessService.currentTier()
+        if SubscriptionPlanResolver.hasPremiumTier(for: currentTier) == false {
+            summaryPeriodProvider.resetToCurrentMonth()
+        }
+        guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
+            data = nil
+            loadingState = .idle
+            await presentFetchedData(
+                period: summaryPeriodProvider.currentMonthPeriod(),
+                isLocked: true
+            )
+            return
+        }
+
         startObservingIfNeeded()
         await loadData(
             for: summaryPeriodProvider.currentMonthPeriod(),
@@ -120,10 +139,14 @@ private extension AnalyticsInteractor {
         await presentFetchedData(period: period)
     }
 
-    func presentFetchedData(period: MainSummaryPeriod) async {
+    func presentFetchedData(
+        period: MainSummaryPeriod,
+        isLocked: Bool = false
+    ) async {
         await presenter.presentFetchedData(
             AnalyticsFetchData(
                 selectedPeriod: period,
+                isLocked: isLocked,
                 loadingState: loadingState,
                 data: data
             )
@@ -133,6 +156,12 @@ private extension AnalyticsInteractor {
 
 extension AnalyticsInteractor: AnalyticsHandler {
     func handleTapRetry() async {
+        currentTier = await subscriptionAccessService.currentTier()
+
+        guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
+            return
+        }
+
         await loadData(
             for: summaryPeriodProvider.currentMonthPeriod(),
             showLoadingWhenEmpty: true
@@ -140,6 +169,16 @@ extension AnalyticsInteractor: AnalyticsHandler {
     }
 
     func handleTapMonthFilter() async {
+        currentTier = await subscriptionAccessService.currentTier()
+
+        guard SubscriptionPlanResolver.hasPremiumTier(for: currentTier) else {
+            await router.openSubscription(
+                currentTier: currentTier,
+                output: self
+            )
+            return
+        }
+
         let period = summaryPeriodProvider.currentMonthPeriod()
         await router.openPeriodPicker(
             selectedFromDate: period.from,
@@ -149,7 +188,20 @@ extension AnalyticsInteractor: AnalyticsHandler {
     }
 
     func handleTapCategory(id: String, name: String) async {
+        currentTier = await subscriptionAccessService.currentTier()
+
+        guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
+            return
+        }
+
         await router.openCategory(id: id, name: name)
+    }
+
+    func handleTapSubscribe() async {
+        await router.openSubscription(
+            currentTier: currentTier,
+            output: self
+        )
     }
 }
 
@@ -168,5 +220,30 @@ extension AnalyticsInteractor: CategoryPeriodPickerOutput {
             to: date
         )
         await changePeriod(to: summaryPeriodProvider.currentMonthPeriod())
+    }
+}
+
+extension AnalyticsInteractor: SubscriptionOutput {
+    func handleSubscriptionDidSync() async {
+        currentTier = await subscriptionAccessService.refreshCurrentTier()
+        if SubscriptionPlanResolver.hasPremiumTier(for: currentTier) == false {
+            summaryPeriodProvider.resetToCurrentMonth()
+        }
+
+        guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
+            data = nil
+            loadingState = .idle
+            await presentFetchedData(
+                period: summaryPeriodProvider.currentMonthPeriod(),
+                isLocked: true
+            )
+            return
+        }
+
+        startObservingIfNeeded()
+        await loadData(
+            for: summaryPeriodProvider.currentMonthPeriod(),
+            showLoadingWhenEmpty: true
+        )
     }
 }

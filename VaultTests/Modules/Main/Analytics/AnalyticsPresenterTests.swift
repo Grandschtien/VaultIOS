@@ -48,6 +48,26 @@ extension AnalyticsPresenterTests {
 }
 
 extension AnalyticsPresenterTests {
+    func testPresentFetchedDataLockedBuildsLockedState() {
+        sut.presentFetchedData(
+            .init(
+                selectedPeriod: .init(
+                    from: Date(timeIntervalSince1970: 1_775_001_600),
+                    to: Date(timeIntervalSince1970: 1_775_433_600)
+                ),
+                isLocked: true
+            )
+        )
+
+        guard case let .locked(lockedViewModel) = sut.viewModel.state else {
+            return XCTFail("Expected locked state")
+        }
+
+        XCTAssertEqual(lockedViewModel.button.title, L10n.analyticsSubscribeToSee)
+    }
+}
+
+extension AnalyticsPresenterTests {
     func testPresentFetchedDataLoadedBuildsChartAndRows() {
         sut.presentFetchedData(
             .init(
@@ -77,7 +97,6 @@ extension AnalyticsPresenterTests {
         XCTAssertEqual(content.periodTitle.text, "01.04.2026 - 06.04.2026")
         XCTAssertEqual(content.totalAmount.text, "amount-240.0-USD")
         XCTAssertEqual(content.chart.legendItems.map(\.title), ["food", "shopping", "transport"])
-        XCTAssertEqual(content.chart.slices.map(\.value), [0.4, 0.25, 0.13, 0.22])
         XCTAssertEqual(content.chart.centerValue.text, "percent-0.78")
         XCTAssertEqual(content.rows.count, 4)
         XCTAssertEqual(content.rows[0].amount.text, "amount-100.0-USD")

@@ -184,14 +184,14 @@ extension MainSummaryPeriodProviderTests {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: .zero) ?? .current
 
-        let currentDate = MutableDateBox(calendar.date(from: DateComponents(
+        let currentDate = calendar.date(from: DateComponents(
             timeZone: calendar.timeZone,
             year: 2025,
             month: 4,
-            day: 16,
+            day: 20,
             hour: 8,
             minute: 30
-        )) ?? .distantPast)
+        )) ?? .distantPast
         let selectedDate = calendar.date(from: DateComponents(
             timeZone: calendar.timeZone,
             year: 2025,
@@ -208,21 +208,10 @@ extension MainSummaryPeriodProviderTests {
         )) ?? .distantPast
         let sut = MainSummaryPeriodProvider(
             calendar: calendar,
-            now: currentDate.reader()
+            now: { currentDate }
         )
 
         sut.updatePeriod(from: selectedDate, to: explicitToDate)
-        currentDate.update(
-            calendar.date(from: DateComponents(
-            timeZone: calendar.timeZone,
-            year: 2025,
-            month: 4,
-            day: 20,
-            hour: 8,
-            minute: 30
-            )) ?? .distantPast
-        )
-
         let period = sut.currentMonthPeriod()
 
         XCTAssertEqual(period.from, selectedDate)
@@ -356,32 +345,5 @@ extension MainSummaryPeriodProviderTests {
         )
 
         XCTAssertEqual(period.to, now)
-    }
-}
-
-private final class MutableDateBox: @unchecked Sendable {
-    private let lock = NSLock()
-    private var value: Date
-
-    init(_ value: Date) {
-        self.value = value
-    }
-
-    func current() -> Date {
-        lock.lock()
-        defer { lock.unlock() }
-        return value
-    }
-
-    func reader() -> @Sendable () -> Date {
-        { [self] in
-            current()
-        }
-    }
-
-    func update(_ value: Date) {
-        lock.lock()
-        self.value = value
-        lock.unlock()
     }
 }

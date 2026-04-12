@@ -5,6 +5,10 @@ import Nivelir
 @MainActor
 protocol AnalyticsRoutingLogic: Sendable {
     func openCategory(id: String, name: String)
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    )
     func openPeriodPicker(
         selectedFromDate: Date,
         selectedToDate: Date,
@@ -38,6 +42,25 @@ final class AnalyticsRouter: AnalyticsRoutingLogic {
                     )
                 )
         })
+    }
+
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    ) {
+        guard let viewController else {
+            return
+        }
+
+        screenRouter.navigate(from: viewController) { route in
+            route.present(
+                SubscriptionFactory(
+                    currentTier: currentTier,
+                    output: output
+                )
+                .withModalPresentationStyle(.pageSheet)
+            )
+        }
     }
 
     func openPeriodPicker(

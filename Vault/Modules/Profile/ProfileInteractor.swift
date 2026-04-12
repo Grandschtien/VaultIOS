@@ -11,6 +11,7 @@ protocol ProfileHandler: AnyObject, Sendable {
     func handleTapLogout() async
     func handleTapCurrency() async
     func handleTapSaveCurrency() async
+    func handleTapSubscription() async
 }
 
 actor ProfileInteractor: ProfileBusinessLogic {
@@ -20,6 +21,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
     private let currencyRateService: MainCurrencyRateContractServicing
     private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let authSessionService: AuthSessionServiceProtocol
+    private let subscriptionAccessService: SubscriptionAccessServicing
 
     private var loadingState: LoadingStatus = .idle
     private var isSavingCurrency: Bool = false
@@ -33,7 +35,8 @@ actor ProfileInteractor: ProfileBusinessLogic {
         profileService: ProfileContractServicing,
         currencyRateService: MainCurrencyRateContractServicing,
         userProfileStorageService: UserProfileStorageServiceProtocol,
-        authSessionService: AuthSessionServiceProtocol
+        authSessionService: AuthSessionServiceProtocol,
+        subscriptionAccessService: SubscriptionAccessServicing
     ) {
         self.presenter = presenter
         self.router = router
@@ -41,6 +44,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
         self.currencyRateService = currencyRateService
         self.userProfileStorageService = userProfileStorageService
         self.authSessionService = authSessionService
+        self.subscriptionAccessService = subscriptionAccessService
     }
 
     func fetchData() async {
@@ -244,6 +248,17 @@ extension ProfileInteractor: ProfileHandler {
             await router.presentError(with: saveFailedMessage(from: error))
         }
     }
+
+    func handleTapSubscription() async {
+        guard loadingState == .loaded else {
+            return
+        }
+
+        await router.openSubscription(
+            currentTier: profile?.tier ?? "",
+            output: self
+        )
+    }
 }
 
 extension ProfileInteractor: ProfileCurrencySelectionOutput {
@@ -256,5 +271,12 @@ extension ProfileInteractor: ProfileCurrencySelectionOutput {
 private extension ProfileInteractor {
     enum ProfileSaveError: Error {
         case missingEmail
+    }
+}
+
+extension ProfileInteractor: SubscriptionOutput {
+    func handleSubscriptionDidSync() async {
+        _ = await subscriptionAccessService.refreshCurrentTier()
+        await fetchData()
     }
 }
