@@ -2,6 +2,9 @@ import UIKit
 import SnapKit
 
 final class ExpenseManualEntryView: UIView, LayoutScaleProviding {
+    private let keyboardObserver = KeyboardObserver()
+    private let scrollView = UIScrollView()
+    private let contentView = UIView()
     private let headerView = AddExpenseSheetHeaderView()
     private let contentStackView = UIStackView()
     private let amountInputView = ExpenseAmountInputView()
@@ -76,6 +79,11 @@ extension ExpenseManualEntryView: AddExpenseSheetContentHeightProviding {
 private extension ExpenseManualEntryView {
     func setupViews() {
         backgroundColor = Asset.Colors.backgroundPrimary.color
+        keyboardObserver.attach(to: scrollView)
+
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.keyboardDismissMode = .interactive
+        scrollView.alwaysBounceVertical = true
 
         contentStackView.axis = .vertical
         contentStackView.spacing = spaceS
@@ -85,8 +93,10 @@ private extension ExpenseManualEntryView {
     }
 
     func setupLayout() {
-        addSubview(headerView)
-        addSubview(contentStackView)
+        addSubview(scrollView)
+        scrollView.addSubview(contentView)
+        contentView.addSubview(headerView)
+        contentView.addSubview(contentStackView)
 
         contentStackView.addArrangedSubview(amountInputView)
         contentStackView.addArrangedSubview(titleField)
@@ -97,15 +107,24 @@ private extension ExpenseManualEntryView {
         buttonsStackView.addArrangedSubview(primaryButton)
         buttonsStackView.addArrangedSubview(skipButton)
 
+        scrollView.snp.makeConstraints { make in
+            make.edges.equalTo(safeAreaLayoutGuide)
+        }
+
+        contentView.snp.makeConstraints { make in
+            make.edges.equalTo(scrollView.contentLayoutGuide)
+            make.width.equalTo(scrollView.frameLayoutGuide)
+        }
+
         headerView.snp.makeConstraints { make in
-            make.top.equalTo(safeAreaLayoutGuide)
+            make.top.equalToSuperview()
             make.horizontalEdges.equalToSuperview()
         }
 
         contentStackView.snp.makeConstraints { make in
             make.top.equalTo(headerView.snp.bottom).offset(spaceS)
-            make.horizontalEdges.equalTo(safeAreaLayoutGuide).inset(spaceS)
-            make.bottom.equalTo(safeAreaLayoutGuide).inset(spaceS)
+            make.horizontalEdges.equalToSuperview().inset(spaceS)
+            make.bottom.equalToSuperview().inset(spaceS)
         }
 
         skipButton.isHidden = true

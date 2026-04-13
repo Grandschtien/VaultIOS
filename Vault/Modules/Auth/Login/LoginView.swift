@@ -5,6 +5,7 @@ import SnapKit
 
 final class LoginView: UIView, LayoutScaleProviding {
     private var viewModel: LoginViewModel = .init()
+    private let keyboardObserver = KeyboardObserver()
 
     private let scrollView = UIScrollView()
     private let contentView = UIView()
@@ -55,6 +56,12 @@ extension LoginView {
 private extension LoginView {
     func setupViews() {
         backgroundColor = Asset.Colors.backgroundPrimary.color
+        keyboardObserver.attach(to: scrollView)
+
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.keyboardDismissMode = .interactive
+        scrollView.alwaysBounceVertical = true
+
         logoImageView.contentMode = .scaleAspectFit
 
         formStackView.axis = .vertical
@@ -72,7 +79,8 @@ private extension LoginView {
     }
 
     func setupLayout() {
-        addSubview(contentView)
+        addSubview(scrollView)
+        scrollView.addSubview(contentView)
         [
             logoImageView,
             titleLabel,
@@ -87,8 +95,13 @@ private extension LoginView {
         formStackView.addArrangedSubview(emailTextField)
         formStackView.addArrangedSubview(passwordTextField)
 
-        contentView.snp.makeConstraints {
+        scrollView.snp.makeConstraints {
             $0.edges.equalTo(safeAreaLayoutGuide)
+        }
+
+        contentView.snp.makeConstraints {
+            $0.edges.equalTo(scrollView.contentLayoutGuide)
+            $0.width.equalTo(scrollView.frameLayoutGuide)
         }
 
         logoImageView.snp.makeConstraints {
@@ -119,6 +132,7 @@ private extension LoginView {
         footerStackView.snp.makeConstraints {
             $0.top.equalTo(signInButton.snp.bottom).offset(spaceL)
             $0.centerX.equalToSuperview()
+            $0.bottom.equalToSuperview().inset(spaceL)
         }
     }
 }

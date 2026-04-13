@@ -15,6 +15,7 @@ final class RegistrationCurrencyStepView: UIView, LayoutScaleProviding {
     private let tableView = UITableView(frame: .zero, style: .plain)
 
     private var sections: [Section] = []
+    private var tableViewHeightConstraint: Constraint?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -51,6 +52,8 @@ final class RegistrationCurrencyStepView: UIView, LayoutScaleProviding {
         .filter { !$0.rows.isEmpty }
 
         tableView.reloadData()
+        tableView.layoutIfNeeded()
+        tableViewHeightConstraint?.update(offset: tableView.contentSize.height)
     }
 }
 
@@ -62,6 +65,7 @@ private extension RegistrationCurrencyStepView {
         tableView.separatorStyle = .none
         tableView.backgroundColor = .clear
         tableView.showsVerticalScrollIndicator = false
+        tableView.isScrollEnabled = false
         tableView.dataSource = self
         tableView.delegate = self
         tableView.rowHeight = 72
@@ -88,6 +92,7 @@ private extension RegistrationCurrencyStepView {
         tableView.snp.makeConstraints { make in
             make.top.equalTo(errorLabel.snp.bottom).offset(spaceS)
             make.leading.trailing.equalToSuperview()
+            tableViewHeightConstraint = make.height.equalTo(0).constraint
             make.bottom.equalToSuperview()
         }
     }

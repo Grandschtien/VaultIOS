@@ -108,7 +108,7 @@ private extension ExpenseCategoryFieldView {
 
     @objc
     func handleTap() {
-        viewModel.tapCommand.execute()
+        executeAfterDismissingKeyboard(viewModel.tapCommand)
     }
 }
 

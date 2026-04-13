@@ -103,7 +103,7 @@ final class Button: UIButton, LayoutScaleProviding {
     @objc
     private func handleTap() {
         guard viewModel.isEnabled, !viewModel.isLoading else { return }
-        viewModel.tapCommand.execute()
+        executeAfterDismissingKeyboard(viewModel.tapCommand)
     }
 
     private func setupContent() {

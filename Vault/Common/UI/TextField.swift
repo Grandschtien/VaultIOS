@@ -259,7 +259,7 @@ private extension TextField {
 
     @objc
     func handlePrimaryActionTriggered() {
-        viewModel.onReturn.execute()
+        executeAfterDismissingKeyboard(viewModel.onReturn)
     }
 
     @objc
@@ -268,7 +268,7 @@ private extension TextField {
             return
         }
 
-        viewModel.onAdditionalLabelTap.execute()
+        executeAfterDismissingKeyboard(viewModel.onAdditionalLabelTap)
     }
 
     @objc

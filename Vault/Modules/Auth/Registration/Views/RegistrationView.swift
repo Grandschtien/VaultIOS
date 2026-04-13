@@ -5,9 +5,11 @@ import SnapKit
 
 final class RegistrationView: UIView, LayoutScaleProviding {
     private var viewModel: RegistrationViewModel = .init()
+    private let keyboardObserver = KeyboardObserver()
 
     private let scrollView = UIScrollView()
     private let contentView = UIView()
+    private let buttonsStackView = UIStackView()
 
     private let stepLabel = Label()
     private let progressView = RegistrationProgressView()
@@ -61,9 +63,13 @@ extension RegistrationView {
 private extension RegistrationView {
     func setupViews() {
         backgroundColor = Asset.Colors.backgroundPrimary.color
+        keyboardObserver.attach(to: scrollView)
 
         scrollView.showsVerticalScrollIndicator = false
-        scrollView.isScrollEnabled = false
+        scrollView.keyboardDismissMode = .interactive
+        scrollView.alwaysBounceVertical = true
+        buttonsStackView.axis = .vertical
+        buttonsStackView.spacing = spaceS
 
         [accountStepView, nameStepView, currencyStepView].forEach {
             stepContainerView.addSubview($0)
@@ -75,21 +81,28 @@ private extension RegistrationView {
     }
 
     func setupLayout() {
-        addSubview(contentView)
+        addSubview(scrollView)
+        scrollView.addSubview(contentView)
 
         [
             stepLabel,
             progressView,
-            stepContainerView
+            stepContainerView,
+            buttonsStackView
         ].forEach {
             contentView.addSubview($0)
         }
-        
-        addSubview(primaryButton)
-        addSubview(secondaryButton)
+
+        buttonsStackView.addArrangedSubview(primaryButton)
+        buttonsStackView.addArrangedSubview(secondaryButton)
+
+        scrollView.snp.makeConstraints { make in
+            make.edges.equalTo(safeAreaLayoutGuide)
+        }
+
         contentView.snp.makeConstraints { make in
-            make.top.trailing.leading.equalTo(safeAreaLayoutGuide)
-            make.bottom.equalToSuperview()
+            make.edges.equalTo(scrollView.contentLayoutGuide)
+            make.width.equalTo(scrollView.frameLayoutGuide)
         }
 
         stepLabel.snp.makeConstraints { make in
@@ -105,15 +118,10 @@ private extension RegistrationView {
         stepContainerView.snp.makeConstraints { make in
             make.top.equalTo(progressView.snp.bottom).offset(spaceM)
             make.leading.trailing.equalToSuperview().inset(spaceS)
-            make.bottom.equalToSuperview()
+            make.bottom.equalTo(buttonsStackView.snp.top).offset(-spaceL)
         }
 
-        primaryButton.snp.makeConstraints { make in
-            make.leading.trailing.equalToSuperview().inset(spaceS)
-        }
-
-        secondaryButton.snp.makeConstraints { make in
-            make.top.equalTo(primaryButton.snp.bottom).offset(spaceS)
+        buttonsStackView.snp.makeConstraints { make in
             make.leading.trailing.equalToSuperview().inset(spaceS)
             make.bottom.equalToSuperview().inset(spaceL)
         }

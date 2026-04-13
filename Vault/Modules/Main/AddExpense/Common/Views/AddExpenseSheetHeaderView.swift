@@ -55,7 +55,7 @@ private extension AddExpenseSheetHeaderView {
 
     @objc
     func handleTapClose() {
-        viewModel.closeCommand.execute()
+        executeAfterDismissingKeyboard(viewModel.closeCommand)
     }
 }
 
