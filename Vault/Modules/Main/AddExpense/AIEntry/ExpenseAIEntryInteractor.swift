@@ -6,6 +6,8 @@ protocol ExpenseAIEntryBusinessLogic: Sendable {
 
 protocol ExpenseAIEntryHandler: AnyObject, Sendable {
     func handleChangePrompt(_ text: String) async
+    func handleStartVoiceRecording() async
+    func handleStopVoiceRecording() async
     func handleTapProcess() async
     func handleTapClose() async
     func handleTapAddManually() async
@@ -21,17 +23,20 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
     private let presenter: ExpenseAIEntryPresentationLogic
     private let router: ExpenseAIEntryRoutingLogic
     private let aiParseService: MainAIParseContractServicing
+    private let voiceRecordingService: ExpenseAIEntryVoiceRecordingServicing
     private let observer: MainFlowDomainObserverProtocol
     private let currencyCodeResolver: AddExpenseCurrencyCodeResolver
     private let draftMapper: ExpenseAIParsedDraftMapper
 
     private var promptText: String = ""
     private var loadingState: LoadingStatus = .idle
+    private var voiceRecordingState: ExpenseAIEntryVoiceRecordingState = .idle
 
     init(
         presenter: ExpenseAIEntryPresentationLogic,
         router: ExpenseAIEntryRoutingLogic,
         aiParseService: MainAIParseContractServicing,
+        voiceRecordingService: ExpenseAIEntryVoiceRecordingServicing,
         observer: MainFlowDomainObserverProtocol,
         currencyCodeResolver: AddExpenseCurrencyCodeResolver,
         draftMapper: ExpenseAIParsedDraftMapper
@@ -39,6 +44,7 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
         self.presenter = presenter
         self.router = router
         self.aiParseService = aiParseService
+        self.voiceRecordingService = voiceRecordingService
         self.observer = observer
         self.currencyCodeResolver = currencyCodeResolver
         self.draftMapper = draftMapper
@@ -51,14 +57,18 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
 
 private extension ExpenseAIEntryInteractor {
     func presentFetchedData() async {
+        let isVoiceRecording = voiceRecordingState == .recording
+
         await presenter.presentFetchedData(
             ExpenseAIEntryFetchData(
                 promptText: promptText,
                 maximumCharacters: Constants.maximumCharacters,
                 loadingState: loadingState,
-                isPromptEditable: loadingState != .loading,
-                isCloseEnabled: loadingState != .loading,
+                voiceRecordingState: voiceRecordingState,
+                isPromptEditable: loadingState != .loading && !isVoiceRecording,
+                isCloseEnabled: loadingState != .loading && !isVoiceRecording,
                 isProcessEnabled: !promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && !isVoiceRecording
             )
         )
     }
@@ -66,11 +76,35 @@ private extension ExpenseAIEntryInteractor {
     func currentCurrencyCode() -> String {
         currencyCodeResolver.resolve()
     }
+
+    func appendTranscript(_ transcript: String) {
+        let trimmedTranscript = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTranscript.isEmpty else {
+            return
+        }
+
+        let basePrompt = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let updatedPrompt = basePrompt.isEmpty
+            ? trimmedTranscript
+            : "\(basePrompt) \(trimmedTranscript)"
+
+        promptText = String(updatedPrompt.prefix(Constants.maximumCharacters))
+    }
+
+    func voiceErrorMessage(from error: Error) -> String {
+        switch error as? ExpenseAIEntryVoiceRecordingServiceError {
+        case .speechPermissionDenied, .microphonePermissionDenied:
+            return L10n.expenseAiEntryVoicePermissionDenied
+        case .recognizerUnavailable, .invalidState, nil:
+            return L10n.expenseAiEntryVoiceUnavailable
+        }
+    }
 }
 
 extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
     func handleChangePrompt(_ text: String) async {
-        guard loadingState != .loading else {
+        guard loadingState != .loading,
+              voiceRecordingState != .recording else {
             return
         }
 
@@ -78,9 +112,45 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
         await presentFetchedData()
     }
 
+    func handleStartVoiceRecording() async {
+        guard loadingState != .loading,
+              voiceRecordingState != .recording else {
+            return
+        }
+
+        do {
+            try await voiceRecordingService.startRecording()
+            voiceRecordingState = .recording
+            await presentFetchedData()
+        } catch {
+            voiceRecordingState = .idle
+            await presentFetchedData()
+            await router.presentError(with: voiceErrorMessage(from: error))
+        }
+    }
+
+    func handleStopVoiceRecording() async {
+        guard loadingState != .loading,
+              voiceRecordingState == .recording else {
+            return
+        }
+
+        do {
+            let transcript = try await voiceRecordingService.stopRecording()
+            voiceRecordingState = .idle
+            appendTranscript(transcript)
+            await presentFetchedData()
+        } catch {
+            voiceRecordingState = .idle
+            await presentFetchedData()
+            await router.presentError(with: voiceErrorMessage(from: error))
+        }
+    }
+
     func handleTapProcess() async {
         let trimmedPrompt = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard loadingState != .loading,
+              voiceRecordingState != .recording,
               !trimmedPrompt.isEmpty else {
             return
         }
@@ -120,7 +190,8 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
     }
 
     func handleTapClose() async {
-        guard loadingState != .loading else {
+        guard loadingState != .loading,
+              voiceRecordingState != .recording else {
             return
         }
 

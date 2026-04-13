@@ -14,6 +14,8 @@ struct ExpenseAIEntryFactory: Screen {
         @SafeInject
         var aiParseService: MainAIParseContractServicing
         @SafeInject
+        var voiceRecordingService: ExpenseAIEntryVoiceRecordingServicing
+        @SafeInject
         var userProfileStorageService: UserProfileStorageServiceProtocol
 
         let viewModel = ExpenseAIEntryViewModel()
@@ -28,6 +30,7 @@ struct ExpenseAIEntryFactory: Screen {
             presenter: presenter,
             router: router,
             aiParseService: aiParseService,
+            voiceRecordingService: voiceRecordingService,
             observer: context.observer,
             currencyCodeResolver: AddExpenseCurrencyCodeResolver(
                 observer: context.observer,

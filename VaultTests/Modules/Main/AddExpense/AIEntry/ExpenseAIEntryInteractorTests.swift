@@ -25,6 +25,92 @@ final class ExpenseAIEntryInteractorTests: XCTestCase {
 }
 
 extension ExpenseAIEntryInteractorTests {
+    func testHandleStartVoiceRecordingShowsRecordingState() async {
+        let presenter = ExpenseAIEntryPresenterSpy()
+        let voiceService = VoiceRecordingServiceSpy()
+        let sut = makeSUT(
+            presenter: presenter,
+            voiceRecordingService: voiceService
+        )
+
+        await sut.handleStartVoiceRecording()
+
+        XCTAssertEqual(voiceService.startCallsCount, 1)
+        XCTAssertEqual(presenter.presentedData.last?.voiceRecordingState, .recording)
+        XCTAssertFalse(presenter.presentedData.last?.isPromptEditable ?? true)
+        XCTAssertFalse(presenter.presentedData.last?.isProcessEnabled ?? true)
+    }
+
+    func testHandleStopVoiceRecordingAppendsTranscriptAndTrimsToMaximumCharacters() async {
+        let presenter = ExpenseAIEntryPresenterSpy()
+        let voiceService = VoiceRecordingServiceSpy()
+        voiceService.stopResult = .success(String(repeating: "b", count: 280))
+        let sut = makeSUT(
+            presenter: presenter,
+            voiceRecordingService: voiceService
+        )
+
+        await sut.handleChangePrompt("Coffee")
+        await sut.handleStartVoiceRecording()
+        await sut.handleStopVoiceRecording()
+
+        XCTAssertEqual(voiceService.stopCallsCount, 1)
+        XCTAssertEqual(presenter.presentedData.last?.promptText.count, 280)
+        XCTAssertTrue(presenter.presentedData.last?.promptText.hasPrefix("Coffee ") ?? false)
+        XCTAssertEqual(presenter.presentedData.last?.voiceRecordingState, .idle)
+    }
+
+    func testHandleStopVoiceRecordingKeepsPromptWhenTranscriptIsEmpty() async {
+        let presenter = ExpenseAIEntryPresenterSpy()
+        let voiceService = VoiceRecordingServiceSpy()
+        let sut = makeSUT(
+            presenter: presenter,
+            voiceRecordingService: voiceService
+        )
+
+        await sut.handleChangePrompt("Coffee")
+        await sut.handleStartVoiceRecording()
+        await sut.handleStopVoiceRecording()
+
+        XCTAssertEqual(presenter.presentedData.last?.promptText, "Coffee")
+        XCTAssertEqual(presenter.presentedData.last?.voiceRecordingState, .idle)
+    }
+
+    func testHandleStartVoiceRecordingShowsPermissionError() async {
+        let presenter = ExpenseAIEntryPresenterSpy()
+        let router = ExpenseAIEntryRouterSpy()
+        let voiceService = VoiceRecordingServiceSpy()
+        voiceService.startError = ExpenseAIEntryVoiceRecordingServiceError.microphonePermissionDenied
+        let sut = makeSUT(
+            presenter: presenter,
+            router: router,
+            voiceRecordingService: voiceService
+        )
+
+        await sut.handleStartVoiceRecording()
+
+        XCTAssertEqual(router.presentedErrors, [L10n.expenseAiEntryVoicePermissionDenied])
+        XCTAssertEqual(presenter.presentedData.last?.voiceRecordingState, .idle)
+    }
+
+    func testHandleStopVoiceRecordingShowsUnavailableError() async {
+        let presenter = ExpenseAIEntryPresenterSpy()
+        let router = ExpenseAIEntryRouterSpy()
+        let voiceService = VoiceRecordingServiceSpy()
+        voiceService.stopResult = .failure(ExpenseAIEntryVoiceRecordingServiceError.recognizerUnavailable)
+        let sut = makeSUT(
+            presenter: presenter,
+            router: router,
+            voiceRecordingService: voiceService
+        )
+
+        await sut.handleStartVoiceRecording()
+        await sut.handleStopVoiceRecording()
+
+        XCTAssertEqual(router.presentedErrors, [L10n.expenseAiEntryVoiceUnavailable])
+        XCTAssertEqual(presenter.presentedData.last?.voiceRecordingState, .idle)
+    }
+
     func testHandleTapProcessSuccessOpensManualEntryWithMappedDraft() async {
         let presenter = ExpenseAIEntryPresenterSpy()
         let router = ExpenseAIEntryRouterSpy()
@@ -161,6 +247,7 @@ private extension ExpenseAIEntryInteractorTests {
         presenter: ExpenseAIEntryPresenterSpy? = nil,
         router: ExpenseAIEntryRouterSpy? = nil,
         aiParseService: AIParseServiceSpy? = nil,
+        voiceRecordingService: VoiceRecordingServiceSpy? = nil,
         observer: MainFlowObserverStub = .init(),
         userProfileStorageService: UserProfileStorageSpy = .init()
     ) -> ExpenseAIEntryInteractor {
@@ -175,11 +262,13 @@ private extension ExpenseAIEntryInteractorTests {
                 )
             )
         )
+        let resolvedVoiceRecordingService = voiceRecordingService ?? VoiceRecordingServiceSpy()
 
         return ExpenseAIEntryInteractor(
             presenter: resolvedPresenter,
             router: resolvedRouter,
             aiParseService: resolvedAIParseService,
+            voiceRecordingService: resolvedVoiceRecordingService,
             observer: observer,
             currencyCodeResolver: AddExpenseCurrencyCodeResolver(
                 observer: observer,
@@ -237,6 +326,27 @@ private actor AIParseServiceSpy: MainAIParseContractServicing {
 
     func parse(_ request: AIParseRequestDTO) async throws -> AIParseResponseDTO {
         try result.get()
+    }
+}
+
+@MainActor
+private final class VoiceRecordingServiceSpy: ExpenseAIEntryVoiceRecordingServicing {
+    private(set) var startCallsCount = 0
+    private(set) var stopCallsCount = 0
+    var startError: Error?
+    var stopResult: Result<String, Error> = .success("")
+
+    func startRecording() async throws {
+        startCallsCount += 1
+
+        if let startError {
+            throw startError
+        }
+    }
+
+    func stopRecording() async throws -> String {
+        stopCallsCount += 1
+        return try stopResult.get()
     }
 }
 

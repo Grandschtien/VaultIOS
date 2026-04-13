@@ -50,6 +50,22 @@ final class ExpenseAIEntryPresenterTests: XCTestCase {
         XCTAssertFalse(sut.viewModel.promptInput.isEditable)
     }
 
+    func testPresentFetchedDataShowsRecordingVoiceButtonState() {
+        sut.presentFetchedData(
+            .init(
+                promptText: "Coffee",
+                voiceRecordingState: .recording,
+                isPromptEditable: false,
+                isProcessEnabled: false
+            )
+        )
+
+        XCTAssertTrue(sut.viewModel.voiceButton.isRecording)
+        XCTAssertEqual(sut.viewModel.voiceButton.title, L10n.expenseAiEntryVoiceRecording)
+        XCTAssertFalse(sut.viewModel.promptInput.isEditable)
+        XCTAssertFalse(sut.viewModel.processButton.isEnabled)
+    }
+
     func testPresentFetchedDataBuildsHeaderTitle() {
         sut.presentFetchedData(
             .init(
@@ -64,6 +80,8 @@ final class ExpenseAIEntryPresenterTests: XCTestCase {
 
 private final class ExpenseAIEntryHandlerSpy: ExpenseAIEntryHandler, @unchecked Sendable {
     func handleChangePrompt(_ text: String) async {}
+    func handleStartVoiceRecording() async {}
+    func handleStopVoiceRecording() async {}
     func handleTapProcess() async {}
     func handleTapClose() async {}
     func handleTapAddManually() async {}

@@ -105,6 +105,9 @@
 "expense_ai_entry_no_expense_message" = "We couldn't understand your entry. Would you like to refine it or add the details manually?";
 "expense_ai_entry_add_manually" = "Add Manually";
 "expense_ai_entry_fix_prompt" = "Fix Prompt";
+"expense_ai_entry_voice_recording" = "Recording";
+"expense_ai_entry_voice_permission_denied" = "Allow Microphone And Speech Access To Use Voice Input";
+"expense_ai_entry_voice_unavailable" = "Voice Input Is Currently Unavailable";
 "expense_manual_entry_title" = "Review Expense";
 "expense_manual_entry_amount_label" = "Amount";
 "expense_manual_entry_amount_placeholder" = "0.00";

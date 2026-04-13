@@ -18,6 +18,7 @@ final class ExpenseAIEntryPresenter: ExpenseAIEntryPresentationLogic, LayoutScal
 
     func presentFetchedData(_ data: ExpenseAIEntryFetchData) {
         let isLoading = data.loadingState == .loading
+        let isRecording = data.voiceRecordingState == .recording
 
         viewModel = ExpenseAIEntryViewModel(
             header: .init(
@@ -46,6 +47,18 @@ final class ExpenseAIEntryPresenter: ExpenseAIEntryPresentationLogic, LayoutScal
                 isEditable: data.isPromptEditable,
                 onTextDidChange: CommandOf { [weak handler] text in
                     await handler?.handleChangePrompt(text)
+                }
+            ),
+            voiceButton: .init(
+                title: isRecording ? L10n.expenseAiEntryVoiceRecording : "",
+                icon: UIImage(systemName: "mic.fill"),
+                isRecording: isRecording,
+                isEnabled: !isLoading,
+                startRecordingCommand: Command { [weak handler] in
+                    await handler?.handleStartVoiceRecording()
+                },
+                stopRecordingCommand: Command { [weak handler] in
+                    await handler?.handleStopVoiceRecording()
                 }
             ),
             processButton: .init(

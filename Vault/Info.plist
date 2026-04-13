@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Record Your Voice To Turn Speech Into Expense Text</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Recognize Your Speech And Fill The AI Entry Field</string>
 	<key>UIDesignRequiresCompatibility</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

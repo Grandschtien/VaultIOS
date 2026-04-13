@@ -7,6 +7,8 @@ final class ExpenseAIEntryView: UIView, LayoutScaleProviding {
     private let contentView = UIView()
     private let headerView = AddExpenseSheetHeaderView()
     private let promptInputView = ExpenseMultilineInputView()
+    private let actionsStackView = UIStackView()
+    private let voiceButtonView = ExpenseAIEntryVoiceButtonView()
     private let processButton = Button()
 
     override init(frame: CGRect) {
@@ -23,6 +25,7 @@ final class ExpenseAIEntryView: UIView, LayoutScaleProviding {
     func configure(with viewModel: ExpenseAIEntryViewModel) {
         headerView.apply(viewModel.header)
         promptInputView.apply(viewModel.promptInput)
+        voiceButtonView.apply(viewModel.voiceButton)
         processButton.apply(viewModel.processButton)
     }
 }
@@ -42,16 +45,26 @@ private extension ExpenseAIEntryView {
         scrollView.addSubview(contentView)
         contentView.addSubview(headerView)
         contentView.addSubview(promptInputView)
-        contentView.addSubview(processButton)
+        contentView.addSubview(actionsStackView)
 
         scrollView.snp.makeConstraints { make in
-            make.edges.equalTo(safeAreaLayoutGuide)
+            make.edges.equalToSuperview()
         }
 
         contentView.snp.makeConstraints { make in
             make.edges.equalTo(scrollView.contentLayoutGuide)
             make.width.equalTo(scrollView.frameLayoutGuide)
         }
+
+        actionsStackView.axis = .horizontal
+        actionsStackView.alignment = .center
+        actionsStackView.spacing = spaceS
+
+        actionsStackView.addArrangedSubview(processButton)
+        actionsStackView.addArrangedSubview(voiceButtonView)
+
+        voiceButtonView.setContentHuggingPriority(.required, for: .horizontal)
+        voiceButtonView.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         headerView.snp.makeConstraints { make in
             make.top.equalToSuperview()
@@ -63,10 +76,10 @@ private extension ExpenseAIEntryView {
             make.horizontalEdges.equalToSuperview().inset(spaceS)
         }
 
-        processButton.snp.makeConstraints { make in
+        actionsStackView.snp.makeConstraints { make in
             make.top.equalTo(promptInputView.snp.bottom).offset(spaceS)
             make.horizontalEdges.equalToSuperview().inset(spaceS)
-            make.bottom.equalToSuperview().inset(spaceS)
+            make.bottom.equalToSuperview()
         }
     }
 }
@@ -93,9 +106,9 @@ extension ExpenseAIEntryView: AddExpenseSheetContentHeightProviding {
             verticalFittingPriority: .fittingSizeLevel
         ).height
 
-        let processButtonHeight = processButton.systemLayoutSizeFitting(
+        let actionsHeight = actionsStackView.systemLayoutSizeFitting(
             CGSize(
-                width: processButton.bounds.width > .zero ? processButton.bounds.width : width,
+                width: actionsStackView.bounds.width > .zero ? actionsStackView.bounds.width : width,
                 height: UIView.layoutFittingCompressedSize.height
             ),
             withHorizontalFittingPriority: .required,
@@ -107,8 +120,6 @@ extension ExpenseAIEntryView: AddExpenseSheetContentHeightProviding {
             + spaceS
             + promptHeight
             + spaceS
-            + processButtonHeight
-            + safeAreaInsets.bottom
-            + spaceS
+            + actionsHeight
     }
 }
