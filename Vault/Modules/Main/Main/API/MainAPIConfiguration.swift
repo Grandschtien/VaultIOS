@@ -4,15 +4,13 @@ import Foundation
 import Alamofire
 
 enum MainAPIConfiguration {
-    static let host = "localhost"
-    static let port = 8080
+    static let host = "165.245.217.225"
     static let scheme = "https"
     static let timeoutInterval: TimeInterval = 30
 
     static func url(path: String) -> URL {
         var components = URLComponents()
         components.host = host
-        components.port = port
         components.scheme = scheme
         components.path = path
 
