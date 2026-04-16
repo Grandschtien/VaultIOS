@@ -7,14 +7,13 @@ final class RegistrationView: UIView, LayoutScaleProviding {
     private var viewModel: RegistrationViewModel = .init()
     private let keyboardObserver = KeyboardObserver()
 
-    private let scrollView = UIScrollView()
-    private let contentView = UIView()
+    private let stepScrollView = UIScrollView()
+    private let scrollContentView = UIView()
     private let buttonsStackView = UIStackView()
 
     private let stepLabel = Label()
     private let progressView = RegistrationProgressView()
-
-    private let stepContainerView = UIView()
+    private let stepContentView = UIView()
     private let accountStepView = RegistrationAccountStepView()
     private let nameStepView = RegistrationNameStepView()
     private let currencyStepView = RegistrationCurrencyStepView()
@@ -46,15 +45,15 @@ extension RegistrationView {
 
         switch viewModel.content {
         case let .account(accountViewModel):
-            show(stepView: accountStepView)
+            showScrollableStepView(accountStepView)
             accountStepView.configure(with: accountViewModel)
 
         case let .name(nameViewModel):
-            show(stepView: nameStepView)
+            showScrollableStepView(nameStepView)
             nameStepView.configure(with: nameViewModel)
 
         case let .currency(currencyViewModel):
-            show(stepView: currencyStepView)
+            showCurrencyStepView()
             currencyStepView.configure(with: currencyViewModel)
         }
     }
@@ -63,16 +62,16 @@ extension RegistrationView {
 private extension RegistrationView {
     func setupViews() {
         backgroundColor = Asset.Colors.backgroundPrimary.color
-        keyboardObserver.attach(to: scrollView)
+        keyboardObserver.attach(to: stepScrollView)
 
-        scrollView.showsVerticalScrollIndicator = false
-        scrollView.keyboardDismissMode = .interactive
-        scrollView.alwaysBounceVertical = true
+        stepScrollView.showsVerticalScrollIndicator = false
+        stepScrollView.keyboardDismissMode = .interactive
+        stepScrollView.alwaysBounceVertical = true
         buttonsStackView.axis = .vertical
         buttonsStackView.spacing = spaceS
 
-        [accountStepView, nameStepView, currencyStepView].forEach {
-            stepContainerView.addSubview($0)
+        [accountStepView, nameStepView].forEach {
+            stepContentView.addSubview($0)
             $0.snp.makeConstraints { make in
                 make.edges.equalToSuperview()
             }
@@ -81,32 +80,22 @@ private extension RegistrationView {
     }
 
     func setupLayout() {
-        addSubview(scrollView)
-        scrollView.addSubview(contentView)
-
         [
             stepLabel,
             progressView,
-            stepContainerView,
+            stepScrollView,
+            currencyStepView,
             buttonsStackView
-        ].forEach {
-            contentView.addSubview($0)
-        }
+        ].forEach(addSubview)
+
+        stepScrollView.addSubview(scrollContentView)
+        scrollContentView.addSubview(stepContentView)
 
         buttonsStackView.addArrangedSubview(primaryButton)
         buttonsStackView.addArrangedSubview(secondaryButton)
 
-        scrollView.snp.makeConstraints { make in
-            make.edges.equalTo(safeAreaLayoutGuide)
-        }
-
-        contentView.snp.makeConstraints { make in
-            make.edges.equalTo(scrollView.contentLayoutGuide)
-            make.width.equalTo(scrollView.frameLayoutGuide)
-        }
-
         stepLabel.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(spaceM)
+            make.top.equalTo(safeAreaLayoutGuide).offset(spaceM)
             make.leading.trailing.equalToSuperview().inset(spaceS)
         }
 
@@ -115,21 +104,48 @@ private extension RegistrationView {
             make.leading.trailing.equalToSuperview().inset(spaceS)
         }
 
-        stepContainerView.snp.makeConstraints { make in
+        stepScrollView.snp.makeConstraints { make in
             make.top.equalTo(progressView.snp.bottom).offset(spaceM)
             make.leading.trailing.equalToSuperview().inset(spaceS)
-            make.bottom.equalTo(buttonsStackView.snp.top).offset(-spaceL)
+            make.bottom.equalToSuperview()
+        }
+
+        scrollContentView.snp.makeConstraints { make in
+            make.edges.equalTo(stepScrollView.contentLayoutGuide)
+            make.width.equalTo(stepScrollView.frameLayoutGuide)
+            make.height.greaterThanOrEqualTo(stepScrollView.frameLayoutGuide)
+        }
+
+        stepContentView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+
+        currencyStepView.snp.makeConstraints { make in
+            make.top.equalTo(progressView.snp.bottom).offset(spaceM)
+            make.leading.trailing.equalToSuperview().inset(spaceS)
+            make.bottom.equalToSuperview()
         }
 
         buttonsStackView.snp.makeConstraints { make in
             make.leading.trailing.equalToSuperview().inset(spaceS)
-            make.bottom.equalToSuperview().inset(spaceL)
+            make.bottom.equalTo(safeAreaLayoutGuide)
         }
+
+        bringSubviewToFront(buttonsStackView)
     }
 
-    func show(stepView: UIView) {
+    func showScrollableStepView(_ stepView: UIView) {
+        stepScrollView.isHidden = false
+        currencyStepView.isHidden = true
+
         accountStepView.isHidden = stepView !== accountStepView
         nameStepView.isHidden = stepView !== nameStepView
-        currencyStepView.isHidden = stepView !== currencyStepView
+    }
+
+    func showCurrencyStepView() {
+        stepScrollView.isHidden = true
+        currencyStepView.isHidden = false
+        accountStepView.isHidden = true
+        nameStepView.isHidden = true
     }
 }

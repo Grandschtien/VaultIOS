@@ -61,7 +61,6 @@ private extension RegistrationAccountStepView {
         stackView.snp.makeConstraints { make in
             make.top.equalTo(subtitleLabel.snp.bottom).offset(spaceL)
             make.leading.trailing.equalToSuperview()
-            make.bottom.equalToSuperview()
         }
     }
 }
