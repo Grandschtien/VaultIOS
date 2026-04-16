@@ -235,6 +235,6 @@ private extension AppAssembly {
         container.register(ToastPresenting.self) { _ in
             ToastPresenter()
         }
-        .inObjectScope(.transient)
+        .inObjectScope(.container)
     }
 }
