@@ -46,7 +46,11 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
     }
 
     func fetchData() async {
-        currentTier = await subscriptionAccessService.currentTier()
+        guard let currentTier = await resolveCurrentTier(forceRefresh: false) else {
+            await presentUnavailableTierError()
+            return
+        }
+
         if SubscriptionPlanResolver.hasPremiumTier(for: currentTier) == false {
             summaryPeriodProvider.resetToCurrentMonth()
         }
@@ -69,6 +73,30 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
 }
 
 private extension AnalyticsInteractor {
+    func resolveCurrentTier(forceRefresh: Bool) async -> String? {
+        let tierState: SubscriptionTierState
+        if forceRefresh {
+            tierState = await subscriptionAccessService.refreshCurrentTierState()
+        } else {
+            tierState = await subscriptionAccessService.currentTierState()
+        }
+
+        switch tierState {
+        case let .resolved(tier):
+            currentTier = tier
+            return tier
+        case .unavailable:
+            currentTier = ""
+            return nil
+        }
+    }
+
+    func presentUnavailableTierError() async {
+        data = nil
+        loadingState = .failed(.undelinedError(description: L10n.mainOverviewError))
+        await presentFetchedData(period: summaryPeriodProvider.currentMonthPeriod())
+    }
+
     func startObservingIfNeeded() {
         guard observationTask == nil else {
             return
@@ -156,20 +184,14 @@ private extension AnalyticsInteractor {
 
 extension AnalyticsInteractor: AnalyticsHandler {
     func handleTapRetry() async {
-        currentTier = await subscriptionAccessService.currentTier()
-
-        guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
-            return
-        }
-
-        await loadData(
-            for: summaryPeriodProvider.currentMonthPeriod(),
-            showLoadingWhenEmpty: true
-        )
+        await fetchData()
     }
 
     func handleTapMonthFilter() async {
-        currentTier = await subscriptionAccessService.currentTier()
+        guard let currentTier = await resolveCurrentTier(forceRefresh: false) else {
+            await presentUnavailableTierError()
+            return
+        }
 
         guard SubscriptionPlanResolver.hasPremiumTier(for: currentTier) else {
             await router.openSubscription(
@@ -188,7 +210,9 @@ extension AnalyticsInteractor: AnalyticsHandler {
     }
 
     func handleTapCategory(id: String, name: String) async {
-        currentTier = await subscriptionAccessService.currentTier()
+        guard let currentTier = await resolveCurrentTier(forceRefresh: false) else {
+            return
+        }
 
         guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
             return
@@ -225,7 +249,11 @@ extension AnalyticsInteractor: CategoryPeriodPickerOutput {
 
 extension AnalyticsInteractor: SubscriptionOutput {
     func handleSubscriptionDidSync() async {
-        currentTier = await subscriptionAccessService.refreshCurrentTier()
+        guard let currentTier = await resolveCurrentTier(forceRefresh: true) else {
+            await presentUnavailableTierError()
+            return
+        }
+
         if SubscriptionPlanResolver.hasPremiumTier(for: currentTier) == false {
             summaryPeriodProvider.resetToCurrentMonth()
         }

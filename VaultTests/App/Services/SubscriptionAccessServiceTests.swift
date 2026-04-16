@@ -77,6 +77,21 @@ extension SubscriptionAccessServiceTests {
 }
 
 extension SubscriptionAccessServiceTests {
+    func testCurrentTierStateWhenFetchFailsWithoutCacheReturnsUnavailable() async {
+        let sut = SubscriptionAccessService(
+            profileService: ProfileContractServiceStub(
+                results: [.failure(StubError.any)]
+            ),
+            userProfileStorageService: UserProfileStorageServiceSpy(
+                storedProfile: makeStoredProfile(userID: "user-1")
+            )
+        )
+
+        let tierState = await sut.currentTierState()
+
+        XCTAssertEqual(tierState, .unavailable)
+    }
+
     func testCurrentTierWhenFetchFailsWithoutCacheReturnsRegular() async {
         let sut = SubscriptionAccessService(
             profileService: ProfileContractServiceStub(

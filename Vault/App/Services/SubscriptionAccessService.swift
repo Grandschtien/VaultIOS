@@ -2,9 +2,33 @@
 
 import Foundation
 
+enum SubscriptionTierState: Equatable, Sendable {
+    case resolved(String)
+    case unavailable
+
+    var tier: String {
+        switch self {
+        case .resolved(let tier):
+            tier
+        case .unavailable:
+            "REGULAR"
+        }
+    }
+}
+
 protocol SubscriptionAccessServicing: Sendable {
-    func currentTier() async -> String
-    func refreshCurrentTier() async -> String
+    func currentTierState() async -> SubscriptionTierState
+    func refreshCurrentTierState() async -> SubscriptionTierState
+}
+
+extension SubscriptionAccessServicing {
+    func currentTier() async -> String {
+        await currentTierState().tier
+    }
+
+    func refreshCurrentTier() async -> String {
+        await refreshCurrentTierState().tier
+    }
 }
 
 final class SubscriptionAccessService: SubscriptionAccessServicing, @unchecked Sendable {
@@ -42,38 +66,38 @@ final class SubscriptionAccessService: SubscriptionAccessServicing, @unchecked S
         }
     }
 
-    func currentTier() async -> String {
-        await resolvedTier(forceRefresh: false)
+    func currentTierState() async -> SubscriptionTierState {
+        await resolvedTierState(forceRefresh: false)
     }
 
-    func refreshCurrentTier() async -> String {
-        await resolvedTier(forceRefresh: true)
+    func refreshCurrentTierState() async -> SubscriptionTierState {
+        await resolvedTierState(forceRefresh: true)
     }
 }
 
 private extension SubscriptionAccessService {
-    func resolvedTier(forceRefresh: Bool) async -> String {
+    func resolvedTierState(forceRefresh: Bool) async -> SubscriptionTierState {
         guard let userID = currentUserID() else {
             await state.clear()
-            return Constants.regularTier
+            return .resolved(Constants.regularTier)
         }
 
         if !forceRefresh,
            let cachedTier = await state.cachedTier(for: userID) {
-            return cachedTier
+            return .resolved(cachedTier)
         }
 
         do {
             let profile = try await profileService.getProfile()
             let tier = normalizedTier(profile.tier)
             await state.setCachedTier(tier, for: profile.id)
-            return tier
+            return .resolved(tier)
         } catch {
             if let cachedTier = await state.cachedTier(for: userID) {
-                return cachedTier
+                return .resolved(cachedTier)
             }
 
-            return Constants.regularTier
+            return .unavailable
         }
     }
 

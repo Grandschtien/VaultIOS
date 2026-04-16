@@ -30,6 +30,33 @@ final class AnalyticsInteractorTests: XCTestCase {
 }
 
 extension AnalyticsInteractorTests {
+    func testFetchDataWhenTierStateIsUnavailableShowsErrorInsteadOfLockedState() async {
+        let presenter = AnalyticsPresenterSpy()
+        let observer = AnalyticsObserverStub()
+        let dataProvider = AnalyticsDataProviderStub(results: [])
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            dataProvider: dataProvider,
+            observer: observer,
+            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTierState: .unavailable)
+        )
+
+        await sut.fetchData()
+        let recordedFetchCalls = await dataProvider.recordedFetchCalls()
+
+        XCTAssertEqual(recordedFetchCalls, [])
+        XCTAssertEqual(observer.subscribeOverviewCallsCount, 0)
+        XCTAssertEqual(presenter.presentedData.last?.isLocked, false)
+
+        guard case .failed = presenter.presentedData.last?.loadingState else {
+            return XCTFail("Expected Analytics to show an error state when tier resolution is unavailable")
+        }
+    }
+}
+
+extension AnalyticsInteractorTests {
     func testHandleTapRetryKeepsLoadedDataWhenRefreshFails() async {
         let presenter = AnalyticsPresenterSpy()
         let dataProvider = AnalyticsDataProviderStub(
@@ -581,25 +608,27 @@ private final class MainSummaryPeriodServiceStub: MainSummaryPeriodServicing, @u
 }
 
 private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
-    private let tier: String
-    private let refreshedTier: String
+    private let currentTierStateValue: SubscriptionTierState
+    private let refreshedTierStateValue: SubscriptionTierState
     private var refreshCalls = 0
 
     init(
-        currentTier: String,
-        refreshedTier: String? = nil
+        currentTier: String = "REGULAR",
+        refreshedTier: String? = nil,
+        currentTierState: SubscriptionTierState? = nil,
+        refreshedTierState: SubscriptionTierState? = nil
     ) {
-        tier = currentTier
-        self.refreshedTier = refreshedTier ?? currentTier
+        currentTierStateValue = currentTierState ?? .resolved(currentTier)
+        refreshedTierStateValue = refreshedTierState ?? .resolved(refreshedTier ?? currentTier)
     }
 
-    func currentTier() async -> String {
-        tier
+    func currentTierState() async -> SubscriptionTierState {
+        currentTierStateValue
     }
 
-    func refreshCurrentTier() async -> String {
+    func refreshCurrentTierState() async -> SubscriptionTierState {
         refreshCalls += 1
-        return refreshedTier
+        return refreshedTierStateValue
     }
 
     func refreshCallsCount() -> Int {

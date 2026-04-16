@@ -114,11 +114,11 @@ private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
         tier = currentTier
     }
 
-    func currentTier() async -> String {
-        tier
+    func currentTierState() async -> SubscriptionTierState {
+        .resolved(tier)
     }
 
-    func refreshCurrentTier() async -> String {
-        tier
+    func refreshCurrentTierState() async -> SubscriptionTierState {
+        .resolved(tier)
     }
 }
