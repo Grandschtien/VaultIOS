@@ -64,7 +64,7 @@ private extension ExpenseManualEntryRequestBuilder {
     }
 
     func normalizedAmount(from text: String) -> Double? {
-        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedText = text.filter { !$0.isWhitespace }
         guard !trimmedText.isEmpty else {
             return nil
         }
