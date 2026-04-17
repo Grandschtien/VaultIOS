@@ -37,6 +37,45 @@ final class ExpenseAIParsedDraftMapperTests: XCTestCase {
 }
 
 extension ExpenseAIParsedDraftMapperTests {
+    func testMakeDraftsKeepsLargeAmountEditableInManualEntry() throws {
+        let drafts = sut.makeDrafts(
+            from: [
+                .init(
+                    title: "Flight",
+                    amount: 1234.5,
+                    currency: "USD",
+                    category: "Travel",
+                    suggestedCategory: nil,
+                    confidence: 0.9
+                )
+            ],
+            categories: [
+                .init(
+                    id: "travel",
+                    name: "Travel",
+                    icon: "✈️",
+                    color: "blue",
+                    amount: 0,
+                    currency: "USD"
+                )
+            ],
+            fallbackCurrencyCode: "USD"
+        )
+
+        let amountText = try XCTUnwrap(drafts.first?.amountText)
+        let localeFormatter = NumberFormatter()
+        localeFormatter.numberStyle = .decimal
+
+        XCTAssertFalse(amountText.contains(localeFormatter.groupingSeparator ?? ","))
+        XCTAssertTrue(
+            ExpenseAmountInputFilter.shouldChange(
+                currentText: amountText,
+                range: NSRange(location: amountText.count, length: 0),
+                replacementString: "6"
+            )
+        )
+    }
+
     func testMakeDraftsFallsBackToSuggestedCategoryWhenUnmapped() {
         let drafts = sut.makeDrafts(
             from: [

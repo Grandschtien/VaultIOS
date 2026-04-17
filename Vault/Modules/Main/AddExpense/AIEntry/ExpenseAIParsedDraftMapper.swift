@@ -33,6 +33,7 @@ private extension ExpenseAIParsedDraftMapper {
     func normalizedAmountText(for amount: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = false
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 2
 
