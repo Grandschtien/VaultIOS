@@ -148,8 +148,19 @@ private extension ExpenseCategoryPickerView {
             )
         case .loading, .loaded:
             tableView.layoutIfNeeded()
-            return tableView.contentSize.height
+            return min(
+                tableView.contentSize.height,
+                maximumTableContentHeight()
+            )
         }
+    }
+
+    func maximumTableContentHeight() -> CGFloat {
+        let availableHeight = bounds.height > .zero
+            ? bounds.height
+            : window?.bounds.height ?? UIScreen.main.bounds.height
+
+        return max(sizeXXXL, availableHeight * 0.5)
     }
 }
 

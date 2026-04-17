@@ -61,4 +61,34 @@ final class ExpenseAmountInputFilterTests: XCTestCase {
 
         XCTAssertTrue(result)
     }
+
+    func testAllowsSecondFractionDigit() {
+        let result = ExpenseAmountInputFilter.shouldChange(
+            currentText: "12.3",
+            range: NSRange(location: 4, length: 0),
+            replacementString: "4"
+        )
+
+        XCTAssertTrue(result)
+    }
+
+    func testRejectsThirdFractionDigit() {
+        let result = ExpenseAmountInputFilter.shouldChange(
+            currentText: "12.34",
+            range: NSRange(location: 5, length: 0),
+            replacementString: "5"
+        )
+
+        XCTAssertFalse(result)
+    }
+
+    func testRejectsPastedValueWithMoreThanTwoFractionDigits() {
+        let result = ExpenseAmountInputFilter.shouldChange(
+            currentText: "",
+            range: NSRange(location: 0, length: 0),
+            replacementString: "12,345"
+        )
+
+        XCTAssertFalse(result)
+    }
 }

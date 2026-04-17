@@ -48,11 +48,16 @@ final class ExpenseCategoryPickerViewController: UIViewController, HasContentVie
         super.viewDidLayoutSubviews()
         updatePreferredContentSizeToFitContent()
     }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        schedulePreferredContentSizeUpdate()
+    }
 }
 
 private extension ExpenseCategoryPickerViewController {
     func render(with viewModel: ExpenseCategoryPickerViewModel) {
         contentView.configure(with: viewModel)
-        updatePreferredContentSizeToFitContent()
+        schedulePreferredContentSizeUpdate()
     }
 }

@@ -177,4 +177,18 @@ extension AddExpenseSheetContentSizing where Self: UIViewController, ContentView
         sheetPresentationController?.invalidateDetents()
         navigationController?.sheetPresentationController?.invalidateDetents()
     }
+
+    func schedulePreferredContentSizeUpdate() {
+        refreshPreferredContentSizeIfNeeded()
+
+        Task { @MainActor [weak self] in
+            self?.refreshPreferredContentSizeIfNeeded()
+        }
+    }
+
+    private func refreshPreferredContentSizeIfNeeded() {
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
+        updatePreferredContentSizeToFitContent()
+    }
 }

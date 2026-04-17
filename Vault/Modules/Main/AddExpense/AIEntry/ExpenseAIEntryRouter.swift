@@ -69,7 +69,8 @@ final class ExpenseAIEntryRouter: ExpenseAIEntryRoutingLogic {
 
         screenRouter.navigate(from: container) { route in
             route.dimissAndPresent(
-                screens.manualEntryScreen(initialDrafts: initialDrafts),
+                screens.manualEntryScreen(initialDrafts: initialDrafts)
+                    .withBottomSheet(.init(detents: [.content])),
                 animated: true
             )
         }

@@ -45,11 +45,16 @@ final class ExpenseManualEntryViewController: UIViewController, HasContentView, 
         super.viewDidLayoutSubviews()
         updatePreferredContentSizeToFitContent()
     }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        schedulePreferredContentSizeUpdate()
+    }
 }
 
 private extension ExpenseManualEntryViewController {
     func render(with viewModel: ExpenseManualEntryViewModel) {
         contentView.configure(with: viewModel)
-        updatePreferredContentSizeToFitContent()
+        schedulePreferredContentSizeUpdate()
     }
 }

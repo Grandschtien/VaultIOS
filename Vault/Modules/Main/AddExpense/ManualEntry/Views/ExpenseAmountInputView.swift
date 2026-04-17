@@ -228,7 +228,22 @@ enum ExpenseAmountInputFilter {
         }
 
         let separatorsCount = unicodeScalars.filter { decimalSeparators.contains($0) }.count
-        return separatorsCount <= 1
+        guard separatorsCount <= 1 else {
+            return false
+        }
+
+        guard let separatorIndex = updatedText.firstIndex(where: {
+            $0 == "." || $0 == ","
+        }) else {
+            return true
+        }
+
+        let fractionalDigitsCount = updatedText.distance(
+            from: updatedText.index(after: separatorIndex),
+            to: updatedText.endIndex
+        )
+
+        return fractionalDigitsCount <= 2
     }
 }
 
