@@ -73,6 +73,52 @@ extension MainExpensesProviderTests {
         let expenses = try await sut.fetchExpenses()
         XCTAssertEqual(expenses.first?.description, "")
     }
+
+    func testFetchExpensesShowsOriginalAmountWhenOriginalCurrencyMatchesPreferredCurrency() async throws {
+        let expense = ExpenseDTO(
+            id: "expense-1",
+            title: "Coffee",
+            description: "Morning",
+            amount: 2.62,
+            currency: "USD",
+            originalAmount: 200,
+            originalCurrency: "RUB",
+            category: "transport",
+            timeOfAdd: .init(timeIntervalSince1970: 1_700_000_000)
+        )
+
+        let expensesService = ExpensesServiceSpy(
+            listResult: .success(
+                .init(
+                    expenses: [expense],
+                    nextCursor: nil,
+                    hasMore: false
+                )
+            )
+        )
+        let profileStorage = UserProfileStorageSpy(
+            profile: .init(
+                userId: "user-1",
+                email: "user@example.com",
+                name: "Test User",
+                currency: "RUB",
+                language: "ru",
+                currencyRate: 76.34
+            )
+        )
+
+        let sut = MainExpensesProvider(
+            expensesService: expensesService,
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: profileStorage
+            )
+        )
+
+        let expenses = try await sut.fetchExpenses()
+
+        XCTAssertEqual(expenses.first?.amount, 200)
+        XCTAssertEqual(expenses.first?.currency, "RUB")
+    }
 }
 
 private extension MainExpensesProviderTests {

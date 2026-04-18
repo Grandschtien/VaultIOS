@@ -16,7 +16,7 @@ enum AuthAPI: ApiTarget, Sendable {
     case logout(AuthTokenRequestDTO)
     
     var host: String {
-        return "165.245.217.225"
+        return "localhost"
     }
     
     var path: String {
@@ -53,5 +53,17 @@ enum AuthAPI: ApiTarget, Sendable {
         case let .logout(dto):
             .custonJSON(data: dto, encoder: JSONCoder.encoder)
         }
+    }
+    
+    // Temp before real server
+    var url: URL {
+        var components = URLComponents()
+        
+        components.host = host
+        components.port = 8080
+        components.scheme = "https"
+        components.path = path
+
+        return components.url!
     }
 }

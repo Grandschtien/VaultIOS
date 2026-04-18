@@ -896,7 +896,9 @@ private extension MainFlowDomainRepository {
     func makeExpenseModel(from expense: ExpenseDTO) -> MainExpenseModel {
         let convertedAmount = currencyConversionService.convertExpense(
             amount: expense.amount,
-            currency: expense.currency
+            currency: expense.currency,
+            originalAmount: expense.originalAmount,
+            originalCurrency: expense.originalCurrency
         )
 
         return MainExpenseModel(
@@ -913,7 +915,9 @@ private extension MainFlowDomainRepository {
     func makeOptimisticExpenseModel(from expense: ExpenseCreateItemRequestDTO) -> MainExpenseModel {
         let convertedAmount = currencyConversionService.convertExpense(
             amount: expense.amount,
-            currency: expense.currency
+            currency: expense.currency,
+            originalAmount: nil,
+            originalCurrency: nil
         )
 
         return MainExpenseModel(

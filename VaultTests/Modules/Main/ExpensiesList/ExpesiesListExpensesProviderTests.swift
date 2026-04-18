@@ -56,7 +56,7 @@ extension ExpesiesListExpensesProviderTests {
             )
         )
 
-        let page = try await sut.fetchExpensesPage(cursor: nil, limit: 20)
+        let page = try await sut.fetchExpensesPage(cursor: String?.none, limit: 20)
 
         XCTAssertEqual(page.expenses.count, 1)
         XCTAssertEqual(page.expenses.first?.description, "")
@@ -83,6 +83,51 @@ extension ExpesiesListExpensesProviderTests {
         } catch {
             XCTAssertNotNil(error as? StubError)
         }
+    }
+
+    func testFetchExpensesPageShowsOriginalAmountWhenOriginalCurrencyMatchesPreferredCurrency() async throws {
+        let service = ExpesiesListExpensesServiceSpy(
+            listResult: .success(
+                .init(
+                    expenses: [
+                        ExpenseDTO(
+                            id: "expense-1",
+                            title: "Coffee",
+                            description: "Description",
+                            amount: 2.62,
+                            currency: "USD",
+                            originalAmount: 200,
+                            originalCurrency: "RUB",
+                            category: "cat-1",
+                            timeOfAdd: Date(timeIntervalSince1970: 1_700_000_000)
+                        )
+                    ],
+                    nextCursor: nil,
+                    hasMore: false
+                )
+            )
+        )
+        let profileStorage = UserProfileStorageSpy(
+            profile: .init(
+                userId: "user-1",
+                email: "user@example.com",
+                name: "Test User",
+                currency: "RUB",
+                language: "ru",
+                currencyRate: 76.34
+            )
+        )
+        let sut = ExpesiesListExpensesProvider(
+            expensesService: service,
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: profileStorage
+            )
+        )
+
+        let page = try await sut.fetchExpensesPage(cursor: nil, limit: 20)
+
+        XCTAssertEqual(page.expenses.first?.amount, 200)
+        XCTAssertEqual(page.expenses.first?.currency, "RUB")
     }
 }
 

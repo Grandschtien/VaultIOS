@@ -11,7 +11,9 @@ protocol UserCurrencyConverting: Sendable {
     func convertUsdAmount(_ amount: Double) -> UserCurrencyAmount
     func convertExpense(
         amount: Double,
-        currency: String
+        currency: String,
+        originalAmount: Double?,
+        originalCurrency: String?
     ) -> UserCurrencyAmount
 }
 
@@ -46,13 +48,22 @@ final class UserCurrencyConversionService: UserCurrencyConverting, @unchecked Se
 
     func convertExpense(
         amount: Double,
-        currency: String
+        currency: String,
+        originalAmount: Double?,
+        originalCurrency: String?
     ) -> UserCurrencyAmount {
+        let preferredCurrency = preferredCurrencyCode()
+
+        if let originalAmount,
+           let originalCurrency,
+           isSameCurrency(originalCurrency, preferredCurrency) {
+            return .init(amount: originalAmount, currency: preferredCurrency)
+        }
+
         if isSameCurrency(currency, Constants.defaultCurrency) {
             return convertUsdAmount(amount)
         }
 
-        let preferredCurrency = preferredCurrencyCode()
         if isSameCurrency(currency, preferredCurrency) {
             return .init(amount: amount, currency: preferredCurrency)
         }

@@ -1062,7 +1062,12 @@ private final class CurrencyConverterStub: UserCurrencyConverting, @unchecked Se
         .init(amount: amount, currency: "USD")
     }
 
-    func convertExpense(amount: Double, currency: String) -> UserCurrencyAmount {
+    func convertExpense(
+        amount: Double,
+        currency: String,
+        originalAmount: Double?,
+        originalCurrency: String?
+    ) -> UserCurrencyAmount {
         .init(amount: amount, currency: currency)
     }
 }

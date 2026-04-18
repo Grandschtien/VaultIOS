@@ -158,6 +158,56 @@ extension CategoryProvidersTests {
         let requestedDeleteIDs = await service.requestedDeleteIDs()
         XCTAssertEqual(requestedDeleteIDs, ["exp-1"])
     }
+
+    func testExpensesProviderShowsOriginalAmountWhenOriginalCurrencyMatchesPreferredCurrency() async throws {
+        let service = CategoryExpensesServiceSpy(
+            listResult: .success(
+                .init(
+                    expenses: [
+                        .init(
+                            id: "exp-1",
+                            title: "Coffee",
+                            description: nil,
+                            amount: 2.62,
+                            currency: "USD",
+                            originalAmount: 200,
+                            originalCurrency: "RUB",
+                            category: "cat-1",
+                            timeOfAdd: Date(timeIntervalSince1970: 100)
+                        )
+                    ],
+                    nextCursor: nil,
+                    hasMore: false
+                )
+            ),
+            deleteResult: .success(())
+        )
+        let profileStorage = UserProfileStorageSpy(
+            profile: .init(
+                userId: "user-1",
+                email: "user@example.com",
+                name: "Test User",
+                currency: "RUB",
+                language: "ru",
+                currencyRate: 76.34
+            )
+        )
+        let sut = CategoryExpensesProvider(
+            expensesService: service,
+            currencyConversionService: UserCurrencyConversionService(
+                userProfileStorageService: profileStorage
+            )
+        )
+
+        let page = try await sut.fetchExpensesPage(
+            categoryID: "cat-1",
+            cursor: nil,
+            limit: 20
+        )
+
+        XCTAssertEqual(page.expenses.first?.amount, 200)
+        XCTAssertEqual(page.expenses.first?.currency, "RUB")
+    }
 }
 
 private actor CategorySummaryServiceSpy: MainCategoriesContractServicing {

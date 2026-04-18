@@ -8,6 +8,8 @@ struct ExpenseDTO: Codable, Equatable, Sendable {
     let description: String?
     let amount: Double
     let currency: String
+    var originalAmount: Double? = nil
+    var originalCurrency: String? = nil
     let category: String
     let timeOfAdd: Date
 }

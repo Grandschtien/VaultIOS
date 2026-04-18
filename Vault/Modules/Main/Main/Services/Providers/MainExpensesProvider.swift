@@ -35,7 +35,9 @@ final class MainExpensesProvider: MainExpensesProviding {
         return response.expenses.prefix(Constants.visibleExpensesLimit).map { expense in
             let convertedAmount = currencyConversionService.convertExpense(
                 amount: expense.amount,
-                currency: expense.currency
+                currency: expense.currency,
+                originalAmount: expense.originalAmount,
+                originalCurrency: expense.originalCurrency
             )
             return MainExpenseModel(
                 id: expense.id,

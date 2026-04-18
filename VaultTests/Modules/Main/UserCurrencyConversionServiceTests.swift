@@ -51,7 +51,9 @@ extension UserCurrencyConversionServiceTests {
 
         let converted = sut.convertExpense(
             amount: 7.4,
-            currency: "USD"
+            currency: "USD",
+            originalAmount: nil,
+            originalCurrency: nil
         )
 
         XCTAssertEqual(converted.amount, 3.7)
@@ -75,11 +77,37 @@ extension UserCurrencyConversionServiceTests {
 
         let converted = sut.convertExpense(
             amount: 7.4,
-            currency: "EUR"
+            currency: "EUR",
+            originalAmount: nil,
+            originalCurrency: nil
         )
 
         XCTAssertEqual(converted.amount, 7.4)
         XCTAssertEqual(converted.currency, "EUR")
+    }
+
+    func testConvertExpenseWhenOriginalCurrencyMatchesPreferredCurrencyReturnsOriginalValue() {
+        let profileStorage = UserProfileStorageSpy(
+            profile: .init(
+                userId: "user-1",
+                email: "user@example.com",
+                name: "Test User",
+                currency: "RUB",
+                language: "ru",
+                currencyRate: 76.34
+            )
+        )
+        let sut = UserCurrencyConversionService(userProfileStorageService: profileStorage)
+
+        let converted = sut.convertExpense(
+            amount: 2.62,
+            currency: "USD",
+            originalAmount: 200,
+            originalCurrency: "RUB"
+        )
+
+        XCTAssertEqual(converted.amount, 200)
+        XCTAssertEqual(converted.currency, "RUB")
     }
 }
 

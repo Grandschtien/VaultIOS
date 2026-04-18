@@ -5,7 +5,7 @@ final class MainExpensesContractServiceTests: XCTestCase {
     func testCreateExpensesForwardsPayloadAndDecodesResponse() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: #"{"expenses":[{"id":"exp-1","title":"iPhone","description":"Apple Store","amount":650.42,"currency":"USD","category":"cat-1","time_of_add":"2025-01-01T10:00:00Z"}]}"#
+            json: #"{"expenses":[{"id":"exp-1","title":"iPhone","description":"Apple Store","amount":650.42,"currency":"USD","original_amount":600,"original_currency":"EUR","category":"cat-1","time_of_add":"2025-01-01T10:00:00Z"}]}"#
         )
 
         var capturedRequest: ExpensesCreateRequestDTO?
@@ -46,6 +46,8 @@ final class MainExpensesContractServiceTests: XCTestCase {
         XCTAssertEqual(response.expenses.count, 1)
         XCTAssertEqual(response.expenses.first?.id, "exp-1")
         XCTAssertEqual(response.expenses.first?.description, "Apple Store")
+        XCTAssertEqual(response.expenses.first?.originalAmount, 600)
+        XCTAssertEqual(response.expenses.first?.originalCurrency, "EUR")
     }
 }
 
@@ -90,7 +92,7 @@ extension MainExpensesContractServiceTests {
     func testListExpensesForwardsAllFiltersAndDecodesCursor() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: #"{"expenses":[{"id":"exp-1","title":"Coffee","description":null,"amount":5.5,"currency":"USD","category":"cat-1","time_of_add":"2025-01-02T08:30:00Z"}],"next_cursor":"next-1","has_more":true}"#
+            json: #"{"expenses":[{"id":"exp-1","title":"Coffee","description":null,"amount":5.5,"currency":"USD","original_amount":420,"original_currency":"RUB","category":"cat-1","time_of_add":"2025-01-02T08:30:00Z"}],"next_cursor":"next-1","has_more":true}"#
         )
 
         let from = Date(timeIntervalSince1970: 1_735_689_600)
@@ -120,6 +122,8 @@ extension MainExpensesContractServiceTests {
         XCTAssertEqual(response.expenses.count, 1)
         XCTAssertEqual(response.expenses.first?.title, "Coffee")
         XCTAssertNil(response.expenses.first?.description)
+        XCTAssertEqual(response.expenses.first?.originalAmount, 420)
+        XCTAssertEqual(response.expenses.first?.originalCurrency, "RUB")
         XCTAssertEqual(response.nextCursor, "next-1")
         XCTAssertTrue(response.hasMore)
     }

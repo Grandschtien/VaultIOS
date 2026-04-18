@@ -246,7 +246,9 @@ private final class CurrencyConversionStub: UserCurrencyConverting, @unchecked S
 
     func convertExpense(
         amount: Double,
-        currency: String
+        currency: String,
+        originalAmount: Double?,
+        originalCurrency: String?
     ) -> UserCurrencyAmount {
         .init(amount: amount, currency: currency)
     }
