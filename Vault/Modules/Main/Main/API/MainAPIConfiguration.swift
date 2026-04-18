@@ -4,8 +4,7 @@ import Foundation
 import Alamofire
 
 enum MainAPIConfiguration {
-    static let host = "localhost"
-    static let port = 8080
+    static let host = "165.245.217.225"
     static let scheme = "https"
     static let timeoutInterval: TimeInterval = 30
 
@@ -14,7 +13,6 @@ enum MainAPIConfiguration {
         components.host = host
         components.scheme = scheme
         components.path = path
-        components.port = port
 
         guard let url = components.url else {
             fatalError("Failed to build url for path: \(path)")
