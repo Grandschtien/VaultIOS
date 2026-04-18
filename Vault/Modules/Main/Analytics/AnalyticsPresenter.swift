@@ -8,10 +8,6 @@ protocol AnalyticsPresentationLogic: Sendable {
 }
 
 final class AnalyticsPresenter: AnalyticsPresentationLogic {
-    private enum Constants {
-        static let visibleLegendItemsCount = 3
-    }
-
     @Published
     private(set) var viewModel: AnalyticsViewModel
 
@@ -94,10 +90,7 @@ private extension AnalyticsPresenter {
         from model: AnalyticsDataModel,
         selectedPeriod: MainSummaryPeriod
     ) -> AnalyticsViewModel.ContentViewModel {
-        let visibleCategories = Array(model.categories.prefix(Constants.visibleLegendItemsCount))
-        let visibleShare = visibleCategories.reduce(.zero) { partialResult, category in
-            partialResult + category.share
-        }
+        let totalAmount = formatter.formatAmount(model.totalAmount, currencyCode: model.currency)
 
         return AnalyticsViewModel.ContentViewModel(
             periodTitle: .init(
@@ -110,17 +103,17 @@ private extension AnalyticsPresenter {
                 alignment: .center
             ),
             totalAmount: .init(
-                text: formatter.formatAmount(model.totalAmount, currencyCode: model.currency),
+                text: totalAmount,
                 font: Typography.typographyBold36,
                 textColor: Asset.Colors.textAndIconPrimary.color,
                 alignment: .center
             ),
             chart: makeChartViewModel(
                 categories: model.categories,
-                visibleShare: visibleShare
+                totalAmount: totalAmount
             ),
             topCategoriesTitle: .init(
-                text: L10n.analyticsTopCategories,
+                text: L10n.mainOverviewCategories,
                 font: Typography.typographyBold24,
                 textColor: Asset.Colors.textAndIconPrimary.color,
                 alignment: .left
@@ -131,33 +124,19 @@ private extension AnalyticsPresenter {
 
     func makeChartViewModel(
         categories: [AnalyticsCategorySummaryModel],
-        visibleShare: Double
+        totalAmount: String
     ) -> AnalyticsChartSectionView.ViewModel {
-        let legendItems = categories.prefix(Constants.visibleLegendItemsCount).map { category in
+        let legendItems = categories.map { category in
             AnalyticsChartSectionView.ViewModel.LegendItem(
                 title: category.name,
                 color: chartColor(for: category)
             )
         }
-        let visibleCategories = categories.prefix(Constants.visibleLegendItemsCount).map { category in
+        let slices = categories.map { category in
             AnalyticsChartSectionView.ViewModel.Slice(
                 value: category.share,
                 color: chartColor(for: category)
             )
-        }
-        let remainderShare = max(0, 1 - visibleCategories.reduce(.zero) { partialResult, category in
-            partialResult + category.value
-        })
-        let slices: [AnalyticsChartSectionView.ViewModel.Slice]
-        if remainderShare > .zero {
-            slices = visibleCategories + [
-                .init(
-                    value: remainderShare,
-                    color: Asset.Colors.interactiveInputBackground.color
-                )
-            ]
-        } else {
-            slices = visibleCategories
         }
 
         return .init(
@@ -170,7 +149,7 @@ private extension AnalyticsPresenter {
                 alignment: .center
             ),
             centerValue: .init(
-                text: formatter.formatPercent(visibleShare),
+                text: totalAmount,
                 font: Typography.typographyBold30,
                 textColor: Asset.Colors.textAndIconPrimary.color,
                 alignment: .center

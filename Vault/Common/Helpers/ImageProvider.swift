@@ -22,6 +22,7 @@ protocol ImageProviding {
     var circleImage: UIImage? { get }
     var xmarkImage: UIImage? { get }
     var calendarImage: UIImage? { get }
+    var chevronDownImage: UIImage? { get }
     var chevronRightImage: UIImage? { get }
     var checkmarkImage: UIImage? { get }
     var sparklesImage: UIImage? { get }
@@ -47,6 +48,7 @@ extension ImageProviding {
     var circleImage: UIImage? { UIImage(systemName: "circle") }
     var xmarkImage: UIImage? { UIImage(systemName: "xmark") }
     var calendarImage: UIImage? { UIImage(systemName: "calendar") }
+    var chevronDownImage: UIImage? { UIImage(systemName: "chevron.down") }
     var chevronRightImage: UIImage? { UIImage(systemName: "chevron.right") }
     var checkmarkImage: UIImage? { UIImage(systemName: "checkmark") }
     var sparklesImage: UIImage? { UIImage(systemName: "sparkles") }

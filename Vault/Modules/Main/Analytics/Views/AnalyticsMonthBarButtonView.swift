@@ -1,10 +1,10 @@
 import UIKit
 import SnapKit
 
-final class AnalyticsMonthBarButtonView: UIView, LayoutScaleProviding {
+final class AnalyticsMonthBarButtonView: UIView, LayoutScaleProviding, ImageProviding {
     private let button = UIButton(type: .system)
     private var tapCommand: Command = .nope
-    private let chevronImageView = UIImageView(image: UIImage(systemName: "chevron.down"))
+    private let chevronImageView = UIImageView()
 
     override var intrinsicContentSize: CGSize {
         button.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
@@ -48,6 +48,7 @@ private extension AnalyticsMonthBarButtonView {
         )
         button.addTarget(self, action: #selector(handleTap), for: .touchUpInside)
 
+        chevronImageView.image = chevronDownImage
         chevronImageView.tintColor = Asset.Colors.textAndIconSecondary.color
         chevronImageView.contentMode = .scaleAspectFit
         

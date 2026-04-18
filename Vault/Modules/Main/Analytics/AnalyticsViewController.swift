@@ -1,26 +1,19 @@
+import SwiftUI
 import UIKit
 
-final class AnalyticsViewController: UIViewController, HasContentView {
-    typealias ContentView = AnalyticsView
+final class AnalyticsViewController: UIHostingController<AnalyticsView> {
 
     private let interactor: AnalyticsBusinessLogic
     private let viewModelStore: ViewModelStore<AnalyticsViewModel>
-    private let tableAdapter: AnalyticsCategorySummaryTableAdapter
     private let periodBarButtonView = MainPeriodBarButtonView()
 
     init(
         interactor: AnalyticsBusinessLogic,
-        viewModelStore: ViewModelStore<AnalyticsViewModel>,
-        tableAdapter: AnalyticsCategorySummaryTableAdapter
+        viewModelStore: ViewModelStore<AnalyticsViewModel>
     ) {
         self.interactor = interactor
         self.viewModelStore = viewModelStore
-        self.tableAdapter = tableAdapter
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    override func loadView() {
-        view = ContentView(tableAdapter: tableAdapter)
+        super.init(rootView: AnalyticsView(viewModelStore: viewModelStore))
     }
 
     @available(*, unavailable)
@@ -30,6 +23,8 @@ final class AnalyticsViewController: UIViewController, HasContentView {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = Asset.Colors.backgroundPrimary.color
+        render(with: viewModelStore.viewModel)
 
         viewModelStore.onViewModelChange = { [weak self] viewModel in
             self?.render(with: viewModel)
@@ -43,7 +38,6 @@ final class AnalyticsViewController: UIViewController, HasContentView {
 
 private extension AnalyticsViewController {
     func render(with viewModel: AnalyticsViewModel) {
-        contentView.configure(with: viewModel)
         periodBarButtonView.configure(with: viewModel.periodButton)
         navigationItem.leftBarButtonItem = UIBarButtonItem(customView: periodBarButtonView)
     }

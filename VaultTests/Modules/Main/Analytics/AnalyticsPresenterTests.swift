@@ -96,8 +96,10 @@ extension AnalyticsPresenterTests {
 
         XCTAssertEqual(content.periodTitle.text, "01.04.2026 - 06.04.2026")
         XCTAssertEqual(content.totalAmount.text, "amount-240.0-USD")
-        XCTAssertEqual(content.chart.legendItems.map(\.title), ["food", "shopping", "transport"])
-        XCTAssertEqual(content.chart.centerValue.text, "percent-0.78")
+        XCTAssertEqual(content.chart.legendItems.map(\.title), ["food", "shopping", "transport", "fun"])
+        XCTAssertEqual(content.chart.slices.count, 4)
+        XCTAssertEqual(content.chart.centerValue.text, "amount-240.0-USD")
+        XCTAssertEqual(content.topCategoriesTitle.text, L10n.mainOverviewCategories)
         XCTAssertEqual(content.rows.count, 4)
         XCTAssertEqual(content.rows[0].amount.text, "amount-100.0-USD")
         XCTAssertEqual(content.rows[0].share.text, "share-0.4")

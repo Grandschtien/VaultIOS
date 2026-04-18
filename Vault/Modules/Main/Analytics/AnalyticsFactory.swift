@@ -44,11 +44,9 @@ final class AnalyticsFactory: Screen {
             options: .applyInitial,
             publisher: presenter.$viewModel
         )
-        let tableAdapter = AnalyticsCategorySummaryTableAdapter()
         let controller = AnalyticsViewController(
             interactor: interactor,
-            viewModelStore: viewModelStore,
-            tableAdapter: tableAdapter
+            viewModelStore: viewModelStore
         )
 
         presenter.handler = interactor
