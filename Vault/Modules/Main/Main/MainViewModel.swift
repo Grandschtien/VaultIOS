@@ -4,7 +4,7 @@ import Foundation
 
 struct MainViewModel: Equatable {
     let navigationTitle: Label.LabelViewModel
-    let periodButton: PeriodButtonViewModel
+    let periodButton: MainPeriodBarButtonView.ViewModel
     let blockingErrorViewModel: MainBlockingErrorView.ViewModel?
     let isInteractionBlocked: Bool
     let summarySection: MainSummarySectionView.ViewModel
@@ -13,7 +13,7 @@ struct MainViewModel: Equatable {
 
     init(
         navigationTitle: Label.LabelViewModel = .init(),
-        periodButton: PeriodButtonViewModel = .init(),
+        periodButton: MainPeriodBarButtonView.ViewModel = .init(),
         blockingErrorViewModel: MainBlockingErrorView.ViewModel? = nil,
         isInteractionBlocked: Bool = false,
         summarySection: MainSummarySectionView.ViewModel = .init(),
@@ -27,15 +27,5 @@ struct MainViewModel: Equatable {
         self.summarySection = summarySection
         self.categoriesSection = categoriesSection
         self.expensesSection = expensesSection
-    }
-}
-
-extension MainViewModel {
-    struct PeriodButtonViewModel: Equatable {
-        let tapCommand: Command
-
-        init(tapCommand: Command = .nope) {
-            self.tapCommand = tapCommand
-        }
     }
 }

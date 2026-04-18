@@ -42,7 +42,6 @@ final class ExpenseCategoryPickerRouter: ExpenseCategoryPickerRoutingLogic {
                         context: context
                     )
                 )
-                .addingBottomSheet(.content)
         }
     }
 }

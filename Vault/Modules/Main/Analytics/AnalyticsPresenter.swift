@@ -32,8 +32,7 @@ final class AnalyticsPresenter: AnalyticsPresentationLogic {
 
     func presentFetchedData(_ data: AnalyticsFetchData) {
         viewModel = AnalyticsViewModel(
-            monthBarButton: .init(
-                title: formatter.formatMonth(data.selectedPeriod.from),
+            periodButton: .init(
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapMonthFilter()
                 }

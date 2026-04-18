@@ -20,7 +20,7 @@ final class MainPeriodBarButtonView: UIView, LayoutScaleProviding, ImageProvidin
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(with viewModel: MainViewModel.PeriodButtonViewModel) {
+    func configure(with viewModel: ViewModel) {
         tapCommand = viewModel.tapCommand
     }
 }
@@ -44,5 +44,15 @@ private extension MainPeriodBarButtonView {
     @objc
     func handleTap() {
         tapCommand.execute()
+    }
+}
+
+extension MainPeriodBarButtonView {
+    struct ViewModel: Equatable {
+        let tapCommand: Command
+
+        init(tapCommand: Command = .nope) {
+            self.tapCommand = tapCommand
+        }
     }
 }

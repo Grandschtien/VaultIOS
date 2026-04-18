@@ -2,14 +2,14 @@ import Foundation
 import UIKit
 
 struct AnalyticsViewModel: Equatable {
-    let monthBarButton: AnalyticsMonthBarButtonView.ViewModel
+    let periodButton: MainPeriodBarButtonView.ViewModel
     let state: State
 
     init(
-        monthBarButton: AnalyticsMonthBarButtonView.ViewModel = .init(),
+        periodButton: MainPeriodBarButtonView.ViewModel = .init(),
         state: State = .loading
     ) {
-        self.monthBarButton = monthBarButton
+        self.periodButton = periodButton
         self.state = state
     }
 }

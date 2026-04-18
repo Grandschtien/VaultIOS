@@ -326,6 +326,7 @@ extension MainInteractor: CategoryPeriodPickerOutput {
             to: date
         )
         await loadMainData()
+        await repository.refreshLoadedPeriodDependentModules()
     }
 }
 

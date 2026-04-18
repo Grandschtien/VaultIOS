@@ -30,6 +30,7 @@ final class AnalyticsFactory: Screen {
         let interactor = AnalyticsInteractor(
             presenter: presenter,
             router: router,
+            repository: context.repository,
             dataProvider: AnalyticsDataProvider(
                 categoriesService: categoriesService,
                 currencyConversionService: currencyConversionService

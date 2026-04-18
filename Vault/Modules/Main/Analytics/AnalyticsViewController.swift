@@ -6,6 +6,7 @@ final class AnalyticsViewController: UIViewController, HasContentView {
     private let interactor: AnalyticsBusinessLogic
     private let viewModelStore: ViewModelStore<AnalyticsViewModel>
     private let tableAdapter: AnalyticsCategorySummaryTableAdapter
+    private let periodBarButtonView = MainPeriodBarButtonView()
 
     init(
         interactor: AnalyticsBusinessLogic,
@@ -43,5 +44,7 @@ final class AnalyticsViewController: UIViewController, HasContentView {
 private extension AnalyticsViewController {
     func render(with viewModel: AnalyticsViewModel) {
         contentView.configure(with: viewModel)
+        periodBarButtonView.configure(with: viewModel.periodButton)
+        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: periodBarButtonView)
     }
 }

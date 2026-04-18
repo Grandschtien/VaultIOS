@@ -16,7 +16,6 @@ final class AnalyticsView: UIView, LayoutScaleProviding {
     private let lockedOverlayView = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
     private let lockedButton = Button()
     private let tableAdapter: AnalyticsCategorySummaryTableAdapter
-    private let monthPill = AnalyticsMonthBarButtonView()
     private var tableHeightConstraint: Constraint?
 
     init(
@@ -47,15 +46,12 @@ final class AnalyticsView: UIView, LayoutScaleProviding {
         case .loading:
             showLoadingState()
         case let .error(errorViewModel):
-            monthPill.configure(with: viewModel.monthBarButton)
             showErrorState(errorViewModel)
         case let .empty(emptyViewModel):
-            monthPill.configure(with: viewModel.monthBarButton)
             showEmptyState(emptyViewModel)
         case let .locked(lockedViewModel):
             showLockedState(lockedViewModel)
         case let .loaded(contentViewModel):
-            monthPill.configure(with: viewModel.monthBarButton)
             showLoadedState(contentViewModel)
         }
     }
@@ -88,7 +84,6 @@ private extension AnalyticsView {
 
         scrollView.addSubview(contentView)
         contentView.addSubview(stackView)
-        contentView.addSubview(monthPill)
         lockedOverlayView.contentView.addSubview(lockedButton)
     
         [
@@ -99,11 +94,6 @@ private extension AnalyticsView {
             tableView
         ].forEach { stackView.addArrangedSubview($0) }
         
-        monthPill.snp.makeConstraints { make in
-            make.top.equalToSuperview().inset(spaceS)
-            make.centerX.equalToSuperview()
-        }
-
         scrollView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
@@ -137,7 +127,7 @@ private extension AnalyticsView {
         }
 
         stackView.snp.makeConstraints { make in
-            make.top.equalTo(monthPill.snp.bottom).offset(spaceS)
+            make.top.equalToSuperview().inset(spaceS)
             make.horizontalEdges.equalToSuperview().inset(spaceS)
             make.bottom.equalToSuperview().inset(spaceS)
         }

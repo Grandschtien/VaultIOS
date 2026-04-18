@@ -6,6 +6,7 @@ protocol MainFlowDomainRepositoryProtocol: Sendable {
     func refreshRecentExpenses() async throws
     func refreshCategoryFirstPage(id: String, fromDate: Date?, toDate: Date?) async throws
     func refreshExpensesFirstPage() async throws
+    func refreshLoadedPeriodDependentModules() async
     func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async
     func loadNextCategoryPage(id: String) async throws
     func loadNextExpensesPage() async throws
@@ -58,6 +59,8 @@ extension MainFlowDomainRepositoryProtocol {
             currency: "USD"
         )
     }
+
+    func refreshLoadedPeriodDependentModules() async {}
 }
 
 final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @unchecked Sendable {
@@ -214,7 +217,10 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
 
     func refreshExpensesFirstPage() async throws {
         let response = try await expensesService.listExpenses(
-            parameters: .init(limit: Constants.listPageLimit)
+            parameters: makeExpensesListQueryParameters(
+                cursor: nil,
+                limit: Constants.listPageLimit
+            )
         )
         let expenses = response.expenses.map(makeExpenseModel)
 
@@ -229,6 +235,30 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
             pruneUnreferencedExpenses(in: &state)
         }
         observer.publishAll(from: store)
+    }
+
+    func refreshLoadedPeriodDependentModules() async {
+        guard let summaryPeriodProvider else {
+            return
+        }
+
+        let state = store.snapshot()
+        let period = summaryPeriodProvider.currentMonthPeriod()
+        let loadedCategoryIDs = state.categoryPagination.compactMap { element -> String? in
+            element.value.isLoaded ? element.key : nil
+        }
+
+        if state.expensesListPagination.isLoaded {
+            try? await refreshExpensesFirstPage()
+        }
+
+        for categoryID in loadedCategoryIDs {
+            try? await refreshCategoryFirstPage(
+                id: categoryID,
+                fromDate: period.from,
+                toDate: period.to
+            )
+        }
     }
 
     func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {
@@ -313,7 +343,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         }
 
         let response = try await expensesService.listExpenses(
-            parameters: .init(
+            parameters: makeExpensesListQueryParameters(
                 cursor: pagination.nextCursor,
                 limit: Constants.listPageLimit
             )
@@ -966,6 +996,20 @@ private extension MainFlowDomainRepository {
     ) -> ExpensesListQueryParameters {
         return .init(
             category: categoryID,
+            from: period?.from,
+            to: period?.to,
+            cursor: cursor,
+            limit: limit
+        )
+    }
+
+    func makeExpensesListQueryParameters(
+        cursor: String?,
+        limit: Int
+    ) -> ExpensesListQueryParameters {
+        let period = summaryPeriodProvider?.currentMonthPeriod()
+
+        return .init(
             from: period?.from,
             to: period?.to,
             cursor: cursor,

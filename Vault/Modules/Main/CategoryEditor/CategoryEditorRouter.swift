@@ -60,7 +60,6 @@ final class CategoryEditorRouter: NSObject, CategoryEditorRoutingLogic {
                         output: output
                     )
                 )
-                .addingBottomSheet(.content)
         }
     }
 

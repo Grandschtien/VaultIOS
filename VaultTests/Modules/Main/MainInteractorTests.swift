@@ -405,11 +405,13 @@ extension MainInteractorTests {
         let summaryFetchCalls = await summaryProvider.recordedFetchCallsCount()
         let refreshCategoriesCalls = await repository.refreshCategoriesCalls()
         let refreshRecentExpensesCalls = await repository.refreshRecentExpensesCalls()
+        let refreshLoadedModulesCalls = await repository.refreshLoadedPeriodDependentModulesCalls()
 
         XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), expectedPeriod)
         XCTAssertEqual(summaryFetchCalls, 1)
         XCTAssertEqual(refreshCategoriesCalls, 1)
         XCTAssertEqual(refreshRecentExpensesCalls, 1)
+        XCTAssertEqual(refreshLoadedModulesCalls, 1)
         XCTAssertEqual(presenter.presentedData.last?.summary?.totalAmount, 100)
     }
 }
@@ -644,6 +646,7 @@ private actor MainRepositoryStub: MainFlowDomainRepositoryProtocol {
     private let recentExpensesResults: [Result<[MainExpenseModel], Error>]
     private var categoriesCallCount: Int = .zero
     private var recentExpensesCallCount: Int = .zero
+    private var refreshLoadedPeriodDependentModulesCallCount: Int = .zero
 
     init(
         categoriesResults: [Result<[MainCategoryCardModel], Error>],
@@ -687,6 +690,9 @@ private actor MainRepositoryStub: MainFlowDomainRepositoryProtocol {
 
     func refreshCategoryFirstPage(id: String, fromDate: Date?, toDate: Date?) async throws {}
     func refreshExpensesFirstPage() async throws {}
+    func refreshLoadedPeriodDependentModules() async {
+        refreshLoadedPeriodDependentModulesCallCount += 1
+    }
     func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {}
     func loadNextCategoryPage(id: String) async throws {}
     func loadNextExpensesPage() async throws {}
@@ -702,6 +708,10 @@ private actor MainRepositoryStub: MainFlowDomainRepositoryProtocol {
 
     func refreshRecentExpensesCalls() -> Int {
         recentExpensesCallCount
+    }
+
+    func refreshLoadedPeriodDependentModulesCalls() -> Int {
+        refreshLoadedPeriodDependentModulesCallCount
     }
 
     func emitOverview(

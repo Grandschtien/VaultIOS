@@ -12,6 +12,7 @@ final class AnalyticsInteractorTests: XCTestCase {
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
             summaryPeriodProvider: summaryPeriodProvider,
@@ -37,6 +38,7 @@ extension AnalyticsInteractorTests {
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: observer,
             summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
@@ -69,6 +71,7 @@ extension AnalyticsInteractorTests {
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
             summaryPeriodProvider: summaryPeriodProvider,
@@ -98,9 +101,11 @@ extension AnalyticsInteractorTests {
             ]
         )
         let summaryPeriodProvider = MainSummaryPeriodServiceStub(period: aprilCurrentPeriod)
+        let repository = AnalyticsRepositorySpy()
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
+            repository: repository,
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
             summaryPeriodProvider: summaryPeriodProvider,
@@ -116,8 +121,12 @@ extension AnalyticsInteractorTests {
         await waitForUpdates()
 
         let fetchCalls = await dataProvider.recordedFetchCalls()
+        let refreshMainFlowCalls = await repository.refreshMainFlowCalls()
+        let refreshLoadedModulesCalls = await repository.refreshLoadedPeriodDependentModulesCalls()
         XCTAssertEqual(fetchCalls, [aprilCurrentPeriod, marchCustomPeriod])
         XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), marchCustomPeriod)
+        XCTAssertEqual(refreshMainFlowCalls, 1)
+        XCTAssertEqual(refreshLoadedModulesCalls, 1)
         XCTAssertEqual(presenter.presentedData.last?.data?.monthStart, marchStart)
     }
 }
@@ -135,6 +144,7 @@ extension AnalyticsInteractorTests {
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
             summaryPeriodProvider: summaryPeriodProvider,
@@ -163,6 +173,7 @@ extension AnalyticsInteractorTests {
         let sut = AnalyticsInteractor(
             presenter: AnalyticsPresenterSpy(),
             router: router,
+            repository: AnalyticsRepositorySpy(),
             dataProvider: AnalyticsDataProviderStub(results: []),
             observer: AnalyticsObserverStub(),
             summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
@@ -188,6 +199,7 @@ extension AnalyticsInteractorTests {
         let sut = AnalyticsInteractor(
             presenter: AnalyticsPresenterSpy(),
             router: router,
+            repository: AnalyticsRepositorySpy(),
             dataProvider: AnalyticsDataProviderStub(results: []),
             observer: AnalyticsObserverStub(),
             summaryPeriodProvider: MainSummaryPeriodServiceStub(period: currentPeriod),
@@ -205,6 +217,7 @@ extension AnalyticsInteractorTests {
         let sut = AnalyticsInteractor(
             presenter: AnalyticsPresenterSpy(),
             router: router,
+            repository: AnalyticsRepositorySpy(),
             dataProvider: AnalyticsDataProviderStub(results: []),
             observer: AnalyticsObserverStub(),
             summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
@@ -235,6 +248,7 @@ extension AnalyticsInteractorTests {
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: observer,
             summaryPeriodProvider: summaryPeriodProvider,
@@ -277,6 +291,7 @@ extension AnalyticsInteractorTests {
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
             summaryPeriodProvider: summaryPeriodProvider,
@@ -301,6 +316,7 @@ extension AnalyticsInteractorTests {
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: observer,
             summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
@@ -320,6 +336,7 @@ extension AnalyticsInteractorTests {
         let sut = AnalyticsInteractor(
             presenter: AnalyticsPresenterSpy(),
             router: router,
+            repository: AnalyticsRepositorySpy(),
             dataProvider: AnalyticsDataProviderStub(results: []),
             observer: AnalyticsObserverStub(),
             summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
@@ -344,6 +361,7 @@ extension AnalyticsInteractorTests {
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
             summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
@@ -544,6 +562,40 @@ private final class AnalyticsObserverStub: MainFlowDomainObserverProtocol, @unch
 
     func publishOverview() {
         continuation?.yield(.init())
+    }
+}
+
+private actor AnalyticsRepositorySpy: MainFlowDomainRepositoryProtocol {
+    private var refreshMainFlowCallCount = 0
+    private var refreshLoadedPeriodDependentModulesCallCount = 0
+
+    func refreshMainFlow() async throws {
+        refreshMainFlowCallCount += 1
+    }
+
+    func refreshCategories() async throws {}
+    func refreshRecentExpenses() async throws {}
+    func refreshCategoryFirstPage(id: String, fromDate: Date?, toDate: Date?) async throws {}
+    func refreshExpensesFirstPage() async throws {}
+    func refreshLoadedPeriodDependentModules() async {
+        refreshLoadedPeriodDependentModulesCallCount += 1
+    }
+    func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {}
+    func loadNextCategoryPage(id: String) async throws {}
+    func loadNextExpensesPage() async throws {}
+    func addExpense(_ request: ExpensesCreateRequestDTO) async throws {}
+    func deleteExpense(id: String) async throws {}
+    func addCategory(_ request: CategoryCreateRequestDTO) async throws -> MainCategoryCardModel { .init(id: "", name: "", icon: "", color: "", amount: 0, currency: "USD") }
+    func updateCategory(id: String, request: CategoryCreateRequestDTO) async throws -> MainCategoryCardModel { .init(id: id, name: "", icon: "", color: "", amount: 0, currency: "USD") }
+    func deleteCategory(id: String) async throws {}
+    func clearSession() async {}
+
+    func refreshMainFlowCalls() -> Int {
+        refreshMainFlowCallCount
+    }
+
+    func refreshLoadedPeriodDependentModulesCalls() -> Int {
+        refreshLoadedPeriodDependentModulesCallCount
     }
 }
 

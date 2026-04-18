@@ -43,7 +43,7 @@ extension AnalyticsPresenterTests {
             return XCTFail("Expected loading state")
         }
 
-        XCTAssertEqual(sut.viewModel.monthBarButton.title, "month")
+        XCTAssertNotEqual(sut.viewModel.periodButton.tapCommand, .nope)
     }
 }
 

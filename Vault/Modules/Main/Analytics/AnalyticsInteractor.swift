@@ -14,6 +14,7 @@ protocol AnalyticsHandler: AnyObject, Sendable {
 actor AnalyticsInteractor: AnalyticsBusinessLogic {
     private let presenter: AnalyticsPresentationLogic
     private let router: AnalyticsRoutingLogic
+    private let repository: MainFlowDomainRepositoryProtocol
     private let dataProvider: AnalyticsDataProviding
     private let observer: MainFlowDomainObserverProtocol
     private let summaryPeriodProvider: MainSummaryPeriodServicing
@@ -28,6 +29,7 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
     init(
         presenter: AnalyticsPresentationLogic,
         router: AnalyticsRoutingLogic,
+        repository: MainFlowDomainRepositoryProtocol,
         dataProvider: AnalyticsDataProviding,
         observer: MainFlowDomainObserverProtocol,
         summaryPeriodProvider: MainSummaryPeriodServicing,
@@ -35,6 +37,7 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
     ) {
         self.presenter = presenter
         self.router = router
+        self.repository = repository
         self.dataProvider = dataProvider
         self.observer = observer
         self.summaryPeriodProvider = summaryPeriodProvider
@@ -243,7 +246,10 @@ extension AnalyticsInteractor: CategoryPeriodPickerOutput {
             from: fromDate,
             to: date
         )
-        await changePeriod(to: summaryPeriodProvider.currentMonthPeriod())
+        let currentPeriod = summaryPeriodProvider.currentMonthPeriod()
+        await changePeriod(to: currentPeriod)
+        try? await repository.refreshMainFlow()
+        await repository.refreshLoadedPeriodDependentModules()
     }
 }
 

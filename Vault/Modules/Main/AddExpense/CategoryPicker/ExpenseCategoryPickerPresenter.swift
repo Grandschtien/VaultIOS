@@ -63,8 +63,7 @@ final class ExpenseCategoryPickerPresenter: ExpenseCategoryPickerPresentationLog
                 isEnabled: isAddEnabled,
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapAdd()
-                },
-                leftIcon: plusSystemImage
+                }
             )
         )
     }

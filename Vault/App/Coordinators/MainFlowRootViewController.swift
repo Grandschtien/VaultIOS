@@ -75,6 +75,7 @@ private extension MainFlowRootViewController {
             navigator: screenNavigator
         )
         homeController.title = L10n.mainOverviewTitle
+        analyticsController.title = L10n.mainTabStats
 
         homeController.tabBarItem = UITabBarItem(
             title: L10n.mainTabHome,
@@ -93,7 +94,10 @@ private extension MainFlowRootViewController {
                 rootController: homeController,
                 showsProfileButton: true
             ),
-            analyticsController
+            makeNavigationController(
+                rootController: analyticsController,
+                showsProfileButton: true
+            )
         ]
     }
 
