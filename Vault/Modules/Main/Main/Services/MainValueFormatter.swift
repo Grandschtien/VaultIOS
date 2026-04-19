@@ -12,6 +12,12 @@ protocol MainValueFormatting: Sendable {
 }
 
 struct MainValueFormatter: MainValueFormatting {
+    private let localeProvider: @Sendable () -> Locale
+
+    init(localeProvider: @escaping @Sendable () -> Locale = { .current }) {
+        self.localeProvider = localeProvider
+    }
+
     func formatAmount(_ amount: Double, currencyCode: String) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -61,10 +67,17 @@ struct MainValueFormatter: MainValueFormatting {
     }
 
     func formatExpenseTime(_ date: Date, now: Date = Date()) -> String {
+        let locale = localeProvider()
         let timeFormatter = DateFormatter()
-        timeFormatter.locale = Locale.current
-        timeFormatter.dateFormat = "hh:mm a"
+        timeFormatter.locale = locale
+        timeFormatter.dateFormat = expenseTimeDateFormat(for: locale)
 
         return timeFormatter.string(from: date)
+    }
+
+    func expenseTimeDateFormat(for locale: Locale) -> String {
+        locale.language.languageCode?.identifier == Locale.LanguageCode.english.identifier
+            ? "hh:mm a"
+            : "HH:mm"
     }
 }

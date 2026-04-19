@@ -1,7 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="13122.16" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24506" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="13104.12"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24504"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -11,15 +13,44 @@
             <objects>
                 <viewController id="01J-lp-oVM" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
-                        <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <color key="backgroundColor" xcode11CocoaTouchSystemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="launch.icon" highlightedImage="launch.icon" translatesAutoresizingMaskIntoConstraints="NO" id="8rL-RC-wtD">
+                                <rect key="frame" x="76.666666666666686" y="358" width="240" height="128"/>
+                            </imageView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Vault" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="wTx-3m-bEi">
+                                <rect key="frame" x="167" y="501" width="58" height="29"/>
+                                <fontDescription key="fontDescription" type="boldSystem" pointSize="24"/>
+                                <color key="textColor" name="text_and_icon_primary"/>
+                                <color key="highlightedColor" name="text_and_icon_primary"/>
+                            </label>
+                        </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
+                        <color key="backgroundColor" name="background_primary"/>
+                        <constraints>
+                            <constraint firstItem="8rL-RC-wtD" firstAttribute="height" secondItem="Ze5-6b-2t3" secondAttribute="height" multiplier="0.150235" id="FeL-QA-oid"/>
+                            <constraint firstItem="wTx-3m-bEi" firstAttribute="top" secondItem="8rL-RC-wtD" secondAttribute="bottom" constant="15" id="MSZ-ly-HF5"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="wTx-3m-bEi" secondAttribute="trailing" constant="168" id="O05-fT-Ib7"/>
+                            <constraint firstItem="wTx-3m-bEi" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="167" id="qpc-ub-C2T"/>
+                            <constraint firstItem="8rL-RC-wtD" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="wty-g7-17k"/>
+                            <constraint firstItem="8rL-RC-wtD" firstAttribute="centerY" secondItem="6Tk-OE-BBY" secondAttribute="centerY" constant="-29" id="xEK-hm-OtL"/>
+                            <constraint firstItem="8rL-RC-wtD" firstAttribute="width" secondItem="Ze5-6b-2t3" secondAttribute="width" multiplier="0.610687" id="z3h-7K-t0X"/>
+                        </constraints>
                     </view>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="53" y="375"/>
+            <point key="canvasLocation" x="213" y="235"/>
         </scene>
     </scenes>
+    <resources>
+        <image name="launch.icon" width="128" height="128"/>
+        <namedColor name="background_primary">
+            <color red="0.93699997663497925" green="0.9649999737739563" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+        <namedColor name="text_and_icon_primary">
+            <color red="0.12200000137090683" green="0.16099999845027924" blue="0.21600000560283661" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+    </resources>
 </document>

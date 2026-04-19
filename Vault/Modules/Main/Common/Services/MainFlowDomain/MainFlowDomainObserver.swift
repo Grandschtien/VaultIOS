@@ -301,7 +301,21 @@ private extension MainFlowDomainObserver {
     }
 
     func orderedCategories(from state: MainFlowDomainState) -> [MainCategoryCardModel] {
-        state.categoryOrder.compactMap { state.categoriesByID[$0] }
+        let orderIndexes = Dictionary(
+            uniqueKeysWithValues: state.categoryOrder.enumerated().map { index, categoryID in
+                (categoryID, index)
+            }
+        )
+
+        return state.categoryOrder
+            .compactMap { state.categoriesByID[$0] }
+            .sorted { left, right in
+                if left.amount == right.amount {
+                    return (orderIndexes[left.id] ?? .zero) < (orderIndexes[right.id] ?? .zero)
+                }
+
+                return left.amount > right.amount
+            }
     }
 
     func makeSummary(

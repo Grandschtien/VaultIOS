@@ -85,7 +85,6 @@ struct AnalyticsView: View {
         ScrollView {
             VStack(spacing: metrics.spaceM) {
                 text(viewModel.periodTitle)
-                text(viewModel.totalAmount)
                 chartView(viewModel.chart)
                 text(viewModel.topCategoriesTitle)
                 VStack(spacing: metrics.spaceXS) {
