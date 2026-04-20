@@ -21,11 +21,10 @@ actor SubscriptionInteractor: SubscriptionBusinessLogic {
     private let router: SubscriptionRoutingLogic
     private let currentTier: String
     private let output: SubscriptionOutput
-    private let storeKitService: SubscriptionStoreKitServicing
-    private let contractService: SubscriptionContractServicing
+    private let storeKitService: SubscriptionServiceLogic
 
     private var loadingState: LoadingStatus = .idle
-    private var plans: [SubscriptionStorePlan] = []
+    private var plans: [SubscriptionFetchData.SubscriptionStorePlan] = []
     private var purchasingPlanID: String?
 
     init(
@@ -33,15 +32,13 @@ actor SubscriptionInteractor: SubscriptionBusinessLogic {
         router: SubscriptionRoutingLogic,
         currentTier: String,
         output: SubscriptionOutput,
-        storeKitService: SubscriptionStoreKitServicing,
-        contractService: SubscriptionContractServicing
+        storeKitService: SubscriptionServiceLogic
     ) {
         self.presenter = presenter
         self.router = router
         self.currentTier = currentTier
         self.output = output
         self.storeKitService = storeKitService
-        self.contractService = contractService
     }
 
     func fetchData() async {
@@ -114,37 +111,9 @@ extension SubscriptionInteractor: SubscriptionHandler {
         await presentFetchedData()
 
         do {
-            let result = try await storeKitService.purchase(planID: planID)
-
-            switch result {
-            case let .verified(purchase):
-                do {
-                    try await contractService.approvePurchase(.init(purchase: purchase))
-                    try await storeKitService.finishPurchase(transactionID: purchase.transactionId)
-                    purchasingPlanID = nil
-                    await presentFetchedData()
-                    await router.close()
-                    await output.handleSubscriptionDidSync()
-                } catch {
-                    purchasingPlanID = nil
-                    await presentFetchedData()
-                    await router.presentError(with: syncFailedMessage(from: error))
-                }
-
-            case .pending:
-                purchasingPlanID = nil
-                await presentFetchedData()
-                await router.presentMessage(with: L10n.subscriptionPurchasePending)
-
-            case .cancelled:
-                purchasingPlanID = nil
-                await presentFetchedData()
-
-            case .unverified:
-                purchasingPlanID = nil
-                await presentFetchedData()
-                await router.presentError(with: L10n.subscriptionPurchaseUnverified)
-            }
+            try await storeKitService.purchase(planID: planID)
+            await presentFetchedData()
+            await router.close()
         } catch {
             purchasingPlanID = nil
             await presentFetchedData()

@@ -30,9 +30,12 @@ final class AppCoordinator {
         appAssebler.apply(assembly: AppAssembly())
         appAssebler.resolver.resolve(FirstRunKeychainCleanupServiceProtocol.self)?
             .clearKeychainIfNeeded()
-        appAssebler.resolver.resolve(SubscriptionTransactionObserverServiceProtocol.self)?
-            .start()
         observeLogoutEvents()
+        
+        Task {
+            await appAssebler.resolver.resolve(SubscriptionInitializerLogic.self)!.initialize()
+            appAssebler.resolver.resolve(SubscriptionUpdatesListenerLogic.self)!.start()
+        }
 
         Task { [weak self] in
             await self?.routeToInitialFlow()

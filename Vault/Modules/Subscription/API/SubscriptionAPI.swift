@@ -5,7 +5,7 @@ import Alamofire
 import NetworkClient
 
 enum SubscriptionAPI: ApiTarget, Sendable {
-    case approve(SubscriptionApproveRequestDTO)
+    case approve
 
     var host: String {
         MainAPIConfiguration.host
@@ -35,8 +35,8 @@ enum SubscriptionAPI: ApiTarget, Sendable {
 
     var requestType: RequestType {
         switch self {
-        case let .approve(dto):
-            .custonJSON(data: dto, encoder: JSONCoder.encoder)
+        case .approve:
+            .plain
         }
     }
 

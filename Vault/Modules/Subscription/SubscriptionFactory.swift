@@ -18,9 +18,7 @@ final class SubscriptionFactory: Screen {
 
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
-        var storeKitService: SubscriptionStoreKitServicing
-        @SafeInject
-        var contractService: SubscriptionContractServicing
+        var storeKitService: SubscriptionServiceLogic
         @SafeInject
         var toastPresenter: ToastPresenting
 
@@ -35,8 +33,7 @@ final class SubscriptionFactory: Screen {
             router: router,
             currentTier: currentTier,
             output: output,
-            storeKitService: storeKitService,
-            contractService: contractService
+            storeKitService: storeKitService
         )
 
         let viewModelStore = ViewModelStore(

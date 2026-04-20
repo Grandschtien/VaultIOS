@@ -15,6 +15,8 @@ final class RegistrationFactory: Screen {
         var userProfileStorageService: UserProfileStorageServiceProtocol
         @SafeInject
         var toastPresenter: ToastPresenting
+        @SafeInject
+        var subscriptionInitializer: SubscriptionInitializerLogic
 
         let registrationStorage = RegistrationStorage()
         let viewModel = RegistrationViewModel()
@@ -29,7 +31,8 @@ final class RegistrationFactory: Screen {
             router: router,
             tokenStorageService: tokenStorageService,
             userProfileStorageService: userProfileStorageService,
-            registrationStorage: registrationStorage
+            registrationStorage: registrationStorage,
+            subscriptionInitializer: subscriptionInitializer
         )
 
         let viewModelStore = ViewModelStore(

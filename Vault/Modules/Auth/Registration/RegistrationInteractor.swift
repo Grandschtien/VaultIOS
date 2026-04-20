@@ -28,6 +28,7 @@ actor RegistrationInteractor: RegistrationBusinessLogic {
     private let registrationStorage: RegistrationStorageProtocol
     private let currencyProvider: RegistrationCurrencyProviding
     private let localeProvider: RegistrationLocaleProviding
+    private let subscriptionInitializer: SubscriptionInitializerLogic
 
     private let popularCurrencyCodes: [String] = ["USD", "RUB", "KZT"]
 
@@ -57,6 +58,7 @@ actor RegistrationInteractor: RegistrationBusinessLogic {
         tokenStorageService: TokenStorageServiceProtocol,
         userProfileStorageService: UserProfileStorageServiceProtocol,
         registrationStorage: RegistrationStorageProtocol,
+        subscriptionInitializer: SubscriptionInitializerLogic,
         currencyProvider: RegistrationCurrencyProviding = RegistrationCurrencyProvider(),
         localeProvider: RegistrationLocaleProviding = RegistrationLocaleProvider()
     ) {
@@ -66,6 +68,7 @@ actor RegistrationInteractor: RegistrationBusinessLogic {
         self.tokenStorageService = tokenStorageService
         self.userProfileStorageService = userProfileStorageService
         self.registrationStorage = registrationStorage
+        self.subscriptionInitializer = subscriptionInitializer
         self.currencyProvider = currencyProvider
         self.localeProvider = localeProvider
     }
@@ -265,6 +268,7 @@ private extension RegistrationInteractor {
             )
 
             loadingState = .loaded
+            await subscriptionInitializer.setUserId(response.user.id)
             await registrationStorage.clear()
             await presentFetchedData()
             await router.openMainFlow()

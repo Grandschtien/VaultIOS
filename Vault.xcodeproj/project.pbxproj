@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		60029CE02F96AE49000FED1A /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 60029CDF2F96AE49000FED1A /* RevenueCat */; };
+		60029CE22F96AE49000FED1A /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = 60029CE12F96AE49000FED1A /* RevenueCatUI */; };
 		6007AAC22F5CB51A00ED32D2 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6007AAC12F5CB51A00ED32D2 /* SnapKit */; };
 		602D1D822F5C8ADD003BAF20 /* Nivelir in Frameworks */ = {isa = PBXBuildFile; productRef = 602D1D812F5C8ADD003BAF20 /* Nivelir */; };
 		606409B22F717664003D2BCC /* SkeletonView in Frameworks */ = {isa = PBXBuildFile; productRef = 606409B12F717664003D2BCC /* SkeletonView */; };
@@ -62,6 +64,8 @@
 			files = (
 				60A19B242F5C8A1E00607182 /* NetworkClient in Frameworks */,
 				602D1D822F5C8ADD003BAF20 /* Nivelir in Frameworks */,
+				60029CE22F96AE49000FED1A /* RevenueCatUI in Frameworks */,
+				60029CE02F96AE49000FED1A /* RevenueCat in Frameworks */,
 				60A19B2C2F5C8A8F00607182 /* Swinject in Frameworks */,
 				606409B22F717664003D2BCC /* SkeletonView in Frameworks */,
 				6007AAC22F5CB51A00ED32D2 /* SnapKit in Frameworks */,
@@ -122,6 +126,8 @@
 				602D1D812F5C8ADD003BAF20 /* Nivelir */,
 				6007AAC12F5CB51A00ED32D2 /* SnapKit */,
 				606409B12F717664003D2BCC /* SkeletonView */,
+				60029CDF2F96AE49000FED1A /* RevenueCat */,
+				60029CE12F96AE49000FED1A /* RevenueCatUI */,
 			);
 			productName = Vault;
 			productReference = 609A28492F2F7B86007145D5 /* Vault.app */;
@@ -186,6 +192,7 @@
 				602D1D802F5C8ADD003BAF20 /* XCRemoteSwiftPackageReference "Nivelir" */,
 				6007AAC02F5CB51A00ED32D2 /* XCRemoteSwiftPackageReference "SnapKit" */,
 				606409B02F717664003D2BCC /* XCRemoteSwiftPackageReference "SkeletonView" */,
+				60029CDE2F96AE49000FED1A /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 609A284A2F2F7B86007145D5 /* Products */;
@@ -547,6 +554,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		60029CDE2F96AE49000FED1A /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.68.0;
+			};
+		};
 		6007AAC02F5CB51A00ED32D2 /* XCRemoteSwiftPackageReference "SnapKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SnapKit/SnapKit.git";
@@ -590,6 +605,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		60029CDF2F96AE49000FED1A /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 60029CDE2F96AE49000FED1A /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCat;
+		};
+		60029CE12F96AE49000FED1A /* RevenueCatUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 60029CDE2F96AE49000FED1A /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCatUI;
+		};
 		6007AAC12F5CB51A00ED32D2 /* SnapKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 6007AAC02F5CB51A00ED32D2 /* XCRemoteSwiftPackageReference "SnapKit" */;

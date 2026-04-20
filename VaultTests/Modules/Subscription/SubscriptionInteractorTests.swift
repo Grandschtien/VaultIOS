@@ -287,7 +287,7 @@ private extension SubscriptionInteractorTests {
         presenter: SubscriptionPresentationLogic,
         router: SubscriptionRoutingLogic,
         output: SubscriptionOutput,
-        storeKitService: SubscriptionStoreKitServicing,
+        storeKitService: SubscriptionServiceLogic,
         contractService: SubscriptionContractServicing = SubscriptionContractServiceSpy()
     ) -> SubscriptionInteractor {
         SubscriptionInteractor(
@@ -359,7 +359,7 @@ private actor SubscriptionOutputSpy: SubscriptionOutput {
     }
 }
 
-private final class SubscriptionStoreKitServiceStub: SubscriptionStoreKitServicing, @unchecked Sendable {
+private final class SubscriptionStoreKitServiceStub: SubscriptionServiceLogic, @unchecked Sendable {
     private let loadPlansResult: Result<[SubscriptionStorePlan], Error>
     private let purchaseResult: Result<SubscriptionPurchaseResult, Error>
     private let updates: [SubscriptionVerifiedPurchase]

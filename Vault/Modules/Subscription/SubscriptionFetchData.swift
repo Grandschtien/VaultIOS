@@ -8,6 +8,12 @@ struct SubscriptionFetchData: Sendable {
     let currentTier: String
     let plans: [SubscriptionStorePlan]
     let purchasingPlanID: String?
+    
+    struct SubscriptionStorePlan: Equatable, Sendable {
+        let id: String
+        let title: String
+        let price: String
+    }
 
     init(
         title: String = L10n.subscriptionTitle,

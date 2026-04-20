@@ -69,7 +69,7 @@ private extension SubscriptionTransactionObserverServiceTests {
     }
 }
 
-private final class SubscriptionTransactionObserverStoreKitServiceSpy: SubscriptionStoreKitServicing, @unchecked Sendable {
+private final class SubscriptionTransactionObserverStoreKitServiceSpy: SubscriptionServiceLogic, @unchecked Sendable {
     private let updates: [SubscriptionVerifiedPurchase]
     private let state = State()
 

@@ -101,7 +101,7 @@ private extension SubscriptionPresenter {
     }
 
     func makePlanCard(
-        plan: SubscriptionStorePlan,
+        plan: SubscriptionFetchData.SubscriptionStorePlan,
         purchasingPlanID: String?
     ) -> SubscriptionViewModel.PlanCard {
         let isPurchasing = purchasingPlanID == plan.id

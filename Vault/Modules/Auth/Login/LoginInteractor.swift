@@ -25,7 +25,8 @@ actor LoginInteractor: LoginBusinessLogic {
     private let router: LoginRoutingLogic
     private let tokenStorageService: TokenStorageServiceProtocol
     private let userProfileStorageService: UserProfileStorageServiceProtocol
-
+    private let subscriptionInitializerLogic: SubscriptionInitializerLogic
+    
     private var email: String = ""
     private var password: String = ""
 
@@ -34,6 +35,7 @@ actor LoginInteractor: LoginBusinessLogic {
         presenter: LoginPresentationLogic,
         router: LoginRoutingLogic,
         tokenStorageService: TokenStorageServiceProtocol,
+        subscriptionInitializerLogic: SubscriptionInitializerLogic,
         userProfileStorageService: UserProfileStorageServiceProtocol
     ) {
         self.networkClient = networkClient
@@ -41,6 +43,7 @@ actor LoginInteractor: LoginBusinessLogic {
         self.router = router
         self.tokenStorageService = tokenStorageService
         self.userProfileStorageService = userProfileStorageService
+        self.subscriptionInitializerLogic = subscriptionInitializerLogic
     }
 
     func fetchData() async {
@@ -108,6 +111,7 @@ extension LoginInteractor: LoginHandler {
                 UserProfileDefaults(user: result.user)
             )
 
+            await subscriptionInitializerLogic.setUserId(result.user.id)
             await presentFetchedData(.loaded)
             await router.openMainFlow()
         } catch {

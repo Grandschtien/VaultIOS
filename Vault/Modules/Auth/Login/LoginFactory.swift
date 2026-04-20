@@ -15,6 +15,8 @@ final class LoginFactory: Screen {
         var userProfileStorageService: UserProfileStorageServiceProtocol
         @SafeInject
         var toastPresenter: ToastPresenting
+        @SafeInject
+        var subscriptionInitializer: SubscriptionInitializerLogic
         
         let viewModel = LoginViewModel()
         let presenter = LoginPresenter(viewModel: viewModel)
@@ -24,6 +26,7 @@ final class LoginFactory: Screen {
             presenter: presenter,
             router: router,
             tokenStorageService: tokenStorageService,
+            subscriptionInitializerLogic: subscriptionInitializer,
             userProfileStorageService: userProfileStorageService
         )
 
