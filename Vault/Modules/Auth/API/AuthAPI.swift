@@ -16,7 +16,7 @@ enum AuthAPI: ApiTarget, Sendable {
     case logout(AuthTokenRequestDTO)
     
     var host: String {
-        return "165.245.217.225"
+        MainAPIConfiguration.host
     }
     
     var path: String {
@@ -38,7 +38,9 @@ enum AuthAPI: ApiTarget, Sendable {
     
     var headers: [String : String] { [:] }
     
-    var timeoutInterval: TimeInterval { 30 }
+    var timeoutInterval: TimeInterval {
+        MainAPIConfiguration.timeoutInterval
+    }
     
     var httpBody: Data?  { nil }
     
@@ -53,5 +55,9 @@ enum AuthAPI: ApiTarget, Sendable {
         case let .logout(dto):
             .custonJSON(data: dto, encoder: JSONCoder.encoder)
         }
+    }
+
+    var url: URL {
+        MainAPIConfiguration.url(path: path)
     }
 }

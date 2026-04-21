@@ -4,7 +4,7 @@ import Foundation
 import Alamofire
 
 enum MainAPIConfiguration {
-    static let host = "165.245.217.225"
+    static let host = "moneyvaultapp.com"
     static let scheme = "https"
     static let timeoutInterval: TimeInterval = 30
 
