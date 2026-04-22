@@ -18,10 +18,7 @@ final class CategoriesListCategoriesProviderTests: XCTestCase {
 
         let sut = CategoriesListCategoriesProvider(
             categoriesService: CategoriesServiceSpy(listResult: .failure(StubError.any)),
-            cache: cache,
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: UserProfileStorageSpy(profile: nil)
-            )
+            cache: cache
         )
 
         XCTAssertEqual(sut.cachedCategories(), cachedCategories)
@@ -29,7 +26,7 @@ final class CategoriesListCategoriesProviderTests: XCTestCase {
 }
 
 extension CategoriesListCategoriesProviderTests {
-    func testFetchCategoriesMapsResponseAndSavesCache() async throws {
+    func testFetchCategoriesUsesTotalSpentAndFallsBackToUsdWhenMissing() async throws {
         let categoriesService = CategoriesServiceSpy(
             listResult: .success(
                 CategoriesResponseDTO(categories: [
@@ -38,43 +35,34 @@ extension CategoriesListCategoriesProviderTests {
                         name: "Food",
                         icon: "🍴",
                         color: "light_orange",
-                        totalSpentUsd: 18.5
+                        totalSpent: 18.5,
+                        currency: "EUR"
                     ),
                     .init(
                         id: "cat-2",
                         name: "Unmapped",
                         icon: "📦",
                         color: "light_blue",
-                        totalSpentUsd: nil
+                        totalSpentUsd: 7.25,
+                        totalSpent: nil,
+                        currency: "EUR"
                     )
                 ])
             )
         )
         let cache = MainDataStoreCache()
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "EUR",
-                language: "en-US",
-                currencyRate: 2.0
-            )
-        )
         let sut = CategoriesListCategoriesProvider(
             categoriesService: categoriesService,
-            cache: cache,
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: profileStorage
-            )
+            cache: cache
         )
 
         let categories = try await sut.fetchCategories()
 
         XCTAssertEqual(categories.count, 2)
-        XCTAssertEqual(categories[0].amount, 9.25)
-        XCTAssertEqual(categories[1].amount, .zero)
-        XCTAssertTrue(categories.allSatisfy { $0.currency == "EUR" })
+        XCTAssertEqual(categories[0].amount, 18.5)
+        XCTAssertEqual(categories[0].currency, "EUR")
+        XCTAssertEqual(categories[1].amount, 7.25)
+        XCTAssertEqual(categories[1].currency, "USD")
         XCTAssertEqual(categories[1].name, "Другое")
         XCTAssertEqual(cache.categories(), categories)
     }
@@ -84,10 +72,7 @@ extension CategoriesListCategoriesProviderTests {
     func testFetchCategoriesWhenServiceFailsRethrowsError() async {
         let sut = CategoriesListCategoriesProvider(
             categoriesService: CategoriesServiceSpy(listResult: .failure(StubError.any)),
-            cache: MainDataStoreCache(),
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: UserProfileStorageSpy(profile: nil)
-            )
+            cache: MainDataStoreCache()
         )
 
         do {

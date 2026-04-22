@@ -11,16 +11,13 @@ final class AnalyticsDataProvider: AnalyticsDataProviding, @unchecked Sendable {
     }
 
     private let categoriesService: MainCategoriesContractServicing
-    private let currencyConversionService: UserCurrencyConverting
     private let calendar: Calendar
 
     init(
         categoriesService: MainCategoriesContractServicing,
-        currencyConversionService: UserCurrencyConverting,
         calendar: Calendar = .current
     ) {
         self.categoriesService = categoriesService
-        self.currencyConversionService = currencyConversionService
         self.calendar = calendar
     }
 
@@ -31,19 +28,19 @@ final class AnalyticsDataProvider: AnalyticsDataProviding, @unchecked Sendable {
                 to: period.to
             )
         )
-        let totalUsd = categoriesResponse.categories.reduce(into: 0.0) { partialResult, category in
-            partialResult += category.totalSpentUsd ?? .zero
+        let totalAmount = categoriesResponse.categories.reduce(into: 0.0) { partialResult, category in
+            partialResult += category.displayedAmount
         }
         let categories = makeCategorySummaries(
             from: categoriesResponse,
-            totalUsd: totalUsd
+            totalAmount: totalAmount
         )
-        let convertedTotal = currencyConversionService.convertUsdAmount(totalUsd)
+        let currency = categoriesResponse.categories.first?.displayedCurrency ?? "USD"
 
         return AnalyticsDataModel(
             monthStart: startOfMonth(for: period.from),
-            totalAmount: convertedTotal.amount,
-            currency: convertedTotal.currency,
+            totalAmount: totalAmount,
+            currency: currency,
             categories: categories.sorted { left, right in
                 if left.amount == right.amount {
                     return left.name.localizedCaseInsensitiveCompare(right.name) == .orderedAscending
@@ -58,28 +55,26 @@ final class AnalyticsDataProvider: AnalyticsDataProviding, @unchecked Sendable {
 private extension AnalyticsDataProvider {
     func makeCategorySummaries(
         from response: CategoriesResponseDTO,
-        totalUsd: Double
+        totalAmount: Double
     ) -> [AnalyticsCategorySummaryModel] {
-        guard totalUsd > .zero else {
+        guard totalAmount > .zero else {
             return []
         }
 
         return response.categories.compactMap { category in
-            let usdAmount = category.totalSpentUsd ?? .zero
-            guard usdAmount > .zero else {
+            let displayedAmount = category.displayedAmount
+            guard displayedAmount > .zero else {
                 return nil
             }
-
-            let convertedAmount = currencyConversionService.convertUsdAmount(usdAmount)
 
             return AnalyticsCategorySummaryModel(
                 id: category.id,
                 name: localizedCategoryName(from: category.name),
                 icon: category.icon.isEmpty ? Constants.fallbackIcon : category.icon,
                 colorValue: category.color,
-                amount: convertedAmount.amount,
-                currency: convertedAmount.currency,
-                share: usdAmount / totalUsd,
+                amount: displayedAmount,
+                currency: category.displayedCurrency,
+                share: displayedAmount / totalAmount,
                 isInteractive: true
             )
         }

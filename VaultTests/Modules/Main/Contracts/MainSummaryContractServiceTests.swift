@@ -5,7 +5,7 @@ final class MainSummaryContractServiceTests: XCTestCase {
     func testGetSummaryForwardsRangeAndDecodesByCategory() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: #"{"total":456.78,"currency":"USD","by_category":[{"category":"cat-1","total":300},{"category":"cat-2","total":156.78}]}"#
+            json: #"{"total":456.78,"total_usd":456.78,"currency":"USD","by_category":[{"category":"cat-1","total":300},{"category":"cat-2","total":156.78}]}"#
         )
 
         let from = Date(timeIntervalSince1970: 1_735_689_600)
@@ -27,6 +27,7 @@ final class MainSummaryContractServiceTests: XCTestCase {
 
         XCTAssertEqual(capturedParameters, parameters)
         XCTAssertEqual(response.total, 456.78)
+        XCTAssertEqual(response.totalUsd, 456.78)
         XCTAssertEqual(response.currency, "USD")
         XCTAssertNil(response.category)
         XCTAssertEqual(response.byCategory?.count, 2)
@@ -37,13 +38,14 @@ extension MainSummaryContractServiceTests {
     func testGetSummaryDecodesEmptyByCategoryArray() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: #"{"total":0,"currency":"USD","by_category":[]}"#
+            json: #"{"total":0,"total_usd":0,"currency":"USD","by_category":[]}"#
         )
 
         let sut = MainSummaryContractService(networkClient: spy)
         let response = try await sut.getSummary(parameters: .init())
 
         XCTAssertEqual(response.total, 0)
+        XCTAssertEqual(response.totalUsd, 0)
         XCTAssertEqual(response.currency, "USD")
         XCTAssertEqual(response.byCategory, [])
     }
@@ -53,7 +55,7 @@ extension MainSummaryContractServiceTests {
     func testGetSummaryByCategoryForwardsIDAndRangeAndDecodesCategorySummary() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: #"{"category":"cat-1","total":123.45,"currency":"USD"}"#
+            json: #"{"category":"cat-1","total":53210,"total_usd":123.45,"currency":"KZT"}"#
         )
 
         let from = Date(timeIntervalSince1970: 1_735_689_600)
@@ -78,8 +80,9 @@ extension MainSummaryContractServiceTests {
         XCTAssertEqual(capturedID, "cat-1")
         XCTAssertEqual(capturedParameters, parameters)
         XCTAssertEqual(response.category, "cat-1")
-        XCTAssertEqual(response.total, 123.45)
-        XCTAssertEqual(response.currency, "USD")
+        XCTAssertEqual(response.total, 53210)
+        XCTAssertEqual(response.totalUsd, 123.45)
+        XCTAssertEqual(response.currency, "KZT")
         XCTAssertNil(response.byCategory)
     }
 }

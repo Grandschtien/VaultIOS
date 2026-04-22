@@ -2,7 +2,7 @@ import XCTest
 @testable import Vault
 
 final class MainCategoriesProviderTests: XCTestCase {
-    func testFetchCategoriesConvertsAmountAndUsesProfileCurrency() async throws {
+    func testFetchCategoriesUsesResponseAmountAndCurrency() async throws {
         let categoriesService = CategoriesServiceSpy(
             listResult: .success(
                 CategoriesResponseDTO(categories: [
@@ -11,55 +11,45 @@ final class MainCategoriesProviderTests: XCTestCase {
                         name: "Food",
                         icon: "🍴",
                         color: "light_orange",
-                        totalSpentUsd: 10
+                        totalSpent: 10,
+                        currency: "EUR"
                     ),
                     .init(
                         id: "cat-2",
                         name: "Transport",
                         icon: "🚘",
                         color: "light_blue",
-                        totalSpentUsd: 25.4
+                        totalSpent: 25.4,
+                        currency: "EUR"
                     ),
                     .init(
                         id: "cat-3",
                         name: "Leisure",
                         icon: "🎬",
                         color: "light_purple",
-                        totalSpentUsd: 0
+                        totalSpent: 0,
+                        currency: "EUR"
                     )
                 ])
             )
         )
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "EUR",
-                language: "en-US",
-                currencyRate: 2.0
-            )
-        )
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
-            cache: MainDataStoreCache(),
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: profileStorage
-            )
+            cache: MainDataStoreCache()
         )
 
         let categories = try await sut.fetchCategories()
 
         XCTAssertEqual(categories.count, 3)
-        XCTAssertEqual(categories[0].amount, 5.0)
-        XCTAssertEqual(categories[1].amount, 12.7)
+        XCTAssertEqual(categories[0].amount, 10)
+        XCTAssertEqual(categories[1].amount, 25.4)
         XCTAssertEqual(categories[2].amount, 0)
         XCTAssertTrue(categories.allSatisfy { $0.currency == "EUR" })
     }
 }
 
 extension MainCategoriesProviderTests {
-    func testFetchCategoriesUsesZeroAmountWhenTotalSpentUsdIsMissing() async throws {
+    func testFetchCategoriesFallsBackToUsdWhenTotalSpentIsMissing() async throws {
         let categoriesService = CategoriesServiceSpy(
             listResult: .success(
                 CategoriesResponseDTO(categories: [
@@ -68,33 +58,22 @@ extension MainCategoriesProviderTests {
                         name: "Food",
                         icon: "🍴",
                         color: "light_orange",
-                        totalSpentUsd: nil
+                        totalSpentUsd: 12.5,
+                        currency: "KZT"
                     )
                 ])
             )
         )
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "USD",
-                language: "en-US",
-                currencyRate: 1.0
-            )
-        )
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
-            cache: MainDataStoreCache(),
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: profileStorage
-            )
+            cache: MainDataStoreCache()
         )
 
         let categories = try await sut.fetchCategories()
 
         XCTAssertEqual(categories.count, 1)
-        XCTAssertEqual(categories[0].amount, .zero)
+        XCTAssertEqual(categories[0].amount, 12.5)
+        XCTAssertEqual(categories[0].currency, "USD")
     }
 }
 
@@ -113,13 +92,9 @@ extension MainCategoriesProviderTests {
                 ])
             )
         )
-        let profileStorage = UserProfileStorageSpy(profile: nil)
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
-            cache: MainDataStoreCache(),
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: profileStorage
-            )
+            cache: MainDataStoreCache()
         )
 
         let categories = try await sut.fetchCategories()
@@ -139,28 +114,16 @@ extension MainCategoriesProviderTests {
                         name: "Food",
                         icon: "🍴",
                         color: "light_orange",
-                        totalSpentUsd: 14.7
+                        totalSpent: 14.7,
+                        currency: "KZT"
                     )
                 ])
             )
         )
         let cache = MainDataStoreCache()
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "KZT",
-                language: "ru",
-                currencyRate: 2.0
-            )
-        )
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
-            cache: cache,
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: profileStorage
-            )
+            cache: cache
         )
 
         _ = try await sut.fetchCategories()
@@ -173,7 +136,7 @@ extension MainCategoriesProviderTests {
                     name: "Food",
                     icon: "🍴",
                     color: "light_orange",
-                    amount: 7.35,
+                    amount: 14.7,
                     currency: "KZT"
                 )
             ]
@@ -186,10 +149,7 @@ extension MainCategoriesProviderTests {
         let categoriesService = CategoriesServiceSpy(listResult: .failure(StubError.any))
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
-            cache: MainDataStoreCache(),
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: UserProfileStorageSpy(profile: nil)
-            )
+            cache: MainDataStoreCache()
         )
 
         do {

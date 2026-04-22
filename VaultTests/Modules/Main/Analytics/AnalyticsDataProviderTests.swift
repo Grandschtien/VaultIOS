@@ -12,7 +12,6 @@ final class AnalyticsDataProviderTests: XCTestCase {
         )
         let sut = AnalyticsDataProvider(
             categoriesService: categoriesService,
-            currencyConversionService: CurrencyConversionStub(),
             calendar: calendar
         )
 
@@ -39,7 +38,6 @@ extension AnalyticsDataProviderTests {
         )
         let sut = AnalyticsDataProvider(
             categoriesService: categoriesService,
-            currencyConversionService: CurrencyConversionStub(),
             calendar: calendar
         )
 
@@ -65,36 +63,38 @@ extension AnalyticsDataProviderTests {
                         name: "Food",
                         icon: "🍔",
                         color: "light_green",
-                        totalSpentUsd: 60
+                        totalSpent: 60,
+                        currency: "KZT"
                     ),
                     .init(
                         id: "other",
                         name: "Unmapped",
                         icon: "📦",
                         color: "light_blue",
-                        totalSpentUsd: 25
+                        totalSpent: 25,
+                        currency: "KZT"
                     ),
                     .init(
                         id: "leisure",
                         name: "Leisure",
                         icon: "🎬",
                         color: "light_purple",
-                        totalSpentUsd: 15
+                        totalSpent: 15,
+                        currency: "KZT"
                     ),
                     .init(
                         id: "zero",
                         name: "Zero",
                         icon: "0",
                         color: "light_gray",
-                        totalSpentUsd: 0
+                        totalSpent: 0,
+                        currency: "KZT"
                     )
                 ]
             )
         )
-        let currencyConversion = CurrencyConversionStub(rate: 2, currency: "KZT")
         let sut = AnalyticsDataProvider(
             categoriesService: categoriesService,
-            currencyConversionService: currencyConversion,
             calendar: calendar
         )
 
@@ -105,15 +105,14 @@ extension AnalyticsDataProviderTests {
             )
         )
 
-        XCTAssertEqual(result.totalAmount, 200)
+        XCTAssertEqual(result.totalAmount, 100)
         XCTAssertEqual(result.currency, "KZT")
         XCTAssertEqual(result.categories.map(\.id), ["food", "other", "leisure"])
         XCTAssertEqual(result.categories.map(\.name), ["Food", L10n.other, "Leisure"])
         XCTAssertEqual(result.categories.map(\.icon), ["🍔", "📦", "🎬"])
-        XCTAssertEqual(result.categories.map(\.amount), [120, 50, 30])
+        XCTAssertEqual(result.categories.map(\.amount), [60, 25, 15])
         XCTAssertEqual(result.categories.map(\.share), [0.6, 0.25, 0.15])
         XCTAssertEqual(result.categories.map(\.isInteractive), [true, true, true])
-        XCTAssertEqual(currencyConversion.convertedUsdAmounts, [60, 25, 15, 100])
     }
 }
 
@@ -128,12 +127,12 @@ extension AnalyticsDataProviderTests {
                             name: "Food",
                             icon: "🍔",
                             color: "light_green",
-                            totalSpentUsd: 0
+                            totalSpent: 0,
+                            currency: "KZT"
                         )
                     ]
                 )
             ),
-            currencyConversionService: CurrencyConversionStub(rate: 2, currency: "KZT"),
             calendar: calendar
         )
 
@@ -196,7 +195,15 @@ private final class CategoriesServiceStub: MainCategoriesContractServicing, @unc
     }
 
     func getCategory(id: String) async throws -> CategoryResponseDTO {
-        CategoryResponseDTO(category: response.categories.first ?? .init(id: id, name: "", icon: "", color: "", totalSpentUsd: nil))
+        CategoryResponseDTO(
+            category: response.categories.first ?? .init(
+                id: id,
+                name: "",
+                icon: "",
+                color: "",
+                totalSpent: nil
+            )
+        )
     }
 
     func createCategory(_ request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO {
@@ -206,7 +213,7 @@ private final class CategoriesServiceStub: MainCategoriesContractServicing, @unc
                 name: request.name,
                 icon: request.icon,
                 color: request.color,
-                totalSpentUsd: nil
+                totalSpent: nil
             )
         )
     }
@@ -218,38 +225,10 @@ private final class CategoriesServiceStub: MainCategoriesContractServicing, @unc
                 name: request.name,
                 icon: request.icon,
                 color: request.color,
-                totalSpentUsd: nil
+                totalSpent: nil
             )
         )
     }
 
     func deleteCategory(id: String) async throws {}
-}
-
-private final class CurrencyConversionStub: UserCurrencyConverting, @unchecked Sendable {
-    let rate: Double
-    let currency: String
-    private(set) var convertedUsdAmounts: [Double] = []
-
-    init(
-        rate: Double = 1,
-        currency: String = "USD"
-    ) {
-        self.rate = rate
-        self.currency = currency
-    }
-
-    func convertUsdAmount(_ amount: Double) -> UserCurrencyAmount {
-        convertedUsdAmounts.append(amount)
-        return .init(amount: amount * rate, currency: currency)
-    }
-
-    func convertExpense(
-        amount: Double,
-        currency: String,
-        originalAmount: Double?,
-        originalCurrency: String?
-    ) -> UserCurrencyAmount {
-        .init(amount: amount, currency: currency)
-    }
 }

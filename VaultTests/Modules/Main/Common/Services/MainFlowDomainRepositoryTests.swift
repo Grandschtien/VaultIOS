@@ -306,6 +306,76 @@ extension MainFlowDomainRepositoryTests {
 }
 
 extension MainFlowDomainRepositoryTests {
+    func testRefreshCategoryFirstPageUsesSummaryAmountAndCurrencyOnCategoryScreen() async throws {
+        let store = MainFlowDomainStore()
+        let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        let period = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 1_735_689_600),
+            to: Date(timeIntervalSince1970: 1_735_700_000)
+        )
+        let summaryService = SummaryServiceStub(
+            summaryResult: .failure(RepositoryTestError.any),
+            byCategoryResult: .success(
+                .init(
+                    category: "cat-1",
+                    total: 53_210,
+                    totalUsd: 123.45,
+                    currency: "KZT",
+                    byCategory: nil
+                )
+            )
+        )
+        let categoriesService = CategoriesServiceStub(
+            listResult: .success(.init(categories: [])),
+            getResult: .success(
+                .init(
+                    category: .init(
+                        id: "cat-1",
+                        name: "Food",
+                        icon: "🍴",
+                        color: "light_orange",
+                        totalSpent: 53_210,
+                        currency: "KZT"
+                    )
+                )
+            )
+        )
+        let expensesService = ExpensesServiceStub(
+            listResults: [
+                .success(
+                    .init(
+                        expenses: [],
+                        nextCursor: nil,
+                        hasMore: false
+                    )
+                )
+            ]
+        )
+        let repository = MainFlowDomainRepository(
+            categoriesService: categoriesService,
+            expensesService: expensesService,
+            summaryService: summaryService,
+            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
+            currencyConversionService: CurrencyConverterStub(),
+            store: store,
+            observer: observer
+        )
+
+        try await repository.refreshCategoryFirstPage(id: "cat-1")
+
+        let requestedByCategoryParameters = await summaryService.requestedByCategoryParameters()
+        XCTAssertEqual(requestedByCategoryParameters.count, 1)
+        XCTAssertEqual(requestedByCategoryParameters.first?.id, "cat-1")
+        XCTAssertEqual(
+            requestedByCategoryParameters.first?.parameters,
+            .init(from: period.from, to: period.to)
+        )
+        XCTAssertEqual(observer.currentCategorySnapshot(id: "cat-1").category?.amount, 53_210)
+        XCTAssertEqual(observer.currentCategorySnapshot(id: "cat-1").category?.currency, "KZT")
+    }
+}
+
+extension MainFlowDomainRepositoryTests {
     func testRefreshCategoryFirstPageRequestsCurrentMonthExpenses() async throws {
 //        let store = MainFlowDomainStore()
 //        let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
@@ -774,100 +844,93 @@ extension MainFlowDomainRepositoryTests {
 }
 
 extension MainFlowDomainRepositoryTests {
-    func testHandleCurrencyDidChangeRecalculatesCategoriesWithoutCategoriesFetch() async {
+    func testHandleCurrencyDidChangeReloadsSummaryCategoriesAndLoadedScopes() async {
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
-        let category = MainCategoryCardModel(
+        let period = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 1_735_689_600),
+            to: Date(timeIntervalSince1970: 1_735_700_000)
+        )
+        let staleCategory = MainCategoryCardModel(
             id: "cat-1",
             name: "Food",
             icon: "🍴",
             color: "light_orange",
-            amount: 500,
-            currency: "KZT"
+            amount: 15,
+            currency: "USD"
         )
-        let expense = MainExpenseModel(
-            id: "exp-1",
-            title: "Coffee",
+        let staleExpense = MainExpenseModel(
+            id: "exp-stale",
+            title: "Old coffee",
             description: "",
             amount: 5,
-            currency: "KZT",
+            currency: "USD",
             category: "cat-1",
             timeOfAdd: Date(timeIntervalSince1970: 100)
         )
-
-        store.update { state in
-            state.preferredCurrencyCode = "KZT"
-            state.categoriesByID[category.id] = category
-            state.categoryOrder = [category.id]
-            state.expensesByID[expense.id] = expense
-            state.recentExpenseIDs = [expense.id]
-            state.expensesListExpenseIDs = [expense.id]
-            state.expensesListPagination = .init(
-                nextCursor: nil,
-                hasMore: false,
-                isLoaded: true
-            )
-        }
-        observer.publishAll(from: store)
-
-        let categoriesService = CategoriesServiceStub(
-            listResult: .success(.init(categories: []))
+        let recentExpense = ExpenseDTO(
+            id: "exp-recent",
+            title: "Lunch",
+            description: "",
+            amount: 20_000,
+            currency: "KZT",
+            category: "cat-1",
+            timeOfAdd: Date(timeIntervalSince1970: 200)
         )
-        let expensesService = ExpensesServiceStub(
-            listResults: [
-                .success(.init(expenses: [], nextCursor: nil, hasMore: false)),
-                .success(.init(expenses: [], nextCursor: nil, hasMore: false))
-            ]
+        let listExpense = ExpenseDTO(
+            id: "exp-list",
+            title: "Taxi",
+            description: "",
+            amount: 8_000,
+            currency: "KZT",
+            category: "cat-1",
+            timeOfAdd: Date(timeIntervalSince1970: 150)
         )
-        let repository = MainFlowDomainRepository(
-            categoriesService: categoriesService,
-            expensesService: expensesService,
-            currencyConversionService: CurrencyConverterStub(),
-            store: store,
-            observer: observer
-        )
-
-        await repository.handleCurrencyDidChange(
-            .init(
-                previousCurrencyCode: "KZT",
-                previousRateToUsd: 2,
-                updatedCurrencyCode: "USD",
-                updatedRateToUsd: 1
-            )
-        )
-
-        let state = store.snapshot()
-        XCTAssertEqual(state.categoriesByID["cat-1"]?.currency, "USD")
-        XCTAssertEqual(state.categoriesByID["cat-1"]?.amount, 1000)
-        XCTAssertEqual(state.preferredCurrencyCode, "USD")
-
-        let categoriesListCalls = await categoriesService.listCallsCount()
-        let expensesListCalls = await expensesService.listCallsCount()
-        XCTAssertEqual(categoriesListCalls, 0)
-        XCTAssertEqual(expensesListCalls, 2)
-    }
-}
-
-extension MainFlowDomainRepositoryTests {
-    func testHandleCurrencyDidChangeFallsBackToCategoriesFetchWhenRecalculateIsNotPossible() async {
-        let store = MainFlowDomainStore()
-        let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
-        let category = MainCategoryCardModel(
-            id: "cat-1",
-            name: "Food",
-            icon: "🍴",
-            color: "light_orange",
-            amount: 500,
-            currency: "KZT"
+        let categoryExpense = ExpenseDTO(
+            id: "exp-category",
+            title: "Dinner",
+            description: "",
+            amount: 25_210,
+            currency: "KZT",
+            category: "cat-1",
+            timeOfAdd: Date(timeIntervalSince1970: 250)
         )
 
         store.update { state in
-            state.preferredCurrencyCode = "KZT"
-            state.categoriesByID[category.id] = category
-            state.categoryOrder = [category.id]
+            state.preferredCurrencyCode = "USD"
+            state.overviewSummary = .init(totalAmount: 15, currency: "USD", changePercent: .zero)
+            state.categoriesByID[staleCategory.id] = staleCategory
+            state.categoryOrder = [staleCategory.id]
+            state.categoryDetailsByID[staleCategory.id] = staleCategory
+            state.expensesByID[staleExpense.id] = staleExpense
+            state.recentExpenseIDs = [staleExpense.id]
+            state.expensesListPagination = .init(hasMore: false, isLoaded: true)
+            state.categoryExpenseIDs[staleCategory.id] = []
+            state.categoryPagination[staleCategory.id] = .init(hasMore: false, isLoaded: true)
+            state.categoryPeriods[staleCategory.id] = period
         }
         observer.publishAll(from: store)
 
+        let summaryService = SummaryServiceStub(
+            summaryResult: .success(
+                .init(
+                    category: nil,
+                    total: 60_000,
+                    totalUsd: 120,
+                    currency: "KZT",
+                    byCategory: nil
+                )
+            ),
+            byCategoryResult: .success(
+                .init(
+                    category: "cat-1",
+                    total: 53_210,
+                    totalUsd: 106.42,
+                    currency: "KZT",
+                    byCategory: nil
+                )
+            )
+        )
         let categoriesService = CategoriesServiceStub(
             listResult: .success(
                 .init(
@@ -877,15 +940,37 @@ extension MainFlowDomainRepositoryTests {
                             name: "Food",
                             icon: "🍴",
                             color: "light_orange",
-                            totalSpentUsd: 15
+                            totalSpent: 53_210,
+                            currency: "KZT"
                         )
                     ]
                 )
+            ),
+            getResult: .success(
+                .init(
+                    category: .init(
+                        id: "cat-1",
+                        name: "Food",
+                        icon: "🍴",
+                        color: "light_orange",
+                        totalSpent: 53_210,
+                        currency: "KZT"
+                    )
+                )
             )
+        )
+        let expensesService = ExpensesServiceStub(
+            listResults: [
+                .success(.init(expenses: [recentExpense], nextCursor: nil, hasMore: false)),
+                .success(.init(expenses: [listExpense], nextCursor: nil, hasMore: false)),
+                .success(.init(expenses: [categoryExpense], nextCursor: nil, hasMore: false))
+            ]
         )
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
-            expensesService: ExpensesServiceStub(listResults: []),
+            expensesService: expensesService,
+            summaryService: summaryService,
+            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
             currencyConversionService: CurrencyConverterStub(),
             store: store,
             observer: observer
@@ -893,16 +978,144 @@ extension MainFlowDomainRepositoryTests {
 
         await repository.handleCurrencyDidChange(
             .init(
-                previousCurrencyCode: "EUR",
-                previousRateToUsd: 0.9,
-                updatedCurrencyCode: "USD",
-                updatedRateToUsd: 1
+                previousCurrencyCode: "USD",
+                previousRateToUsd: 1,
+                updatedCurrencyCode: "KZT",
+                updatedRateToUsd: 0.002
             )
         )
 
+        let state = store.snapshot()
+        XCTAssertEqual(state.overviewSummary?.totalAmount, 60_000)
+        XCTAssertEqual(state.overviewSummary?.currency, "KZT")
+        XCTAssertEqual(state.categoriesByID["cat-1"]?.amount, 53_210)
+        XCTAssertEqual(state.categoriesByID["cat-1"]?.currency, "KZT")
+        XCTAssertEqual(state.recentExpenseIDs, ["exp-recent"])
+        XCTAssertEqual(state.expensesListExpenseIDs, ["exp-list"])
+        XCTAssertEqual(state.categoryExpenseIDs["cat-1"], ["exp-category"])
+        XCTAssertEqual(state.preferredCurrencyCode, "KZT")
+        XCTAssertEqual(observer.currentOverviewSnapshot().summary?.totalAmount, 60_000)
+        XCTAssertEqual(observer.currentOverviewSnapshot().summary?.currency, "KZT")
+
+        let summaryParameters = await summaryService.requestedParameters()
+        let categorySummaryParameters = await summaryService.requestedByCategoryParameters()
         let categoriesListCalls = await categoriesService.listCallsCount()
+        let categoryRequests = await categoriesService.requestedGetParameters()
+        let expenseRequests = await expensesService.requestedParameters()
+
+        XCTAssertEqual(summaryParameters, [.init(from: period.from, to: period.to)])
+        XCTAssertEqual(
+            categorySummaryParameters,
+            [(id: "cat-1", parameters: .init(from: period.from, to: period.to))]
+        )
         XCTAssertEqual(categoriesListCalls, 1)
-        XCTAssertEqual(store.snapshot().preferredCurrencyCode, "USD")
+        XCTAssertEqual(
+            categoryRequests,
+            [(id: "cat-1", parameters: .init(from: period.from, to: period.to))]
+        )
+        XCTAssertEqual(
+            expenseRequests,
+            [
+                .init(from: period.from, to: period.to, limit: 5),
+                .init(from: period.from, to: period.to, cursor: nil, limit: 20),
+                .init(category: "cat-1", from: period.from, to: period.to, cursor: nil, limit: 20)
+            ]
+        )
+    }
+}
+
+extension MainFlowDomainRepositoryTests {
+    func testHandleCurrencyDidChangeClearsStaleCacheWhenReloadFails() async {
+        let store = MainFlowDomainStore()
+        let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        let period = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 1_735_689_600),
+            to: Date(timeIntervalSince1970: 1_735_700_000)
+        )
+        let category = MainCategoryCardModel(
+            id: "cat-1",
+            name: "Food",
+            icon: "🍴",
+            color: "light_orange",
+            amount: 15,
+            currency: "USD"
+        )
+        let expense = MainExpenseModel(
+            id: "exp-1",
+            title: "Coffee",
+            description: "",
+            amount: 5,
+            currency: "USD",
+            category: "cat-1",
+            timeOfAdd: Date(timeIntervalSince1970: 100)
+        )
+
+        store.update { state in
+            state.preferredCurrencyCode = "USD"
+            state.overviewSummary = .init(totalAmount: 15, currency: "USD", changePercent: .zero)
+            state.categoriesByID[category.id] = category
+            state.categoryOrder = [category.id]
+            state.categoryDetailsByID[category.id] = category
+            state.expensesByID[expense.id] = expense
+            state.recentExpenseIDs = [expense.id]
+            state.expensesListExpenseIDs = [expense.id]
+            state.expensesListPagination = .init(hasMore: true, isLoaded: true)
+            state.categoryExpenseIDs[category.id] = [expense.id]
+            state.categoryPagination[category.id] = .init(hasMore: true, isLoaded: true)
+            state.categoryPeriods[category.id] = period
+        }
+        observer.publishAll(from: store)
+
+        let summaryService = SummaryServiceStub(
+            summaryResult: .failure(RepositoryTestError.any),
+            byCategoryResult: .failure(RepositoryTestError.any)
+        )
+        let categoriesService = CategoriesServiceStub(
+            listResult: .failure(RepositoryTestError.any),
+            getResult: .failure(RepositoryTestError.any)
+        )
+        let expensesService = ExpensesServiceStub(
+            listResults: [
+                .failure(RepositoryTestError.any),
+                .failure(RepositoryTestError.any),
+                .failure(RepositoryTestError.any)
+            ]
+        )
+        let repository = MainFlowDomainRepository(
+            categoriesService: categoriesService,
+            expensesService: expensesService,
+            summaryService: summaryService,
+            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
+            currencyConversionService: CurrencyConverterStub(),
+            store: store,
+            observer: observer
+        )
+
+        await repository.handleCurrencyDidChange(
+            .init(
+                previousCurrencyCode: "USD",
+                previousRateToUsd: 1,
+                updatedCurrencyCode: "KZT",
+                updatedRateToUsd: 0.002
+            )
+        )
+
+        let state = store.snapshot()
+        let categoriesListCalls = await categoriesService.listCallsCount()
+        let expensesListCalls = await expensesService.listCallsCount()
+        XCTAssertEqual(categoriesListCalls, 1)
+        XCTAssertEqual(expensesListCalls, 3)
+        XCTAssertEqual(state.preferredCurrencyCode, "KZT")
+        XCTAssertNil(state.overviewSummary)
+        XCTAssertTrue(state.categoriesByID.isEmpty)
+        XCTAssertTrue(state.categoryDetailsByID.isEmpty)
+        XCTAssertTrue(state.categoryOrder.isEmpty)
+        XCTAssertTrue(state.expensesByID.isEmpty)
+        XCTAssertTrue(state.recentExpenseIDs.isEmpty)
+        XCTAssertTrue(state.expensesListExpenseIDs.isEmpty)
+        XCTAssertTrue(state.categoryExpenseIDs.isEmpty)
+        XCTAssertTrue(observer.currentOverviewSnapshot().categories.isEmpty)
+        XCTAssertTrue(observer.currentOverviewSnapshot().expenseGroups.isEmpty)
     }
 }
 

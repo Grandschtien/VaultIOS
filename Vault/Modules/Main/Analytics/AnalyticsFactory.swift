@@ -13,8 +13,6 @@ final class AnalyticsFactory: Screen {
         @SafeInject
         var categoriesService: MainCategoriesContractServicing
         @SafeInject
-        var currencyConversionService: UserCurrencyConverting
-        @SafeInject
         var subscriptionAccessService: SubscriptionAccessServicing
 
         let viewModel = AnalyticsViewModel()
@@ -32,8 +30,7 @@ final class AnalyticsFactory: Screen {
             router: router,
             repository: context.repository,
             dataProvider: AnalyticsDataProvider(
-                categoriesService: categoriesService,
-                currencyConversionService: currencyConversionService
+                categoriesService: categoriesService
             ),
             observer: context.observer,
             summaryPeriodProvider: context.summaryPeriodProvider,

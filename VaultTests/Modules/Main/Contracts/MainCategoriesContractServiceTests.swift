@@ -5,7 +5,7 @@ final class MainCategoriesContractServiceTests: XCTestCase {
     func testCreateCategoryForwardsBodyAndDecodesResponse() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: #"{"category":{"id":"cat-1","name":"Food","icon":"🍔","color":"light_green","total_spent_usd":110.5}}"#
+            json: #"{"category":{"id":"cat-1","name":"Food","icon":"🍔","color":"light_green","total_spent_usd":95.1,"total_spent":110.5,"currency":"EUR"}}"#
         )
 
         var capturedDTO: CategoryCreateRequestDTO?
@@ -31,7 +31,9 @@ final class MainCategoriesContractServiceTests: XCTestCase {
         XCTAssertEqual(response.category.name, "Food")
         XCTAssertEqual(response.category.icon, "🍔")
         XCTAssertEqual(response.category.color, "light_green")
-        XCTAssertEqual(response.category.totalSpentUsd, 110.5)
+        XCTAssertEqual(response.category.totalSpentUsd, 95.1)
+        XCTAssertEqual(response.category.totalSpent, 110.5)
+        XCTAssertEqual(response.category.currency, "EUR")
     }
 }
 
@@ -39,7 +41,7 @@ extension MainCategoriesContractServiceTests {
     func testListCategoriesForwardsRangeAndDecodesResponse() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: #"{"categories":[{"id":"cat-1","name":"Food","icon":"🍔","color":"light_green","total_spent_usd":10},{"id":"cat-2","name":"Taxi","icon":"🚕","color":"light_blue","total_spent_usd":20.2}]}"#
+            json: #"{"categories":[{"id":"cat-1","name":"Food","icon":"🍔","color":"light_green","total_spent_usd":8,"total_spent":10,"currency":"USD"},{"id":"cat-2","name":"Taxi","icon":"🚕","color":"light_blue","total_spent_usd":15.3,"total_spent":20.2,"currency":"KZT"}]}"#
         )
 
         let parameters = CategoriesQueryParameters(
@@ -63,8 +65,12 @@ extension MainCategoriesContractServiceTests {
         XCTAssertEqual(response.categories.count, 2)
         XCTAssertEqual(response.categories.first?.id, "cat-1")
         XCTAssertEqual(response.categories.last?.id, "cat-2")
-        XCTAssertEqual(response.categories.first?.totalSpentUsd, 10)
-        XCTAssertEqual(response.categories.last?.totalSpentUsd, 20.2)
+        XCTAssertEqual(response.categories.first?.totalSpentUsd, 8)
+        XCTAssertEqual(response.categories.first?.totalSpent, 10)
+        XCTAssertEqual(response.categories.first?.currency, "USD")
+        XCTAssertEqual(response.categories.last?.totalSpentUsd, 15.3)
+        XCTAssertEqual(response.categories.last?.totalSpent, 20.2)
+        XCTAssertEqual(response.categories.last?.currency, "KZT")
     }
 }
 
@@ -72,7 +78,7 @@ extension MainCategoriesContractServiceTests {
     func testGetCategoryForwardsIDAndRangeAndDecodesResponse() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: #"{"category":{"id":"cat-7","name":"Groceries","icon":"🛒","color":"light_orange","total_spent_usd":45}}"#
+            json: #"{"category":{"id":"cat-7","name":"Groceries","icon":"🛒","color":"light_orange","total_spent_usd":40,"total_spent":45,"currency":"USD"}}"#
         )
 
         var capturedID: String?
@@ -101,7 +107,9 @@ extension MainCategoriesContractServiceTests {
         XCTAssertEqual(capturedParameters, parameters)
         XCTAssertEqual(response.category.id, "cat-7")
         XCTAssertEqual(response.category.name, "Groceries")
-        XCTAssertEqual(response.category.totalSpentUsd, 45)
+        XCTAssertEqual(response.category.totalSpentUsd, 40)
+        XCTAssertEqual(response.category.totalSpent, 45)
+        XCTAssertEqual(response.category.currency, "USD")
     }
 }
 
@@ -109,7 +117,7 @@ extension MainCategoriesContractServiceTests {
     func testUpdateCategoryForwardsBodyAndDecodesResponse() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(
-            json: ##"{"category":{"id":"cat-9","name":"Travel","icon":"✈️","color":"#A0E7E5","total_spent_usd":18}}"##
+            json: ##"{"category":{"id":"cat-9","name":"Travel","icon":"✈️","color":"#A0E7E5","total_spent_usd":14,"total_spent":18,"currency":"KZT"}}"##
         )
 
         var capturedID: String?
@@ -136,7 +144,9 @@ extension MainCategoriesContractServiceTests {
         XCTAssertEqual(capturedDTO?.color, "#A0E7E5")
         XCTAssertEqual(response.category.id, "cat-9")
         XCTAssertEqual(response.category.color, "#A0E7E5")
-        XCTAssertEqual(response.category.totalSpentUsd, 18)
+        XCTAssertEqual(response.category.totalSpentUsd, 14)
+        XCTAssertEqual(response.category.totalSpent, 18)
+        XCTAssertEqual(response.category.currency, "KZT")
     }
 }
 

@@ -27,27 +27,21 @@ final class CategorySummaryProvider: CategorySummaryProviding {
     }
 
     private let categoriesService: MainCategoriesContractServicing
-    private let currencyConversionService: UserCurrencyConverting
 
-    init(
-        categoriesService: MainCategoriesContractServicing,
-        currencyConversionService: UserCurrencyConverting
-    ) {
+    init(categoriesService: MainCategoriesContractServicing) {
         self.categoriesService = categoriesService
-        self.currencyConversionService = currencyConversionService
     }
 
     func fetchCategory(id: String) async throws -> MainCategoryCardModel {
         let category = try await categoriesService.getCategory(id: id).category
-        let convertedAmount = currencyConversionService.convertUsdAmount(category.totalSpentUsd ?? .zero)
 
         return MainCategoryCardModel(
             id: category.id,
             name: localizedCategoryName(from: category.name),
             icon: category.icon,
             color: category.color,
-            amount: convertedAmount.amount,
-            currency: convertedAmount.currency
+            amount: category.displayedAmount,
+            currency: category.displayedCurrency
         )
     }
 }

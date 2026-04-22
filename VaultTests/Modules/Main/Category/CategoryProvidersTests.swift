@@ -11,27 +11,13 @@ final class CategoryProvidersTests: XCTestCase {
                         name: "Food",
                         icon: "🍔",
                         color: "light_orange",
-                        totalSpentUsd: 123.4
+                        totalSpent: 123.4,
+                        currency: "EUR"
                     )
                 )
             )
         )
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "EUR",
-                language: "en-US",
-                currencyRate: 2.0
-            )
-        )
-        let sut = CategorySummaryProvider(
-            categoriesService: service,
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: profileStorage
-            )
-        )
+        let sut = CategorySummaryProvider(categoriesService: service)
 
         let category = try await sut.fetchCategory(id: "cat-1")
 
@@ -39,10 +25,35 @@ final class CategoryProvidersTests: XCTestCase {
         XCTAssertEqual(category.name, "Food")
         XCTAssertEqual(category.icon, "🍔")
         XCTAssertEqual(category.color, "light_orange")
-        XCTAssertEqual(category.amount, 61.7)
+        XCTAssertEqual(category.amount, 123.4)
         XCTAssertEqual(category.currency, "EUR")
         let requestedCategoryIDs = await service.requestedCategoryIDs()
         XCTAssertEqual(requestedCategoryIDs, ["cat-1"])
+    }
+}
+
+extension CategoryProvidersTests {
+    func testSummaryProviderFallsBackToUsdWhenTotalSpentIsMissing() async throws {
+        let service = CategorySummaryServiceSpy(
+            getResult: .success(
+                .init(
+                    category: .init(
+                        id: "cat-1",
+                        name: "Food",
+                        icon: "🍔",
+                        color: "light_orange",
+                        totalSpentUsd: 19.4,
+                        currency: "KZT"
+                    )
+                )
+            )
+        )
+        let sut = CategorySummaryProvider(categoriesService: service)
+
+        let category = try await sut.fetchCategory(id: "cat-1")
+
+        XCTAssertEqual(category.amount, 19.4)
+        XCTAssertEqual(category.currency, "USD")
     }
 }
 
@@ -61,12 +72,7 @@ extension CategoryProvidersTests {
                 )
             )
         )
-        let sut = CategorySummaryProvider(
-            categoriesService: service,
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: UserProfileStorageSpy(profile: nil)
-            )
-        )
+        let sut = CategorySummaryProvider(categoriesService: service)
 
         let category = try await sut.fetchCategory(id: "cat-1")
 

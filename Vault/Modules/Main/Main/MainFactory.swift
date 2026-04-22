@@ -20,8 +20,6 @@ final class MainFactory: Screen {
         var userProfileStorageService: UserProfileStorageServiceProtocol
         @SafeInject
         var subscriptionAccessService: SubscriptionAccessServicing
-        @SafeInject
-        var currencyConversionService: UserCurrencyConverting
 
         let currencyRateProvider = MainCurrencyRateProvider(
             currencyRateService: currencyRateService,
@@ -29,8 +27,7 @@ final class MainFactory: Screen {
         )
         let summaryProvider = MainSummaryProvider(
             summaryService: summaryService,
-            summaryPeriodProvider: context.summaryPeriodProvider,
-            currencyConversionService: currencyConversionService
+            summaryPeriodProvider: context.summaryPeriodProvider
         )
         let formatter = MainValueFormatter()
         let colorProvider = CategoryColorProvider()
