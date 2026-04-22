@@ -19,13 +19,16 @@ final class MainSummaryProviderTests: XCTestCase {
             summaryService: service,
             summaryPeriodProvider: MainSummaryPeriodProviderStub(
                 period: .init(from: from, to: to)
+            ),
+            currencyConversionService: CurrencyConversionStub(
+                convertedAmount: .init(amount: 228.39, currency: "KZT")
             )
         )
 
         let summary = try await sut.fetchSummary()
 
-        XCTAssertEqual(summary.totalAmount, 456.78)
-        XCTAssertEqual(summary.currency, "USD")
+        XCTAssertEqual(summary.totalAmount, 228.39)
+        XCTAssertEqual(summary.currency, "KZT")
         XCTAssertEqual(summary.changePercent, .zero)
         let requestedParameters = await service.requestedParameters()
         XCTAssertEqual(requestedParameters, [.init(from: from, to: to)])
@@ -42,6 +45,9 @@ extension MainSummaryProviderTests {
                     from: Date(timeIntervalSince1970: 1),
                     to: Date(timeIntervalSince1970: 2)
                 )
+            ),
+            currencyConversionService: CurrencyConversionStub(
+                convertedAmount: .init(amount: .zero, currency: "USD")
             )
         )
 
@@ -90,5 +96,22 @@ private struct MainSummaryPeriodProviderStub: MainSummaryPeriodProviding {
 
     func currentMonthPeriod() -> MainSummaryPeriod {
         period
+    }
+}
+
+private struct CurrencyConversionStub: UserCurrencyConverting {
+    let convertedAmount: UserCurrencyAmount
+
+    func convertUsdAmount(_ amount: Double) -> UserCurrencyAmount {
+        convertedAmount
+    }
+
+    func convertExpense(
+        amount: Double,
+        currency: String,
+        originalAmount: Double?,
+        originalCurrency: String?
+    ) -> UserCurrencyAmount {
+        convertedAmount
     }
 }

@@ -109,6 +109,30 @@ extension UserCurrencyConversionServiceTests {
         XCTAssertEqual(converted.amount, 200)
         XCTAssertEqual(converted.currency, "RUB")
     }
+
+    func testConvertExpenseWhenOriginalCurrencyMatchesPreferredCurrencyAfterNormalizationReturnsOriginalValue() {
+        let profileStorage = UserProfileStorageSpy(
+            profile: .init(
+                userId: "user-1",
+                email: "user@example.com",
+                name: "Test User",
+                currency: " kzt ",
+                language: "ru",
+                currencyRate: 2.0
+            )
+        )
+        let sut = UserCurrencyConversionService(userProfileStorageService: profileStorage)
+
+        let converted = sut.convertExpense(
+            amount: 7.4,
+            currency: "USD",
+            originalAmount: 1500,
+            originalCurrency: " KZT "
+        )
+
+        XCTAssertEqual(converted.amount, 1500)
+        XCTAssertEqual(converted.currency, "KZT")
+    }
 }
 
 private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {

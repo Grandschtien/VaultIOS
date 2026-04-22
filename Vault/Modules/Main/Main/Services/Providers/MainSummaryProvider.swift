@@ -14,13 +14,16 @@ protocol MainSummaryProviding: Sendable {
 final class MainSummaryProvider: MainSummaryProviding {
     private let summaryService: MainSummaryContractServicing
     private let summaryPeriodProvider: MainSummaryPeriodProviding
+    private let currencyConversionService: UserCurrencyConverting
 
     init(
         summaryService: MainSummaryContractServicing,
-        summaryPeriodProvider: MainSummaryPeriodProviding
+        summaryPeriodProvider: MainSummaryPeriodProviding,
+        currencyConversionService: UserCurrencyConverting
     ) {
         self.summaryService = summaryService
         self.summaryPeriodProvider = summaryPeriodProvider
+        self.currencyConversionService = currencyConversionService
     }
 
     func fetchSummary() async throws -> MainSummaryModel {
@@ -31,10 +34,16 @@ final class MainSummaryProvider: MainSummaryProviding {
                 to: period.to
             )
         )
+        let displayedAmount = currencyConversionService.convertExpense(
+            amount: summary.total,
+            currency: summary.currency,
+            originalAmount: nil,
+            originalCurrency: nil
+        )
 
         return MainSummaryModel(
-            totalAmount: summary.total,
-            currency: summary.currency,
+            totalAmount: displayedAmount.amount,
+            currency: displayedAmount.currency,
             changePercent: .zero
         )
     }

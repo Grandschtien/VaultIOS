@@ -20,7 +20,7 @@
                                 <rect key="frame" x="76.666666666666686" y="358" width="240" height="128"/>
                             </imageView>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Vault" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="wTx-3m-bEi">
-                                <rect key="frame" x="167" y="501" width="58" height="29"/>
+                                <rect key="frame" x="167.66666666666666" y="501" width="58" height="29"/>
                                 <fontDescription key="fontDescription" type="boldSystem" pointSize="24"/>
                                 <color key="textColor" name="text_and_icon_primary"/>
                                 <color key="highlightedColor" name="text_and_icon_primary"/>
@@ -29,10 +29,9 @@
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" name="background_primary"/>
                         <constraints>
+                            <constraint firstItem="wTx-3m-bEi" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="7v4-3h-L6S"/>
                             <constraint firstItem="8rL-RC-wtD" firstAttribute="height" secondItem="Ze5-6b-2t3" secondAttribute="height" multiplier="0.150235" id="FeL-QA-oid"/>
                             <constraint firstItem="wTx-3m-bEi" firstAttribute="top" secondItem="8rL-RC-wtD" secondAttribute="bottom" constant="15" id="MSZ-ly-HF5"/>
-                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="wTx-3m-bEi" secondAttribute="trailing" constant="168" id="O05-fT-Ib7"/>
-                            <constraint firstItem="wTx-3m-bEi" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="167" id="qpc-ub-C2T"/>
                             <constraint firstItem="8rL-RC-wtD" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="wty-g7-17k"/>
                             <constraint firstItem="8rL-RC-wtD" firstAttribute="centerY" secondItem="6Tk-OE-BBY" secondAttribute="centerY" constant="-29" id="xEK-hm-OtL"/>
                             <constraint firstItem="8rL-RC-wtD" firstAttribute="width" secondItem="Ze5-6b-2t3" secondAttribute="width" multiplier="0.610687" id="z3h-7K-t0X"/>

@@ -59,6 +59,7 @@ private extension ExpenseView {
         [iconBackgroundView, titleLabel, subtitleLabel, amountLabel].forEach {
             cardView.addSubview($0)
         }
+        amountLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         iconBackgroundView.addSubview(iconLabel)
 
         cardView.snp.makeConstraints { make in

@@ -74,10 +74,22 @@ final class UserCurrencyConversionService: UserCurrencyConverting, @unchecked Se
 
 private extension UserCurrencyConversionService {
     func preferredCurrencyCode() -> String {
-        userProfileStorageService.loadProfile()?.currency ?? Constants.defaultCurrency
+        normalizedCurrencyCode(
+            userProfileStorageService.loadProfile()?.currency
+        ) ?? Constants.defaultCurrency
+    }
+
+    func normalizedCurrencyCode(_ code: String?) -> String? {
+        guard let code else {
+            return nil
+        }
+
+        return code
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
     }
 
     func isSameCurrency(_ left: String, _ right: String) -> Bool {
-        left.compare(right, options: [.caseInsensitive]) == .orderedSame
+        normalizedCurrencyCode(left) == normalizedCurrencyCode(right)
     }
 }
