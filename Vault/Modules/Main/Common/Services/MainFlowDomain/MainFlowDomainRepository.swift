@@ -967,10 +967,12 @@ private extension MainFlowDomainRepository {
         cursor: String?,
         limit: Int
     ) -> ExpensesListQueryParameters {
+        let resolvedPeriod = cursor == nil ? period : nil
+
         return .init(
             category: categoryID,
-            from: period?.from,
-            to: period?.to,
+            from: resolvedPeriod?.from,
+            to: resolvedPeriod?.to,
             cursor: cursor,
             limit: limit
         )
@@ -980,7 +982,7 @@ private extension MainFlowDomainRepository {
         cursor: String?,
         limit: Int
     ) -> ExpensesListQueryParameters {
-        let period = summaryPeriodProvider?.currentMonthPeriod()
+        let period = cursor == nil ? summaryPeriodProvider?.currentMonthPeriod() : nil
 
         return .init(
             from: period?.from,

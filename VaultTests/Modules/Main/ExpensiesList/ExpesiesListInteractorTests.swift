@@ -40,6 +40,52 @@ final class ExpesiesListInteractorTests: XCTestCase {
 }
 
 extension ExpesiesListInteractorTests {
+    func testFetchDataIgnoresRepeatedCallWhileRequestInProgress() async {
+        let presenter = ExpesiesListPresenterSpy()
+        let repository = ExpesiesListRepositoryStub(
+            firstPageResults: [
+                .success(
+                    .init(
+                        expenses: [makeExpense(id: "expense-1", time: 1_700_000_000)],
+                        hasMore: true
+                    )
+                )
+            ],
+            nextPageResults: []
+        )
+        await repository.setShouldSuspendFirstPage(true)
+        let sut = makeSut(
+            presenter: presenter,
+            router: ExpesiesListRouterSpy(),
+            repository: repository,
+            observer: repository.observer
+        )
+
+        let firstTask = Task {
+            await sut.fetchData()
+        }
+        await repository.waitUntilFirstPageStarted()
+
+        let secondTask = Task {
+            await sut.fetchData()
+        }
+        await waitForUpdates()
+
+        XCTAssertEqual(await repository.firstPageCallsCount(), 1)
+
+        await repository.resumeFirstPage()
+        _ = await firstTask.value
+        _ = await secondTask.value
+        await waitForUpdates()
+
+        guard let last = presenter.presentedData.last else {
+            return XCTFail("Expected presenter update")
+        }
+
+        assertStatus(last.loadingState, is: .loaded)
+        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 1)
+    }
+
     func testHandleLoadNextPageAppendsExpenses() async {
         let presenter = ExpesiesListPresenterSpy()
         let repository = ExpesiesListRepositoryStub(
@@ -82,6 +128,62 @@ extension ExpesiesListInteractorTests {
 }
 
 extension ExpesiesListInteractorTests {
+    func testHandleLoadNextPageIgnoresRepeatedCallWhileRequestInProgress() async {
+        let presenter = ExpesiesListPresenterSpy()
+        let repository = ExpesiesListRepositoryStub(
+            firstPageResults: [
+                .success(
+                    .init(
+                        expenses: [makeExpense(id: "expense-1", time: 1_700_000_100)],
+                        hasMore: true
+                    )
+                )
+            ],
+            nextPageResults: [
+                .success(
+                    .init(
+                        expenses: [makeExpense(id: "expense-2", time: 1_700_000_000)],
+                        hasMore: false
+                    )
+                )
+            ]
+        )
+        await repository.setShouldSuspendNextPage(true)
+        let sut = makeSut(
+            presenter: presenter,
+            router: ExpesiesListRouterSpy(),
+            repository: repository,
+            observer: repository.observer
+        )
+
+        await sut.fetchData()
+
+        let firstTask = Task {
+            await sut.handleLoadNextPage()
+        }
+        await repository.waitUntilNextPageStarted()
+
+        let secondTask = Task {
+            await sut.handleLoadNextPage()
+        }
+        await waitForUpdates()
+
+        XCTAssertEqual(await repository.nextPageCallsCount(), 1)
+
+        await repository.resumeNextPage()
+        _ = await firstTask.value
+        _ = await secondTask.value
+        await waitForUpdates()
+
+        guard let last = presenter.presentedData.last else {
+            return XCTFail("Expected presenter update")
+        }
+
+        assertStatus(last.loadingState, is: .loaded)
+        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 2)
+        XCTAssertFalse(last.hasMore)
+    }
+
     func testHandleLoadNextPageFailureKeepsExistingDataAndShowsToast() async {
         let presenter = ExpesiesListPresenterSpy()
         let router = ExpesiesListRouterSpy()
@@ -211,6 +313,12 @@ private actor ExpesiesListRepositoryStub: MainFlowDomainRepositoryProtocol {
     private let nextPageResults: [Result<PagePayload, Error>]
     private var firstPageCallCount: Int = .zero
     private var nextPageCallCount: Int = .zero
+    private var shouldSuspendFirstPage = false
+    private var shouldSuspendNextPage = false
+    private var firstPageContinuation: CheckedContinuation<Void, Never>?
+    private var nextPageContinuation: CheckedContinuation<Void, Never>?
+    private var firstPageStartedContinuation: CheckedContinuation<Void, Never>?
+    private var nextPageStartedContinuation: CheckedContinuation<Void, Never>?
 
     init(
         firstPageResults: [Result<PagePayload, Error>],
@@ -221,6 +329,54 @@ private actor ExpesiesListRepositoryStub: MainFlowDomainRepositoryProtocol {
         self.observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
         self.firstPageResults = firstPageResults
         self.nextPageResults = nextPageResults
+    }
+
+    func setShouldSuspendFirstPage(_ shouldSuspend: Bool) {
+        shouldSuspendFirstPage = shouldSuspend
+    }
+
+    func setShouldSuspendNextPage(_ shouldSuspend: Bool) {
+        shouldSuspendNextPage = shouldSuspend
+    }
+
+    func waitUntilFirstPageStarted() async {
+        guard firstPageCallCount == .zero else {
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            firstPageStartedContinuation = continuation
+        }
+    }
+
+    func waitUntilNextPageStarted() async {
+        guard nextPageCallCount == .zero else {
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            nextPageStartedContinuation = continuation
+        }
+    }
+
+    func firstPageCallsCount() -> Int {
+        firstPageCallCount
+    }
+
+    func nextPageCallsCount() -> Int {
+        nextPageCallCount
+    }
+
+    func resumeFirstPage() {
+        firstPageContinuation?.resume()
+        firstPageContinuation = nil
+        shouldSuspendFirstPage = false
+    }
+
+    func resumeNextPage() {
+        nextPageContinuation?.resume()
+        nextPageContinuation = nil
+        shouldSuspendNextPage = false
     }
 
     func refreshMainFlow() async throws {}
@@ -250,6 +406,14 @@ private actor ExpesiesListRepositoryStub: MainFlowDomainRepositoryProtocol {
         let index = min(firstPageCallCount, max(firstPageResults.count - 1, .zero))
         let payload = try firstPageResults[index].get()
         firstPageCallCount += 1
+        firstPageStartedContinuation?.resume()
+        firstPageStartedContinuation = nil
+
+        if shouldSuspendFirstPage {
+            await withCheckedContinuation { continuation in
+                firstPageContinuation = continuation
+            }
+        }
 
         store.update { state in
             payload.expenses.forEach { state.expensesByID[$0.id] = $0 }
@@ -269,6 +433,14 @@ private actor ExpesiesListRepositoryStub: MainFlowDomainRepositoryProtocol {
         let index = min(nextPageCallCount, max(nextPageResults.count - 1, .zero))
         let payload = try nextPageResults[index].get()
         nextPageCallCount += 1
+        nextPageStartedContinuation?.resume()
+        nextPageStartedContinuation = nil
+
+        if shouldSuspendNextPage {
+            await withCheckedContinuation { continuation in
+                nextPageContinuation = continuation
+            }
+        }
 
         store.update { state in
             payload.expenses.forEach { state.expensesByID[$0.id] = $0 }

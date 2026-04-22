@@ -41,6 +41,10 @@ actor ExpesiesListInteractor: ExpesiesListBusinessLogic {
     }
 
     func fetchData() async {
+        guard loadingState != .loading, !isLoadingNextPage else {
+            return
+        }
+
         startObservingIfNeeded()
 
         loadingState = .loading
@@ -127,7 +131,7 @@ private extension ExpesiesListInteractor {
 
 extension ExpesiesListInteractor: ExpesiesListHandler {
     func handleLoadNextPage() async {
-        guard loadingState == .loaded, hasMore else {
+        guard loadingState == .loaded, hasMore, !isLoadingNextPage else {
             return
         }
 

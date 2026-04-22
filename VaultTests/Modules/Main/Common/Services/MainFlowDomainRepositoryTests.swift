@@ -161,6 +161,106 @@ extension MainFlowDomainRepositoryTests {
         XCTAssertEqual(store.snapshot().expensesListExpenseIDs, ["exp-1"])
     }
 
+    func testLoadNextExpensesPageOmitsCurrentPeriodFromCursorRequest() async throws {
+        let store = MainFlowDomainStore()
+        let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        let period = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 1_735_689_600),
+            to: Date(timeIntervalSince1970: 1_735_700_000)
+        )
+        let expensesService = ExpensesServiceStub(
+            listResults: [
+                .success(
+                    .init(
+                        expenses: [],
+                        nextCursor: nil,
+                        hasMore: false
+                    )
+                )
+            ]
+        )
+        let repository = MainFlowDomainRepository(
+            categoriesService: CategoriesServiceStub(listResult: .success(.init(categories: []))),
+            expensesService: expensesService,
+            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
+            currencyConversionService: CurrencyConverterStub(),
+            store: store,
+            observer: observer
+        )
+
+        store.update { state in
+            state.expensesListPagination = .init(
+                nextCursor: "cursor-1",
+                hasMore: true,
+                isLoaded: true
+            )
+        }
+
+        try await repository.loadNextExpensesPage()
+
+        let requestedParameters = await expensesService.requestedParameters()
+        XCTAssertEqual(
+            requestedParameters,
+            [
+                .init(
+                    cursor: "cursor-1",
+                    limit: 20
+                )
+            ]
+        )
+    }
+
+    func testLoadNextCategoryPageOmitsCurrentPeriodFromCursorRequest() async throws {
+        let store = MainFlowDomainStore()
+        let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        let period = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 1_735_689_600),
+            to: Date(timeIntervalSince1970: 1_735_700_000)
+        )
+        let expensesService = ExpensesServiceStub(
+            listResults: [
+                .success(
+                    .init(
+                        expenses: [],
+                        nextCursor: nil,
+                        hasMore: false
+                    )
+                )
+            ]
+        )
+        let repository = MainFlowDomainRepository(
+            categoriesService: CategoriesServiceStub(listResult: .success(.init(categories: []))),
+            expensesService: expensesService,
+            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
+            currencyConversionService: CurrencyConverterStub(),
+            store: store,
+            observer: observer
+        )
+
+        store.update { state in
+            state.categoryPagination["cat-1"] = .init(
+                nextCursor: "cursor-1",
+                hasMore: true,
+                isLoaded: true
+            )
+            state.categoryPeriods["cat-1"] = period
+        }
+
+        try await repository.loadNextCategoryPage(id: "cat-1")
+
+        let requestedParameters = await expensesService.requestedParameters()
+        XCTAssertEqual(
+            requestedParameters,
+            [
+                .init(
+                    category: "cat-1",
+                    cursor: "cursor-1",
+                    limit: 20
+                )
+            ]
+        )
+    }
+
     func testRefreshCategoriesUsesPlainRequestWhenNoSummaryPeriodProviderExists() async throws {
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())

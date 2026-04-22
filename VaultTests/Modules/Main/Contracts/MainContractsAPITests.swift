@@ -86,31 +86,56 @@ extension MainContractsAPITests {
 
 extension MainContractsAPITests {
     func testExpensiesListWithAllParametersBuildsQuery() {
-//        let from = Date(timeIntervalSince1970: 1_735_689_600)
-//        let to = Date(timeIntervalSince1970: 1_736_553_000)
-//
-//        let target = ExpensiesAPI.list(
-//            .init(
-//                category: "cat-1",
-//                from: from,
-//                to: to,
-//                cursor: "cursor-token",
-//                limit: 25
-//            )
-//        )
-//
-//        XCTAssertEqual(target.path, "/expenses")
-//        XCTAssertEqual(target.method.rawValue, "GET")
-//
-//        guard case let .query(query, _) = target.requestType else {
-//            return XCTFail("Expected query request type")
-//        }
-//
-//        XCTAssertEqual(query["category"] as? String, "cat-1")
-//        XCTAssertEqual(query["cursor"] as? String, "cursor-token")
-//        XCTAssertEqual(limitValue(in: query), 25)
-//        XCTAssertEqual(query["from"] as? String, "2025-01-01T00:00:00Z")
-//        XCTAssertEqual(query["to"] as? String, "2025-01-11T23:50:00Z")
+        let from = Date(timeIntervalSince1970: 1_735_689_600)
+        let to = Date(timeIntervalSince1970: 1_736_553_000)
+
+        let target = ExpensiesAPI.list(
+            .init(
+                category: "cat-1",
+                from: from,
+                to: to,
+                cursor: "cursor-token",
+                limit: 25
+            )
+        )
+
+        XCTAssertEqual(target.path, "/expenses")
+        XCTAssertEqual(target.method.rawValue, "GET")
+
+        guard case let .query(query, _) = target.requestType else {
+            return XCTFail("Expected query request type")
+        }
+
+        XCTAssertEqual(query["category"] as? String, "cat-1")
+        XCTAssertEqual(query["cursor"] as? String, "cursor-token")
+        XCTAssertEqual(limitValue(in: query), 25)
+        XCTAssertEqual(query["from"] as? String, "2025-01-01T00:00:00Z")
+        XCTAssertEqual(query["to"] as? String, "2025-01-11T23:50:00Z")
+    }
+}
+
+extension MainContractsAPITests {
+    func testExpensiesListWithoutCursorKeepsRangeParameters() {
+        let from = Date(timeIntervalSince1970: 1_735_689_600)
+        let to = Date(timeIntervalSince1970: 1_736_553_000)
+
+        let target = ExpensiesAPI.list(
+            .init(
+                category: "cat-1",
+                from: from,
+                to: to,
+                limit: 25
+            )
+        )
+
+        guard case let .query(query, _) = target.requestType else {
+            return XCTFail("Expected query request type")
+        }
+
+        XCTAssertEqual(query["category"] as? String, "cat-1")
+        XCTAssertEqual(limitValue(in: query), 25)
+        XCTAssertEqual(query["from"] as? String, "2025-01-01T00:00:00Z")
+        XCTAssertEqual(query["to"] as? String, "2025-01-11T23:50:00Z")
     }
 }
 
