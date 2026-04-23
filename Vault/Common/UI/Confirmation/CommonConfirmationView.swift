@@ -26,6 +26,8 @@ final class CommonConfirmationView: UIView, LayoutScaleProviding, ImageProviding
         confirmButton.apply(viewModel.confirmButton)
         cancelButton.apply(viewModel.cancelButton)
         closeCommand = viewModel.closeCommand
+        closeButton.isEnabled = viewModel.isCloseEnabled
+        closeButton.alpha = viewModel.isCloseEnabled ? 1 : 0.4
     }
 }
 
@@ -80,17 +82,20 @@ extension CommonConfirmationView {
         let confirmButton: Button.ButtonViewModel
         let cancelButton: Button.ButtonViewModel
         let closeCommand: Command
+        let isCloseEnabled: Bool
 
         init(
             title: Label.LabelViewModel = .init(),
             confirmButton: Button.ButtonViewModel = .init(),
             cancelButton: Button.ButtonViewModel = .init(),
-            closeCommand: Command = .nope
+            closeCommand: Command = .nope,
+            isCloseEnabled: Bool = true
         ) {
             self.title = title
             self.confirmButton = confirmButton
             self.cancelButton = cancelButton
             self.closeCommand = closeCommand
+            self.isCloseEnabled = isCloseEnabled
         }
     }
 }

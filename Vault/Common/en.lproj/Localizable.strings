@@ -5,6 +5,10 @@
 "email_placeholder" = "name@example.com";
 "enter_your_name" = "Enter Your Name";
 "forgot" = "Forgot?";
+"forgot_password_send" = "Send";
+"forgot_password_subtitle" = "Enter your email and we'll send reset instructions.";
+"forgot_password_success_message" = "If an account exists for this email, reset instructions have been sent.";
+"forgot_password_title" = "Forgot Password";
 "get_started" = "Get Started";
 "insightful_analytics" = "Insightful Analytics";
 "join_vault_to_start_tracking_effortlessly" = "Join Vault to start tracking effortlessly.";

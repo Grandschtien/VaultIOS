@@ -31,6 +31,10 @@ public struct Command: Equatable {
         Task { await action?() }
     }
 
+    public func executeAsync() async {
+        await action?()
+    }
+
     // MARK: - State
     
     public static func == (lhs: Command, rhs: Command) -> Bool {
