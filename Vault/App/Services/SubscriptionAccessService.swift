@@ -88,7 +88,7 @@ private extension SubscriptionAccessService {
         }
 
         do {
-            let profile = try await profileService.getProfile()
+            let profile = try await resolvedProfile(forceRefresh: forceRefresh)
             let tier = normalizedTier(profile.tier)
             await state.setCachedTier(tier, for: profile.id)
             return .resolved(tier)
@@ -106,6 +106,14 @@ private extension SubscriptionAccessService {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         return userID.isEmpty ? nil : userID
+    }
+
+    func resolvedProfile(forceRefresh: Bool) async throws -> ProfileResponseDTO {
+        if forceRefresh {
+            return try await profileService.refreshProfile()
+        }
+
+        return try await profileService.getProfile()
     }
 
     func normalizedTier(_ tier: String) -> String {

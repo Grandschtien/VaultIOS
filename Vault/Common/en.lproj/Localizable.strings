@@ -33,6 +33,8 @@
 "onboarding_3_subtitle" = "See where your money goes with smart, automated insights";
 
 "common_fill_field" = "Please, fill this field";
+"common_confirm" = "Confirm";
+"common_cancel" = "Cancel";
 
 "step_number" = "Step %@ of %@";
 "account_step_registration_sutitle" = "Use a strong password to keep your data safe";
@@ -135,6 +137,7 @@
 "profile_currency" = "Currency";
 "profile_language" = "Language";
 "profile_logout" = "Log Out";
+"profile_logout_confirmation_title" = "Are you sure?";
 "profile_version" = "Version %@ (Build %@)";
 "profile_error" = "Something went wrong";
 "profile_select_currency_title" = "Select Currency";

@@ -164,16 +164,7 @@ extension ProfileInteractor: ProfileHandler {
             return
         }
 
-        isLoggingOut = true
-        await presentFetchedData()
-
-        do {
-            try await authSessionService.logoutFromBackend()
-        } catch {
-            isLoggingOut = false
-            await presentFetchedData()
-            await router.presentError(with: logoutFailedMessage(from: error))
-        }
+        await router.openConfirmation(context: logoutConfirmationContext())
     }
 
     func handleTapCurrency() async {
@@ -269,6 +260,34 @@ extension ProfileInteractor: ProfileCurrencySelectionOutput {
 }
 
 private extension ProfileInteractor {
+    func logoutConfirmationContext() -> CommonConfirmationContext {
+        CommonConfirmationContext(
+            title: L10n.profileLogoutConfirmationTitle,
+            confirmButtonTitle: L10n.commonConfirm,
+            cancelButtonTitle: L10n.commonCancel,
+            confirmCommand: Command { [weak self] in
+                await self?.performLogout()
+            }
+        )
+    }
+
+    func performLogout() async {
+        guard !isLoggingOut else {
+            return
+        }
+
+        isLoggingOut = true
+        await presentFetchedData()
+
+        do {
+            try await authSessionService.logoutFromBackend()
+        } catch {
+            isLoggingOut = false
+            await presentFetchedData()
+            await router.presentError(with: logoutFailedMessage(from: error))
+        }
+    }
+
     enum ProfileSaveError: Error {
         case missingEmail
     }

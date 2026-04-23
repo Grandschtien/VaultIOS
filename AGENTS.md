@@ -61,6 +61,7 @@
 - When you add new string, never add it into code directly. Add it into EN Localization
 - If you see uppercase never use it in localization. Always capitalize strings
 - When view contains collection view make state in ViewModel with loading, error, loaded, empty states
+- Use `CommonConfirmationFactory` with `CommonConfirmationContext` for confirmation flows. Do not create feature-specific confirmation alerts, action sheets, or bottom sheets when this common screen fits the case.
 
 ## General Engineering Guardrails for coding
 

@@ -162,7 +162,7 @@ private extension AppAssembly {
 
             return ProfileContractService(networkClient: networkClient)
         }
-        .inObjectScope(.transient)
+        .inObjectScope(.container)
 
         container.register(SubscriptionAppAccountTokenProviding.self) { resolver in
             guard let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self) else {

@@ -6,6 +6,7 @@ import Nivelir
 
 @MainActor
 protocol ProfileRoutingLogic: Sendable {
+    func openConfirmation(context: CommonConfirmationContext)
     func openCurrencySelection(
         currentCurrencyCode: String,
         output: ProfileCurrencySelectionOutput
@@ -29,6 +30,18 @@ final class ProfileRouter: ProfileRoutingLogic {
     ) {
         self.screenRouter = screenRouter
         self.toastPresenter = toastPresenter
+    }
+
+    func openConfirmation(context: CommonConfirmationContext) {
+        let container = viewController?.navigationController ?? viewController
+        let confirmationScreen = CommonConfirmationFactory(
+            context: context
+        )
+        .withBottomSheet(.init(detents: [.content]))
+
+        screenRouter.navigate(from: container) { route in
+            route.present(confirmationScreen)
+        }
     }
 
     func openCurrencySelection(

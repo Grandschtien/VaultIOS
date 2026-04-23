@@ -162,7 +162,7 @@ extension ProfileInteractorTests {
 }
 
 extension ProfileInteractorTests {
-    func testHandleTapLogoutWhenBackendRequestSucceedsDoesNotPresentError() async {
+    func testHandleTapLogoutOpensConfirmationWithoutStartingLogout() async {
         let presenter = ProfilePresenterSpy()
         let router = ProfileRouterSpy()
         let profileService = ProfileServiceStub(results: [])
@@ -176,6 +176,34 @@ extension ProfileInteractorTests {
 
         await sut.handleTapLogout()
 
+        XCTAssertEqual(router.openConfirmationCallsCount, 1)
+        XCTAssertEqual(router.lastConfirmationContext?.title, L10n.profileLogoutConfirmationTitle)
+        XCTAssertEqual(router.lastConfirmationContext?.confirmButtonTitle, L10n.commonConfirm)
+        XCTAssertEqual(router.lastConfirmationContext?.cancelButtonTitle, L10n.commonCancel)
+        XCTAssertTrue(router.presentedErrors.isEmpty)
+        let logoutCallsCount = await authSessionService.currentLogoutFromBackendCallsCount()
+        XCTAssertEqual(logoutCallsCount, 0)
+        XCTAssertTrue(presenter.presentedData.isEmpty)
+    }
+}
+
+extension ProfileInteractorTests {
+    func testHandleTapLogoutConfirmWhenBackendRequestSucceedsDoesNotPresentError() async {
+        let presenter = ProfilePresenterSpy()
+        let router = ProfileRouterSpy()
+        let profileService = ProfileServiceStub(results: [])
+        let authSessionService = AuthSessionServiceSpy(logoutResult: .success(()))
+        let sut = makeSut(
+            presenter: presenter,
+            router: router,
+            profileService: profileService,
+            authSessionService: authSessionService
+        )
+
+        await sut.handleTapLogout()
+        router.lastConfirmationContext?.confirmCommand.execute()
+        await waitForCommandExecution()
+
         XCTAssertTrue(router.presentedErrors.isEmpty)
         XCTAssertEqual(presenter.presentedData.last?.isLoggingOut, true)
         let logoutCallsCount = await authSessionService.currentLogoutFromBackendCallsCount()
@@ -184,7 +212,7 @@ extension ProfileInteractorTests {
 }
 
 extension ProfileInteractorTests {
-    func testHandleTapLogoutWhenBackendRequestFailsPresentsErrorToast() async {
+    func testHandleTapLogoutConfirmWhenBackendRequestFailsPresentsErrorToast() async {
         let presenter = ProfilePresenterSpy()
         let router = ProfileRouterSpy()
         let profileService = ProfileServiceStub(results: [])
@@ -197,6 +225,8 @@ extension ProfileInteractorTests {
         )
 
         await sut.handleTapLogout()
+        router.lastConfirmationContext?.confirmCommand.execute()
+        await waitForCommandExecution()
 
         XCTAssertEqual(router.presentedErrors.count, 1)
         XCTAssertGreaterThanOrEqual(presenter.presentedData.count, 2)
@@ -427,6 +457,12 @@ private extension ProfileInteractorTests {
             XCTFail("Unexpected status", file: file, line: line)
         }
     }
+
+    func waitForCommandExecution() async {
+        for _ in 0..<10 {
+            await Task.yield()
+        }
+    }
 }
 
 @MainActor
@@ -440,11 +476,18 @@ private final class ProfilePresenterSpy: ProfilePresentationLogic {
 
 @MainActor
 private final class ProfileRouterSpy: ProfileRoutingLogic {
+    private(set) var openConfirmationCallsCount = 0
     private(set) var openCurrencySelectionCallsCount = 0
     private(set) var openSubscriptionCallsCount = 0
+    private(set) var lastConfirmationContext: CommonConfirmationContext?
     private(set) var lastOpenedCurrencyCode: String?
     private(set) var lastOpenedSubscriptionTier: String?
     private(set) var presentedErrors: [String] = []
+
+    func openConfirmation(context: CommonConfirmationContext) {
+        openConfirmationCallsCount += 1
+        lastConfirmationContext = context
+    }
 
     func openCurrencySelection(
         currentCurrencyCode: String,
