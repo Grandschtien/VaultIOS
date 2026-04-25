@@ -35,17 +35,12 @@ extension SubscriptionPresenterTests {
 }
 
 extension SubscriptionPresenterTests {
-    func testPresentFetchedDataLoadedMapsPlans() {
+    func testPresentFetchedDataLegacyPaidTierMapsToPremiumCurrentPlan() {
         sut.presentFetchedData(
             .init(
                 loadingState: .loaded,
-                currentTier: "PREMIUM",
+                currentTier: "PLUS",
                 plans: [
-                    .init(
-                        id: SubscriptionCatalog.plus.id,
-                        title: L10n.subscriptionPlus,
-                        price: "$1.99"
-                    ),
                     .init(
                         id: SubscriptionCatalog.premium.id,
                         title: L10n.subscriptionPremium,
@@ -63,10 +58,7 @@ extension SubscriptionPresenterTests {
         XCTAssertEqual(content.currentPlan.title.text, L10n.subscriptionCurrentPlan)
         XCTAssertEqual(content.currentPlan.planTitle.text, L10n.subscriptionPremium)
         XCTAssertEqual(content.currentPlan.description.text, L10n.subscriptionPremiumDescription)
-        XCTAssertEqual(content.plans.count, 1)
-        XCTAssertEqual(content.plans[0].title.text, L10n.subscriptionPlus)
-        XCTAssertEqual(content.plans[0].description.text, L10n.subscriptionPlusDescription)
-        XCTAssertEqual(content.plans[0].price.text, L10n.subscriptionPerMonth("$1.99"))
+        XCTAssertTrue(content.plans.isEmpty)
     }
 }
 
@@ -77,11 +69,6 @@ extension SubscriptionPresenterTests {
                 loadingState: .loaded,
                 currentTier: "REGULAR",
                 plans: [
-                    .init(
-                        id: SubscriptionCatalog.plus.id,
-                        title: L10n.subscriptionPlus,
-                        price: "$1.99"
-                    ),
                     .init(
                         id: SubscriptionCatalog.premium.id,
                         title: L10n.subscriptionPremium,
@@ -97,7 +84,8 @@ extension SubscriptionPresenterTests {
 
         XCTAssertEqual(content.currentPlan.planTitle.text, L10n.subscriptionFree)
         XCTAssertEqual(content.currentPlan.description.text, L10n.subscriptionFreeDescription)
-        XCTAssertEqual(content.plans.map(\.title.text), [L10n.subscriptionPlus, L10n.subscriptionPremium])
+        XCTAssertEqual(content.plans.map(\.title.text), [L10n.subscriptionPremium])
+        XCTAssertEqual(content.plans.map(\.price.text), [L10n.subscriptionPerMonth("$2.99")])
     }
 }
 
@@ -108,17 +96,12 @@ extension SubscriptionPresenterTests {
                 loadingState: .loaded,
                 plans: [
                     .init(
-                        id: SubscriptionCatalog.plus.id,
-                        title: L10n.subscriptionPlus,
-                        price: "$1.99"
-                    ),
-                    .init(
                         id: SubscriptionCatalog.premium.id,
                         title: L10n.subscriptionPremium,
                         price: "$2.99"
                     )
                 ],
-                purchasingPlanID: SubscriptionCatalog.plus.id
+                purchasingPlanID: SubscriptionCatalog.premium.id
             )
         )
 
@@ -129,7 +112,6 @@ extension SubscriptionPresenterTests {
         }
 
         XCTAssertTrue(content.plans[0].button.isLoading)
-        XCTAssertFalse(content.plans[1].button.isEnabled)
     }
 }
 

@@ -20,6 +20,8 @@ protocol RegistrationHandler: AnyObject, Sendable {
 }
 
 actor RegistrationInteractor: RegistrationBusinessLogic {
+    private let minimumPasswordLength = 8
+
     private let networkClient: AsyncNetworkClient
     private let presenter: RegistrationPresentationLogic
     private let router: RegistrationRoutingLogic
@@ -198,6 +200,8 @@ private extension RegistrationInteractor {
 
         if normalizedPassword.isEmpty {
             passwordErrorMessage = L10n.commonFillField
+        } else if normalizedPassword.count < minimumPasswordLength {
+            passwordErrorMessage = L10n.registrationErrorPasswordTooShort
         }
 
         if normalizedConfirmPassword.isEmpty {

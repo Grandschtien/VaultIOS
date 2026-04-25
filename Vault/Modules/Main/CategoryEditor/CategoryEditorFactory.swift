@@ -17,6 +17,8 @@ final class CategoryEditorFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
         var toastPresenter: ToastPresenting
+        @SafeInject
+        var subscriptionAccessService: SubscriptionAccessServicing
 
         let presetProvider = CategoryEditorPresetProvider()
         let colorProvider = CategoryColorProvider()
@@ -38,6 +40,8 @@ final class CategoryEditorFactory: Screen {
             router: router,
             repository: context.repository,
             observer: context.observer,
+            subscriptionAccessService: subscriptionAccessService,
+            subscriptionLimitErrorResolver: CategoryEditorSubscriptionLimitErrorResolver(),
             presetProvider: presetProvider,
             colorProvider: colorProvider
         )

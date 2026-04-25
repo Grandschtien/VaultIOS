@@ -23,6 +23,8 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
     private let presenter: ExpenseAIEntryPresentationLogic
     private let router: ExpenseAIEntryRoutingLogic
     private let aiParseService: MainAIParseContractServicing
+    private let subscriptionAccessService: SubscriptionAccessServicing
+    private let subscriptionLimitErrorResolver: ExpenseAIEntrySubscriptionLimitErrorResolving
     private let voiceRecordingService: ExpenseAIEntryVoiceRecordingServicing
     private let observer: MainFlowDomainObserverProtocol
     private let currencyCodeResolver: AddExpenseCurrencyCodeResolver
@@ -36,6 +38,8 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
         presenter: ExpenseAIEntryPresentationLogic,
         router: ExpenseAIEntryRoutingLogic,
         aiParseService: MainAIParseContractServicing,
+        subscriptionAccessService: SubscriptionAccessServicing,
+        subscriptionLimitErrorResolver: ExpenseAIEntrySubscriptionLimitErrorResolving,
         voiceRecordingService: ExpenseAIEntryVoiceRecordingServicing,
         observer: MainFlowDomainObserverProtocol,
         currencyCodeResolver: AddExpenseCurrencyCodeResolver,
@@ -44,6 +48,8 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
         self.presenter = presenter
         self.router = router
         self.aiParseService = aiParseService
+        self.subscriptionAccessService = subscriptionAccessService
+        self.subscriptionLimitErrorResolver = subscriptionLimitErrorResolver
         self.voiceRecordingService = voiceRecordingService
         self.observer = observer
         self.currencyCodeResolver = currencyCodeResolver
@@ -98,6 +104,24 @@ private extension ExpenseAIEntryInteractor {
         case .recognizerUnavailable, .invalidState, nil:
             return L10n.expenseAiEntryVoiceUnavailable
         }
+    }
+
+    func handleParseError(_ error: Error) async {
+        guard subscriptionLimitErrorResolver.isSubscriptionLimitError(error) else {
+            await router.presentError(with: L10n.mainOverviewError)
+            return
+        }
+
+        let currentTier = await subscriptionAccessService.currentTier()
+        guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
+            await router.openSubscription(
+                currentTier: currentTier,
+                output: self
+            )
+            return
+        }
+
+        await router.presentError(with: L10n.expenseAiEntrySubscriptionLimitReached)
     }
 }
 
@@ -185,7 +209,7 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
         } catch {
             loadingState = .idle
             await presentFetchedData()
-            await router.presentError(with: L10n.mainOverviewError)
+            await handleParseError(error)
         }
     }
 
@@ -218,3 +242,9 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
 }
 
 extension ExpenseAIEntryInteractor: ExpenseAIEntryNoExpenseAlertOutput {}
+
+extension ExpenseAIEntryInteractor: SubscriptionOutput {
+    func handleSubscriptionDidSync() async {
+        _ = await subscriptionAccessService.refreshCurrentTier()
+    }
+}

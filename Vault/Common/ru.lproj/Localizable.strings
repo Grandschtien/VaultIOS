@@ -45,6 +45,7 @@
 "registration_other_currencies" = "Другие валюты";
 "registration_error_invalid_email" = "Введите корректный email";
 "registration_error_password_mismatch" = "Пароли не совпадают";
+"registration_error_password_too_short" = "Пароль должен содержать минимум 8 символов";
 "registration_error_select_currency" = "Выберите валюту";
 
 "analytics_empty" = "Пока нет аналитики за этот месяц";

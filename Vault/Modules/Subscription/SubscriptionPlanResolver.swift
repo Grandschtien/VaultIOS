@@ -23,7 +23,7 @@ enum SubscriptionPlanResolver {
     static func description(for productID: String) -> String {
         switch productID {
         case SubscriptionCatalog.plus.id:
-            L10n.subscriptionPlusDescription
+            L10n.subscriptionPremiumDescription
         case SubscriptionCatalog.premium.id:
             L10n.subscriptionPremiumDescription
         default:
@@ -37,11 +37,6 @@ enum SubscriptionPlanResolver {
             SubscriptionResolvedPlan(
                 title: L10n.subscriptionFree,
                 description: L10n.subscriptionFreeDescription
-            )
-        case .plus:
-            SubscriptionResolvedPlan(
-                title: L10n.subscriptionPlus,
-                description: L10n.subscriptionPlusDescription
             )
         case .premium:
             SubscriptionResolvedPlan(
@@ -58,8 +53,6 @@ enum SubscriptionPlanResolver {
 
     static func currentProductID(from rawTier: String) -> String? {
         switch normalizedTier(from: rawTier) {
-        case .plus:
-            SubscriptionCatalog.plus.id
         case .premium:
             SubscriptionCatalog.premium.id
         case .free, .unknown:
@@ -71,7 +64,6 @@ enum SubscriptionPlanResolver {
 private extension SubscriptionPlanResolver {
     enum Tier {
         case free
-        case plus
         case premium
         case unknown(String)
     }
@@ -90,7 +82,7 @@ private extension SubscriptionPlanResolver {
         }
 
         if normalized.contains("PLUS") || normalized == "ACTIVE" {
-            return .plus
+            return .premium
         }
 
         if normalized.contains("FREE") || normalized.contains("REGULAR") {

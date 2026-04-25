@@ -161,6 +161,31 @@ extension RegistrationInteractorTests {
         XCTAssertEqual(lastData.step, .account)
         XCTAssertEqual(lastData.emailErrorMessage, L10n.registrationErrorInvalidEmail)
     }
+
+    func testPrimaryButtonBlocksStepOneOnShortPassword() async {
+        let presenter = RegistrationPresenterSpy()
+        let sut = makeSut(
+            networkClient: AsyncNetworkClientSpy(),
+            presenter: presenter,
+            router: RegistrationRouterSpy(),
+            tokenStorage: TokenStorageSpy(),
+            profileStorage: UserProfileStorageSpy(),
+            storage: RegistrationStorage()
+        )
+
+        await sut.fetchData()
+        await sut.handleEmailDidChange("name@example.com")
+        await sut.handlePasswordDidChange("1234567")
+        await sut.handleConfirmPasswordDidChange("1234567")
+        await sut.handleTapPrimaryButton()
+
+        guard let lastData = presenter.presentedData.last else {
+            return XCTFail("Expected presenter update")
+        }
+
+        XCTAssertEqual(lastData.step, .account)
+        XCTAssertEqual(lastData.passwordErrorMessage, L10n.registrationErrorPasswordTooShort)
+    }
 }
 
 extension RegistrationInteractorTests {
@@ -242,6 +267,7 @@ private extension RegistrationInteractorTests {
             tokenStorageService: tokenStorage,
             userProfileStorageService: profileStorage,
             registrationStorage: storage,
+            subscriptionInitializer: SubscriptionInitializerSpy(),
             currencyProvider: CurrencyProviderStub(),
             localeProvider: LocaleProviderStub()
         )
@@ -339,6 +365,14 @@ private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @u
     func clearProfile() {
         savedProfile = nil
     }
+}
+
+private actor SubscriptionInitializerSpy: SubscriptionInitializerLogic {
+    func initialize() async {}
+
+    func setUserId(_ id: String) async {}
+
+    func logout() async {}
 }
 
 private struct CurrencyProviderStub: RegistrationCurrencyProviding {

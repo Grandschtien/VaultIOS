@@ -45,39 +45,6 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "1.99",
-          "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "DFC0F2CC",
-          "introductoryOffer" : null,
-          "localizations" : [
-            {
-              "description" : "300 AI enters per month and monthly analytics",
-              "displayName" : "Plus",
-              "locale" : "en_US"
-            },
-            {
-              "description" : "300 AI ввовдов и месячная аналитика",
-              "displayName" : "Плюс",
-              "locale" : "ru"
-            }
-          ],
-          "productID" : "vault.subscription.plus",
-          "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "Plus",
-          "subscriptionGroupID" : "186377D5",
-          "type" : "RecurringSubscription",
-          "winbackOffers" : [
-
-          ]
-        },
-        {
-          "adHocOffers" : [
-
-          ],
-          "codeOffers" : [
-
-          ],
           "displayPrice" : "2.99",
           "familyShareable" : false,
           "groupNumber" : 1,
@@ -85,8 +52,8 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "600 AI enters, month analytics and expensies history",
-              "displayName" : "Plus",
+              "description" : "AI entry with 600 AI requests per month",
+              "displayName" : "Premium",
               "locale" : "en_US"
             },
             {

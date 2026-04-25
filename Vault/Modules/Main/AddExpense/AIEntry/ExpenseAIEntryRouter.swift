@@ -12,6 +12,10 @@ protocol ExpenseAIEntryRoutingLogic: Sendable {
     func presentError(with text: String)
     func presentNoExpenseAlert(output: ExpenseAIEntryNoExpenseAlertOutput)
     func dismissNoExpenseAlert()
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    )
     func openManualEntry(initialDrafts: [ExpenseEditableDraft]) async
 }
 
@@ -61,6 +65,25 @@ final class ExpenseAIEntryRouter: ExpenseAIEntryRoutingLogic {
 
     func dismissNoExpenseAlert() {
         noExpenseAlertPresenter.dismiss()
+    }
+
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    ) {
+        guard let viewController else {
+            return
+        }
+
+        screenRouter.navigate(from: viewController) { route in
+            route.present(
+                SubscriptionFactory(
+                    currentTier: currentTier,
+                    output: output
+                )
+                .withModalPresentationStyle(.pageSheet)
+            )
+        }
     }
 
     func openManualEntry(initialDrafts: [ExpenseEditableDraft]) async {

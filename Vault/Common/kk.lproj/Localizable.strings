@@ -45,6 +45,7 @@
 "registration_other_currencies" = "Басқа валюталар";
 "registration_error_invalid_email" = "Дұрыс email енгізіңіз";
 "registration_error_password_mismatch" = "Құпиясөздер сәйкес емес";
+"registration_error_password_too_short" = "Құпиясөз кемінде 8 таңбадан тұруы керек";
 "registration_error_select_currency" = "Валютаны таңдаңыз";
 
 "main_add_expense_title" = "Шығын қосу";

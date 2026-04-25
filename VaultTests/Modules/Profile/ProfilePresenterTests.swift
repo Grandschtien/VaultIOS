@@ -44,7 +44,7 @@ extension ProfilePresenterTests {
 }
 
 extension ProfilePresenterTests {
-    func testPresentFetchedDataLoadedMapsProfileContent() {
+    func testPresentFetchedDataLoadedMapsLegacyPaidTierToPremiumContent() {
         sut.presentFetchedData(
             ProfileFetchData(
                 loadingState: .loaded,
@@ -54,7 +54,7 @@ extension ProfilePresenterTests {
                     name: "Sarah Connor",
                     currency: "GBP",
                     preferredLanguage: "en-GB",
-                    tier: "PREMIUM_ACTIVE",
+                    tier: "ACTIVE",
                     tierValidUntil: Date(timeIntervalSince1970: 1_775_001_600)
                 ),
                 appVersion: "2.4.0",

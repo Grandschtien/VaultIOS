@@ -52,6 +52,7 @@
 "registration_other_currencies" = "Other Currencies";
 "registration_error_invalid_email" = "Please enter a valid email";
 "registration_error_password_mismatch" = "Passwords do not match";
+"registration_error_password_too_short" = "Password must contain at least 8 characters";
 "registration_error_select_currency" = "Please select currency";
 
 "analytics_empty" = "No analytics yet for this month";
@@ -168,3 +169,4 @@
 "subscription_purchase_unverified" = "Unable to verify purchase";
 "subscription_sync_failed" = "Unable to sync subscription";
 "subscription_account_token_unavailable" = "Unable to identify your account for purchase";
+"expense_ai_entry_subscription_limit_reached" = "You reached your subscription limits, please, wait for renew them";

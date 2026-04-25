@@ -6,8 +6,7 @@ final class SubscriptionStoreKitServiceTests: XCTestCase {
         let client = SubscriptionStoreKitClientSpy(
             productsResult: .success(
                 [
-                    .init(id: SubscriptionCatalog.premium.id, price: "$2.99"),
-                    .init(id: SubscriptionCatalog.plus.id, price: "$1.99")
+                    .init(id: SubscriptionCatalog.premium.id, price: "$2.99")
                 ]
             )
         )
@@ -20,20 +19,20 @@ final class SubscriptionStoreKitServiceTests: XCTestCase {
 
         XCTAssertEqual(
             plans.map(\.id),
-            [SubscriptionCatalog.plus.id, SubscriptionCatalog.premium.id]
+            [SubscriptionCatalog.premium.id]
         )
         XCTAssertEqual(
             plans.map(\.title),
-            [L10n.subscriptionPlus, L10n.subscriptionPremium]
+            [L10n.subscriptionPremium]
         )
-        XCTAssertEqual(plans.map(\.price), ["$1.99", "$2.99"])
+        XCTAssertEqual(plans.map(\.price), ["$2.99"])
     }
 }
 
 extension SubscriptionStoreKitServiceTests {
     func testPurchasePassesAppAccountTokenAndFinishDelegatesToClient() async throws {
         let verifiedPurchase = SubscriptionVerifiedPurchase(
-            productId: SubscriptionCatalog.plus.id,
+            productId: SubscriptionCatalog.premium.id,
             transactionId: "transaction-1",
             originalTransactionId: "original-1",
             signedTransaction: "signed-transaction",
@@ -51,14 +50,14 @@ extension SubscriptionStoreKitServiceTests {
             )
         )
 
-        let result = try await sut.purchase(planID: SubscriptionCatalog.plus.id)
+        let result = try await sut.purchase(planID: SubscriptionCatalog.premium.id)
         try await sut.finishPurchase(transactionID: verifiedPurchase.transactionId)
         let purchasedIDs = await client.purchaseProductIDs()
         let purchasedAppAccountTokens = await client.purchasedAppAccountTokens()
         let finishedIDs = await client.finishedTransactionIDs()
 
         XCTAssertEqual(result, .verified(verifiedPurchase))
-        XCTAssertEqual(purchasedIDs, [SubscriptionCatalog.plus.id])
+        XCTAssertEqual(purchasedIDs, [SubscriptionCatalog.premium.id])
         XCTAssertEqual(purchasedAppAccountTokens, [appAccountToken])
         XCTAssertEqual(finishedIDs, [verifiedPurchase.transactionId])
     }

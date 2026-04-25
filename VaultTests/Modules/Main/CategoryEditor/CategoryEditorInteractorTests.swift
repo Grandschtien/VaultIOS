@@ -142,6 +142,54 @@ extension CategoryEditorInteractorTests {
         XCTAssertEqual(router.presentedErrors, [])
     }
 
+    func testHandleTapPrimaryButtonInCreateModeSubscriptionLimitOpensPaywall() async {
+        let presenter = CategoryEditorPresenterSpy()
+        let router = CategoryEditorRouterSpy()
+        let repository = CategoryEditorRepositorySpy()
+        repository.addCategoryError = StubError.any
+        let sut = makeSUT(
+            mode: .create,
+            presenter: presenter,
+            router: router,
+            repository: repository,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "REGULAR"),
+            subscriptionLimitErrorResolver: CategoryEditorSubscriptionLimitErrorResolverStub(
+                isSubscriptionLimitError: true
+            )
+        )
+
+        await sut.fetchData()
+        await sut.handleChangeCategoryName("Food")
+        await sut.handleTapPrimaryButton()
+
+        XCTAssertEqual(router.openedSubscriptionTiers, ["REGULAR"])
+        XCTAssertTrue(router.presentedErrors.isEmpty)
+        XCTAssertEqual(router.closeCallsCount, 0)
+        XCTAssertEqual(presenter.presentedData.last?.loadingState, .loaded)
+    }
+
+    func testHandleTapPrimaryButtonInCreateModeFailureShowsErrorToast() async {
+        let presenter = CategoryEditorPresenterSpy()
+        let router = CategoryEditorRouterSpy()
+        let repository = CategoryEditorRepositorySpy()
+        repository.addCategoryError = StubError.any
+        let sut = makeSUT(
+            mode: .create,
+            presenter: presenter,
+            router: router,
+            repository: repository
+        )
+
+        await sut.fetchData()
+        await sut.handleChangeCategoryName("Food")
+        await sut.handleTapPrimaryButton()
+
+        XCTAssertEqual(router.presentedErrors, [L10n.mainOverviewError])
+        XCTAssertTrue(router.openedSubscriptionTiers.isEmpty)
+        XCTAssertEqual(router.closeCallsCount, 0)
+        XCTAssertEqual(presenter.presentedData.last?.loadingState, .loaded)
+    }
+
     func testHandleTapPrimaryButtonInEditModeUpdatesCategoryAndCloses() async {
         let presenter = CategoryEditorPresenterSpy()
         let router = CategoryEditorRouterSpy()
@@ -288,7 +336,9 @@ private extension CategoryEditorInteractorTests {
         presenter: CategoryEditorPresenterSpy,
         router: CategoryEditorRouterSpy? = nil,
         repository: CategoryEditorRepositorySpy = .init(),
-        observer: CategoryEditorObserverStub = .init()
+        observer: CategoryEditorObserverStub = .init(),
+        subscriptionAccessService: SubscriptionAccessServicing = SubscriptionAccessServiceStub(),
+        subscriptionLimitErrorResolver: CategoryEditorSubscriptionLimitErrorResolving = CategoryEditorSubscriptionLimitErrorResolverStub()
     ) -> CategoryEditorInteractor {
         let resolvedRouter = router ?? CategoryEditorRouterSpy()
 
@@ -298,6 +348,8 @@ private extension CategoryEditorInteractorTests {
             router: resolvedRouter,
             repository: repository,
             observer: observer,
+            subscriptionAccessService: subscriptionAccessService,
+            subscriptionLimitErrorResolver: subscriptionLimitErrorResolver,
             presetProvider: presetProvider,
             colorProvider: CategoryColorProvider()
         )
@@ -331,6 +383,7 @@ private final class CategoryEditorRouterSpy: CategoryEditorRoutingLogic {
     private(set) var closeCallsCount = 0
     private(set) var openEmojiPickerCalls: [String] = []
     private(set) var openColorPickerCalls: [String] = []
+    private(set) var openedSubscriptionTiers: [String] = []
     private(set) var presentedErrors: [String] = []
 
     func close() {
@@ -345,6 +398,13 @@ private final class CategoryEditorRouterSpy: CategoryEditorRoutingLogic {
         openColorPickerCalls.append(selectedHex)
     }
 
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    ) {
+        openedSubscriptionTiers.append(currentTier)
+    }
+
     func presentError(with text: String) {
         presentedErrors.append(text)
     }
@@ -353,6 +413,7 @@ private final class CategoryEditorRouterSpy: CategoryEditorRoutingLogic {
 private final class CategoryEditorRepositorySpy: MainFlowDomainRepositoryProtocol, @unchecked Sendable {
     var refreshCategoriesError: Error?
     var refreshCategoryError: Error?
+    var addCategoryError: Error?
     var addCategoryRequest: CategoryCreateRequestDTO?
     var updateCategoryRequest: (id: String, request: CategoryCreateRequestDTO)?
     var deletedCategoryID: String?
@@ -381,6 +442,10 @@ private final class CategoryEditorRepositorySpy: MainFlowDomainRepositoryProtoco
     func deleteExpense(id: String) async throws {}
 
     func addCategory(_ request: CategoryCreateRequestDTO) async throws -> MainCategoryCardModel {
+        if let addCategoryError {
+            throw addCategoryError
+        }
+
         addCategoryRequest = request
         return .init(
             id: "created",
@@ -425,4 +490,37 @@ private final class CategoryEditorObserverStub: MainFlowDomainObserverProtocol, 
     func currentExpensesListSnapshot() -> MainFlowExpensesListSnapshot { .init() }
     func publishAll(from store: MainFlowDomainStoreProtocol) {}
     func finishAll() {}
+}
+
+private struct CategoryEditorSubscriptionLimitErrorResolverStub: CategoryEditorSubscriptionLimitErrorResolving {
+    let shouldResolveAsSubscriptionLimitError: Bool
+
+    init(isSubscriptionLimitError: Bool = false) {
+        shouldResolveAsSubscriptionLimitError = isSubscriptionLimitError
+    }
+
+    func isSubscriptionLimitError(_ error: Error) -> Bool {
+        shouldResolveAsSubscriptionLimitError
+    }
+}
+
+private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
+    private let currentTier: String
+    private let refreshedTier: String
+
+    init(
+        currentTier: String = "REGULAR",
+        refreshedTier: String? = nil
+    ) {
+        self.currentTier = currentTier
+        self.refreshedTier = refreshedTier ?? currentTier
+    }
+
+    func currentTierState() async -> SubscriptionTierState {
+        .resolved(currentTier)
+    }
+
+    func refreshCurrentTierState() async -> SubscriptionTierState {
+        .resolved(refreshedTier)
+    }
 }

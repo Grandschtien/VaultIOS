@@ -185,6 +185,52 @@ extension ExpenseAIEntryInteractorTests {
         XCTAssertTrue(presenter.presentedData.last?.isCloseEnabled ?? false)
     }
 
+    func testHandleTapProcessSubscriptionLimitForFreeUserOpensPaywall() async {
+        let presenter = ExpenseAIEntryPresenterSpy()
+        let router = ExpenseAIEntryRouterSpy()
+        let service = AIParseServiceSpy(result: .failure(ExpenseAIEntryTestError.any))
+        let sut = makeSUT(
+            presenter: presenter,
+            router: router,
+            aiParseService: service,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "REGULAR"),
+            subscriptionLimitErrorResolver: ExpenseAIEntrySubscriptionLimitErrorResolverStub(
+                isSubscriptionLimitError: true
+            )
+        )
+
+        await sut.handleChangePrompt("Coffee 5")
+        await sut.handleTapProcess()
+
+        XCTAssertEqual(router.openedSubscriptionTiers, ["REGULAR"])
+        XCTAssertTrue(router.presentedErrors.isEmpty)
+        XCTAssertNil(router.openedDrafts)
+        XCTAssertEqual(presenter.presentedData.last?.loadingState, .idle)
+    }
+
+    func testHandleTapProcessSubscriptionLimitForLegacyPaidTierShowsLimitToast() async {
+        let presenter = ExpenseAIEntryPresenterSpy()
+        let router = ExpenseAIEntryRouterSpy()
+        let service = AIParseServiceSpy(result: .failure(ExpenseAIEntryTestError.any))
+        let sut = makeSUT(
+            presenter: presenter,
+            router: router,
+            aiParseService: service,
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PLUS"),
+            subscriptionLimitErrorResolver: ExpenseAIEntrySubscriptionLimitErrorResolverStub(
+                isSubscriptionLimitError: true
+            )
+        )
+
+        await sut.handleChangePrompt("Coffee 5")
+        await sut.handleTapProcess()
+
+        XCTAssertEqual(router.presentedErrors, [L10n.expenseAiEntrySubscriptionLimitReached])
+        XCTAssertTrue(router.openedSubscriptionTiers.isEmpty)
+        XCTAssertNil(router.openedDrafts)
+        XCTAssertEqual(presenter.presentedData.last?.loadingState, .idle)
+    }
+
     func testHandleTapProcessNoExpenseShowsAlert() async {
         let presenter = ExpenseAIEntryPresenterSpy()
         let router = ExpenseAIEntryRouterSpy()
@@ -247,6 +293,8 @@ private extension ExpenseAIEntryInteractorTests {
         presenter: ExpenseAIEntryPresenterSpy? = nil,
         router: ExpenseAIEntryRouterSpy? = nil,
         aiParseService: AIParseServiceSpy? = nil,
+        subscriptionAccessService: SubscriptionAccessServicing = SubscriptionAccessServiceStub(),
+        subscriptionLimitErrorResolver: ExpenseAIEntrySubscriptionLimitErrorResolving = ExpenseAIEntrySubscriptionLimitErrorResolverStub(),
         voiceRecordingService: VoiceRecordingServiceSpy? = nil,
         observer: MainFlowObserverStub = .init(),
         userProfileStorageService: UserProfileStorageSpy = .init()
@@ -268,6 +316,8 @@ private extension ExpenseAIEntryInteractorTests {
             presenter: resolvedPresenter,
             router: resolvedRouter,
             aiParseService: resolvedAIParseService,
+            subscriptionAccessService: subscriptionAccessService,
+            subscriptionLimitErrorResolver: subscriptionLimitErrorResolver,
             voiceRecordingService: resolvedVoiceRecordingService,
             observer: observer,
             currencyCodeResolver: AddExpenseCurrencyCodeResolver(
@@ -293,6 +343,7 @@ private final class ExpenseAIEntryRouterSpy: ExpenseAIEntryRoutingLogic {
     private(set) var closeCallsCount = 0
     private(set) var presentedErrors: [String] = []
     private(set) var openedDrafts: [ExpenseEditableDraft]?
+    private(set) var openedSubscriptionTiers: [String] = []
     private(set) var noExpenseAlertPresentationsCount = 0
     private(set) var dismissNoExpenseAlertCallsCount = 0
 
@@ -312,8 +363,48 @@ private final class ExpenseAIEntryRouterSpy: ExpenseAIEntryRoutingLogic {
         dismissNoExpenseAlertCallsCount += 1
     }
 
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    ) {
+        openedSubscriptionTiers.append(currentTier)
+    }
+
     func openManualEntry(initialDrafts: [ExpenseEditableDraft]) async {
         openedDrafts = initialDrafts
+    }
+}
+
+private struct ExpenseAIEntrySubscriptionLimitErrorResolverStub: ExpenseAIEntrySubscriptionLimitErrorResolving {
+    let shouldResolveAsSubscriptionLimitError: Bool
+
+    init(isSubscriptionLimitError: Bool = false) {
+        shouldResolveAsSubscriptionLimitError = isSubscriptionLimitError
+    }
+
+    func isSubscriptionLimitError(_ error: Error) -> Bool {
+        shouldResolveAsSubscriptionLimitError
+    }
+}
+
+private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
+    private let currentTier: String
+    private let refreshedTier: String
+
+    init(
+        currentTier: String = "REGULAR",
+        refreshedTier: String? = nil
+    ) {
+        self.currentTier = currentTier
+        self.refreshedTier = refreshedTier ?? currentTier
+    }
+
+    func currentTierState() async -> SubscriptionTierState {
+        .resolved(currentTier)
+    }
+
+    func refreshCurrentTierState() async -> SubscriptionTierState {
+        .resolved(refreshedTier)
     }
 }
 

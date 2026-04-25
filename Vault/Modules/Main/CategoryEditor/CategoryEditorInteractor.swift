@@ -26,6 +26,8 @@ actor CategoryEditorInteractor: CategoryEditorBusinessLogic {
     private let router: CategoryEditorRoutingLogic
     private let repository: MainFlowDomainRepositoryProtocol
     private let observer: MainFlowDomainObserverProtocol
+    private let subscriptionAccessService: SubscriptionAccessServicing
+    private let subscriptionLimitErrorResolver: CategoryEditorSubscriptionLimitErrorResolving
     private let presetProvider: CategoryEditorPresetProviding
     private let colorProvider: CategoryColorProviding
 
@@ -42,6 +44,8 @@ actor CategoryEditorInteractor: CategoryEditorBusinessLogic {
         router: CategoryEditorRoutingLogic,
         repository: MainFlowDomainRepositoryProtocol,
         observer: MainFlowDomainObserverProtocol,
+        subscriptionAccessService: SubscriptionAccessServicing,
+        subscriptionLimitErrorResolver: CategoryEditorSubscriptionLimitErrorResolving,
         presetProvider: CategoryEditorPresetProviding,
         colorProvider: CategoryColorProviding
     ) {
@@ -56,6 +60,8 @@ actor CategoryEditorInteractor: CategoryEditorBusinessLogic {
         self.router = router
         self.repository = repository
         self.observer = observer
+        self.subscriptionAccessService = subscriptionAccessService
+        self.subscriptionLimitErrorResolver = subscriptionLimitErrorResolver
         self.presetProvider = presetProvider
         self.colorProvider = colorProvider
         self.draft = initialDraft
@@ -200,6 +206,19 @@ private extension CategoryEditorInteractor {
         return normalizedName.compare(L10n.other, options: [.caseInsensitive]) != .orderedSame
             && normalizedName.compare("Unmapped", options: [.caseInsensitive]) != .orderedSame
     }
+
+    func handleCreateCategoryError(_ error: Error) async {
+        guard subscriptionLimitErrorResolver.isSubscriptionLimitError(error) else {
+            await router.presentError(with: L10n.mainOverviewError)
+            return
+        }
+
+        let currentTier = await subscriptionAccessService.currentTier()
+        await router.openSubscription(
+            currentTier: currentTier,
+            output: self
+        )
+    }
 }
 
 extension CategoryEditorInteractor: CategoryEditorHandler {
@@ -284,7 +303,13 @@ extension CategoryEditorInteractor: CategoryEditorHandler {
         } catch {
             isPrimaryLoading = false
             await presentFetchedData()
-            await router.presentError(with: L10n.mainOverviewError)
+
+            switch mode {
+            case .create:
+                await handleCreateCategoryError(error)
+            case .edit:
+                await router.presentError(with: L10n.mainOverviewError)
+            }
         }
     }
 
@@ -345,5 +370,11 @@ extension CategoryEditorInteractor: CategoryEditorSystemPickerOutput {
             colorHex: hex
         )
         await presentFetchedData()
+    }
+}
+
+extension CategoryEditorInteractor: SubscriptionOutput {
+    func handleSubscriptionDidSync() async {
+        _ = await subscriptionAccessService.refreshCurrentTier()
     }
 }

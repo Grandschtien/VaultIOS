@@ -212,7 +212,7 @@ extension AnalyticsInteractorTests {
         XCTAssertEqual(router.openPeriodPickerCalls, [currentPeriod])
     }
 
-    func testHandleTapMonthFilterWithPlusTierOpensSubscription() async {
+    func testHandleTapMonthFilterWithPlusTierOpensPeriodPicker() async {
         let router = AnalyticsRouterSpy()
         let sut = AnalyticsInteractor(
             presenter: AnalyticsPresenterSpy(),
@@ -227,8 +227,8 @@ extension AnalyticsInteractorTests {
         await sut.fetchData()
         await sut.handleTapMonthFilter()
 
-        XCTAssertTrue(router.openPeriodPickerCalls.isEmpty)
-        XCTAssertEqual(router.lastOpenedSubscriptionTier, "PLUS")
+        XCTAssertEqual(router.openPeriodPickerCalls, [aprilCurrentPeriod])
+        XCTAssertNil(router.lastOpenedSubscriptionTier)
     }
 }
 
@@ -279,14 +279,14 @@ extension AnalyticsInteractorTests {
         XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 140)
     }
 
-    func testFetchDataWithPlusTierResetsPeriodToCurrentMonthAndLoadsAnalytics() async {
+    func testFetchDataWithPlusTierKeepsSelectedPeriodAndLoadsAnalytics() async {
         let presenter = AnalyticsPresenterSpy()
         let summaryPeriodProvider = MainSummaryPeriodServiceStub(
             period: marchCustomPeriod,
             defaultPeriod: aprilCurrentPeriod
         )
         let dataProvider = AnalyticsDataProviderStub(
-            results: [.success(makeData(monthStart: aprilStart, totalAmount: 120))]
+            results: [.success(makeData(monthStart: marchStart, totalAmount: 120))]
         )
         let sut = AnalyticsInteractor(
             presenter: presenter,
@@ -303,10 +303,10 @@ extension AnalyticsInteractorTests {
 
         let fetchCalls = await dataProvider.recordedFetchCalls()
 
-        XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), aprilCurrentPeriod)
-        XCTAssertEqual(summaryPeriodProvider.resetCallsCount, 1)
-        XCTAssertEqual(fetchCalls, [aprilCurrentPeriod])
-        XCTAssertEqual(presenter.presentedData.last?.data?.monthStart, aprilStart)
+        XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), marchCustomPeriod)
+        XCTAssertEqual(summaryPeriodProvider.resetCallsCount, 0)
+        XCTAssertEqual(fetchCalls, [marchCustomPeriod])
+        XCTAssertEqual(presenter.presentedData.last?.data?.monthStart, marchStart)
     }
 
     func testFetchDataWithRegularTierShowsLockedStateWithoutLoadingData() async {

@@ -17,7 +17,7 @@ enum SubscriptionCatalog {
         title: L10n.subscriptionPremium
     )
 
-    static let orderedPlans: [SubscriptionCatalogPlan] = [plus, premium]
+    static let orderedPlans: [SubscriptionCatalogPlan] = [premium]
 
     static func title(for id: String) -> String {
         orderedPlans.first(where: { $0.id == id })?.title ?? id

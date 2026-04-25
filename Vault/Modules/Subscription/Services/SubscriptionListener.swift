@@ -87,13 +87,9 @@ private extension SubscriptionUpdatesListener {
 
     func resolveTier(from customerInfo: CustomerInfo) -> SubscriptionTier {
         let hasPremium = customerInfo.entitlements[premiumEntitlementID]?.isActive == true
-        if hasPremium {
-            return .premium
-        }
-
         let hasPlus = customerInfo.entitlements[plusEntitlementID]?.isActive == true
-        if hasPlus {
-            return .plus
+        if hasPremium || hasPlus {
+            return .premium
         }
 
         return .none

@@ -6,6 +6,10 @@ protocol CategoryEditorRoutingLogic: Sendable {
     func close()
     func openEmojiPicker(selectedEmoji: String, output: CategoryEmojiPickerOutput)
     func openColorPicker(selectedHex: String)
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    )
     func presentError(with text: String)
 }
 
@@ -73,6 +77,25 @@ final class CategoryEditorRouter: NSObject, CategoryEditorRoutingLogic {
         controller.selectedColor = colorProvider.color(for: selectedHex)
         controller.delegate = self
         viewController.present(controller, animated: true)
+    }
+
+    func openSubscription(
+        currentTier: String,
+        output: SubscriptionOutput
+    ) {
+        guard let viewController else {
+            return
+        }
+
+        screenRouter.navigate(from: viewController) { route in
+            route.present(
+                SubscriptionFactory(
+                    currentTier: currentTier,
+                    output: output
+                )
+                .withModalPresentationStyle(.pageSheet)
+            )
+        }
     }
 
     func presentError(with text: String) {

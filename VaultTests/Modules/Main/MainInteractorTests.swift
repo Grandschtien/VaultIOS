@@ -288,11 +288,17 @@ extension MainInteractorTests {
         XCTAssertEqual(router.lastOpenedSubscriptionTier, "REGULAR")
     }
 
-    func testHandleTapPeriodButtonWithPlusTierOpensSubscription() async {
+    func testHandleTapPeriodButtonWithPlusTierOpensPeriodPicker() async {
         let router = MainRouterSpy()
         let repository = MainRepositoryStub(
             categoriesResults: [.success([])],
             recentExpensesResults: [.success([])]
+        )
+        let summaryPeriodProvider = MainSummaryPeriodServiceStub(
+            period: .init(
+                from: Date(timeIntervalSince1970: 10),
+                to: Date(timeIntervalSince1970: 20)
+            )
         )
         let subscriptionAccessService = SubscriptionAccessServiceStub(currentTier: "PLUS")
         let sut = makeSut(
@@ -301,6 +307,7 @@ extension MainInteractorTests {
             summaryProvider: MainSummaryProviderStub(
                 result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
             ),
+            summaryPeriodProvider: summaryPeriodProvider,
             subscriptionAccessService: subscriptionAccessService,
             repository: repository,
             observer: repository.observer
@@ -308,26 +315,25 @@ extension MainInteractorTests {
 
         await sut.handleTapPeriodButton()
 
-        XCTAssertTrue(router.openPeriodPickerCalls.isEmpty)
-        XCTAssertEqual(router.lastOpenedSubscriptionTier, "PLUS")
+        XCTAssertEqual(router.openPeriodPickerCalls, [summaryPeriodProvider.currentMonthPeriod()])
+        XCTAssertNil(router.lastOpenedSubscriptionTier)
     }
 
-    func testFetchDataWithPlusTierResetsPeriodToCurrentMonth() async {
+    func testFetchDataWithPlusTierKeepsSelectedPeriod() async {
         let presenter = MainPresenterSpy()
         let repository = MainRepositoryStub(
             categoriesResults: [.success([])],
             recentExpensesResults: [.success([])]
-        )
-        let currentMonthPeriod = MainSummaryPeriod(
-            from: Date(timeIntervalSince1970: 100),
-            to: Date(timeIntervalSince1970: 200)
         )
         let summaryPeriodProvider = MainSummaryPeriodServiceStub(
             period: .init(
                 from: Date(timeIntervalSince1970: 10),
                 to: Date(timeIntervalSince1970: 20)
             ),
-            defaultPeriod: currentMonthPeriod
+            defaultPeriod: .init(
+                from: Date(timeIntervalSince1970: 100),
+                to: Date(timeIntervalSince1970: 200)
+            )
         )
         let sut = makeSut(
             presenter: presenter,
@@ -344,8 +350,9 @@ extension MainInteractorTests {
         await sut.fetchData()
         await waitForUpdates()
 
-        XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), currentMonthPeriod)
-        XCTAssertEqual(summaryPeriodProvider.resetCallsCount, 1)
+        XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod().from, Date(timeIntervalSince1970: 10))
+        XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod().to, Date(timeIntervalSince1970: 20))
+        XCTAssertEqual(summaryPeriodProvider.resetCallsCount, 0)
         XCTAssertFalse(presenter.presentedData.isEmpty)
     }
 
