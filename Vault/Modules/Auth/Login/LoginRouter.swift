@@ -41,7 +41,14 @@ final class LoginRouter: LoginRoutingLogic {
     }
 
     func openForgetPasswordScreen() {
+        let forgotPasswordScreen = ForgotPasswordFactory()
+            .withBottomSheet(.init(detents: [.content]))
 
+        screenRouter.navigate(to: { route in
+            route
+                .top(.stack)
+                .present(forgotPasswordScreen)
+        })
     }
 
     func presentError(with text: String) {

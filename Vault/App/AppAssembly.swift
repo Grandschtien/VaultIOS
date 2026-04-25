@@ -81,6 +81,15 @@ private extension AppAssembly {
         }
         .inObjectScope(.container)
 
+        container.register(PasswordRestorationContractServicing.self) { resolver in
+            guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
+                fatalError("Failed to resolve AsyncNetworkClient for PasswordRestorationContractService")
+            }
+
+            return PasswordRestorationContractService(networkClient: networkClient)
+        }
+        .inObjectScope(.transient)
+
         container.register(AuthInterceptor.self) { resolver in
             guard let authSessionService = resolver.resolve(AuthSessionServiceProtocol.self) else {
                 fatalError("Failed to resolve AuthSessionService for AuthInterceptor")
