@@ -116,6 +116,15 @@ private extension ExpenseAIEntryInteractor {
         }
     }
 
+    func isVoicePermissionDenied(_ error: Error) -> Bool {
+        switch error as? ExpenseAIEntryVoiceRecordingServiceError {
+        case .speechPermissionDenied, .microphonePermissionDenied:
+            return true
+        case .recognizerUnavailable, .invalidState, nil:
+            return false
+        }
+    }
+
     func handleParseError(_ error: Error) async {
         guard subscriptionLimitErrorResolver.isSubscriptionLimitError(error) else {
             await router.presentError(with: L10n.mainOverviewError)
@@ -160,7 +169,12 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
         } catch {
             voiceRecordingState = .idle
             await presentFetchedData()
-            await router.presentError(with: voiceErrorMessage(from: error))
+
+            if isVoicePermissionDenied(error) {
+                await router.presentVoicePermissionPrompt()
+            } else {
+                await router.presentError(with: voiceErrorMessage(from: error))
+            }
         }
     }
 
@@ -178,7 +192,10 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
         } catch {
             voiceRecordingState = .idle
             await presentFetchedData()
-            await router.presentError(with: voiceErrorMessage(from: error))
+
+            if isVoicePermissionDenied(error) {
+                await router.presentVoicePermissionPrompt()
+            }
         }
     }
 

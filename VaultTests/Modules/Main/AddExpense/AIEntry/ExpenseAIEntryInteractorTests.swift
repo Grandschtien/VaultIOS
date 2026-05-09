@@ -76,7 +76,7 @@ extension ExpenseAIEntryInteractorTests {
         XCTAssertEqual(presenter.presentedData.last?.voiceRecordingState, .idle)
     }
 
-    func testHandleStartVoiceRecordingShowsPermissionError() async {
+    func testHandleStartVoiceRecordingShowsVoicePermissionPrompt() async {
         let presenter = ExpenseAIEntryPresenterSpy()
         let router = ExpenseAIEntryRouterSpy()
         let voiceService = VoiceRecordingServiceSpy()
@@ -89,11 +89,12 @@ extension ExpenseAIEntryInteractorTests {
 
         await sut.handleStartVoiceRecording()
 
-        XCTAssertEqual(router.presentedErrors, [L10n.expenseAiEntryVoicePermissionDenied])
+        XCTAssertEqual(router.voicePermissionPromptPresentationsCount, 1)
+        XCTAssertTrue(router.presentedErrors.isEmpty)
         XCTAssertEqual(presenter.presentedData.last?.voiceRecordingState, .idle)
     }
 
-    func testHandleStopVoiceRecordingShowsUnavailableError() async {
+    func testHandleStopVoiceRecordingDoesNotShowUnavailableError() async {
         let presenter = ExpenseAIEntryPresenterSpy()
         let router = ExpenseAIEntryRouterSpy()
         let voiceService = VoiceRecordingServiceSpy()
@@ -107,7 +108,27 @@ extension ExpenseAIEntryInteractorTests {
         await sut.handleStartVoiceRecording()
         await sut.handleStopVoiceRecording()
 
-        XCTAssertEqual(router.presentedErrors, [L10n.expenseAiEntryVoiceUnavailable])
+        XCTAssertTrue(router.presentedErrors.isEmpty)
+        XCTAssertEqual(router.voicePermissionPromptPresentationsCount, 0)
+        XCTAssertEqual(presenter.presentedData.last?.voiceRecordingState, .idle)
+    }
+
+    func testHandleStopVoiceRecordingShowsPermissionPromptWhenPermissionIsDenied() async {
+        let presenter = ExpenseAIEntryPresenterSpy()
+        let router = ExpenseAIEntryRouterSpy()
+        let voiceService = VoiceRecordingServiceSpy()
+        voiceService.stopResult = .failure(ExpenseAIEntryVoiceRecordingServiceError.microphonePermissionDenied)
+        let sut = makeSUT(
+            presenter: presenter,
+            router: router,
+            voiceRecordingService: voiceService
+        )
+
+        await sut.handleStartVoiceRecording()
+        await sut.handleStopVoiceRecording()
+
+        XCTAssertEqual(router.voicePermissionPromptPresentationsCount, 1)
+        XCTAssertTrue(router.presentedErrors.isEmpty)
         XCTAssertEqual(presenter.presentedData.last?.voiceRecordingState, .idle)
     }
 
@@ -342,6 +363,7 @@ private final class ExpenseAIEntryPresenterSpy: ExpenseAIEntryPresentationLogic 
 private final class ExpenseAIEntryRouterSpy: ExpenseAIEntryRoutingLogic {
     private(set) var closeCallsCount = 0
     private(set) var presentedErrors: [String] = []
+    private(set) var voicePermissionPromptPresentationsCount = 0
     private(set) var openedDrafts: [ExpenseEditableDraft]?
     private(set) var openedSubscriptionTiers: [String] = []
     private(set) var noExpenseAlertPresentationsCount = 0
@@ -353,6 +375,10 @@ private final class ExpenseAIEntryRouterSpy: ExpenseAIEntryRoutingLogic {
 
     func presentError(with text: String) {
         presentedErrors.append(text)
+    }
+
+    func presentVoicePermissionPrompt() {
+        voicePermissionPromptPresentationsCount += 1
     }
 
     func presentNoExpenseAlert(output: ExpenseAIEntryNoExpenseAlertOutput) {

@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Access Your Photo Library To Select Images If Needed While Using The App</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Record Your Voice To Turn Speech Into Expense Text</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

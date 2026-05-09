@@ -318,7 +318,7 @@
 				EXTRACT_APP_INTENTS_METADATA = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Vault/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Vault;
+				INFOPLIST_KEY_CFBundleDisplayName = "Vault Finance";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -360,7 +360,7 @@
 				EXTRACT_APP_INTENTS_METADATA = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Vault/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Vault;
+				INFOPLIST_KEY_CFBundleDisplayName = "Vault Finance";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
