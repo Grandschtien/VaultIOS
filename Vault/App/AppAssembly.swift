@@ -23,6 +23,11 @@ private extension AppAssembly {
         static let refreshNetworkClient = "auth.refresh.networkClient"
     }
 
+    enum ConfigurationKey {
+        static let revenueCatAPIKey = "RevenueCatAPIKey"
+        static let revenueCatEnvironmentKey = "REVENUECAT_API_KEY"
+    }
+
     func regiaterNetworkClient(with container: Container) {
         container.register(NetworkClient.self) { resolver in
             guard let authInterceptor = resolver.resolve(AuthInterceptor.self),
@@ -202,7 +207,7 @@ private extension AppAssembly {
         container.register(SubscriptionInitializerLogic.self) { resolver in
             let profile = resolver.resolve(ProfileContractServicing.self)!
             return SubscriptionInitializer(
-                apiKey: "test_mtZyihFPhbDwXYJkVKWVSrMkaGR",
+                apiKey: resolvedRevenueCatAPIKey(),
                 profileService: profile
             )
         }
@@ -233,5 +238,16 @@ private extension AppAssembly {
             ToastPresenter()
         }
         .inObjectScope(.container)
+    }
+
+    func resolvedRevenueCatAPIKey() -> String {
+        if let environmentValue = ProcessInfo.processInfo.environment[ConfigurationKey.revenueCatEnvironmentKey],
+           !environmentValue.isEmpty {
+            return environmentValue
+        } else {
+            fatalError(
+                "RevenueCat API key is missing. Set REVENUECAT_API_KEY in the environment or provide RevenueCatAPIKey in Info.plist."
+            )
+        }
     }
 }

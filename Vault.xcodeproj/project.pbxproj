@@ -32,12 +32,15 @@
 /* Begin PBXFileReference section */
 		609A28492F2F7B86007145D5 /* Vault.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vault.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		61B0A100307E8B0100A10001 /* VaultTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VaultTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		62C4AF8731A2345600A10001 /* Vault/Configuration/AppSecrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Vault/Configuration/AppSecrets.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		609A285B2F2F7B88007145D5 /* Exceptions for "Vault" folder in "Vault" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Configuration/AppSecrets.xcconfig,
+				Configuration/LocalSecrets.xcconfig,
 				Info.plist,
 			);
 			target = 609A28482F2F7B86007145D5 /* Vault */;
@@ -94,6 +97,7 @@
 				609A284B2F2F7B86007145D5 /* Vault */,
 				61B0A10B307E8B0200A10001 /* VaultTests */,
 				609A284A2F2F7B86007145D5 /* Products */,
+				60B849AE2FAF7C4400412ACA /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -104,6 +108,14 @@
 				61B0A100307E8B0100A10001 /* VaultTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		60B849AE2FAF7C4400412ACA /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				62C4AF8731A2345600A10001 /* Vault/Configuration/AppSecrets.xcconfig */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -174,7 +186,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2620;
-				LastUpgradeCheck = 2620;
+				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					609A28482F2F7B86007145D5 = {
 						CreatedOnToolsVersion = 26.2;
@@ -306,13 +318,14 @@
 /* Begin XCBuildConfiguration section */
 		609A285D2F2F7B88007145D5 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 62C4AF8731A2345600A10001 /* Vault/Configuration/AppSecrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Vault/VaultDebug.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = PLUM5QCSG5;
 				EXTRACT_APP_INTENTS_METADATA = NO;
@@ -349,13 +362,14 @@
 		};
 		609A285E2F2F7B88007145D5 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 62C4AF8731A2345600A10001 /* Vault/Configuration/AppSecrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Vault/VaultRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = PLUM5QCSG5;
 				EXTRACT_APP_INTENTS_METADATA = NO;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -394,6 +408,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -447,6 +462,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -457,6 +473,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -503,6 +520,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};

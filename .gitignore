@@ -34,3 +34,4 @@ fastlane/test_output/
 *.generated.swift
 
 Vault/GoogleService-Info.plist
+Vault/Configuration/LocalSecrets.xcconfig
