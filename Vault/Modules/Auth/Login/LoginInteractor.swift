@@ -26,6 +26,7 @@ actor LoginInteractor: LoginBusinessLogic {
     private let tokenStorageService: TokenStorageServiceProtocol
     private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let subscriptionInitializerLogic: SubscriptionInitializerLogic
+    private let analytics: LoginAnalyticsTracking?
     
     private var email: String = ""
     private var password: String = ""
@@ -36,7 +37,8 @@ actor LoginInteractor: LoginBusinessLogic {
         router: LoginRoutingLogic,
         tokenStorageService: TokenStorageServiceProtocol,
         subscriptionInitializerLogic: SubscriptionInitializerLogic,
-        userProfileStorageService: UserProfileStorageServiceProtocol
+        userProfileStorageService: UserProfileStorageServiceProtocol,
+        analytics: LoginAnalyticsTracking? = nil
     ) {
         self.networkClient = networkClient
         self.presenter = presenter
@@ -44,9 +46,11 @@ actor LoginInteractor: LoginBusinessLogic {
         self.tokenStorageService = tokenStorageService
         self.userProfileStorageService = userProfileStorageService
         self.subscriptionInitializerLogic = subscriptionInitializerLogic
+        self.analytics = analytics
     }
 
     func fetchData() async {
+        analytics?.trackScreenOpen()
         await presentFetchedData(.idle)
     }
 }
@@ -113,8 +117,10 @@ extension LoginInteractor: LoginHandler {
 
             await subscriptionInitializerLogic.setUserId(result.user.id)
             await presentFetchedData(.loaded)
+            analytics?.trackLoginSuccess()
             await router.openMainFlow()
         } catch {
+            analytics?.trackLoginFailure(error)
             await presentFetchedData(.failed(.undelinedError(description: error.localizedDescription)))
             await router.presentError(with: error.localizedDescription)
         }

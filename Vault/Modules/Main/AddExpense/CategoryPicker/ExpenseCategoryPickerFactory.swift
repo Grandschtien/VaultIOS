@@ -17,6 +17,11 @@ struct ExpenseCategoryPickerFactory: Screen {
     }
 
     func build(navigator: ScreenNavigator) -> UIViewController {
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
+        @SafeInject
+        var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
+
         let viewModel = ExpenseCategoryPickerViewModel()
         let presenter = ExpenseCategoryPickerPresenter(
             viewModel: viewModel,
@@ -32,7 +37,11 @@ struct ExpenseCategoryPickerFactory: Screen {
             repository: context.repository,
             observer: context.observer,
             output: output,
-            selectedCategoryID: selectedCategoryID
+            selectedCategoryID: selectedCategoryID,
+            analytics: ExpenseCategoryPickerAnalyticsTracker(
+                analyticsCoreManager: analyticsCoreManager,
+                failurePayloadResolver: analyticsFailurePayloadResolver
+            )
         )
 
         let viewModelStore = ViewModelStore(

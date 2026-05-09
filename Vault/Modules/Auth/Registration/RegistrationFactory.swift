@@ -17,10 +17,18 @@ final class RegistrationFactory: Screen {
         var toastPresenter: ToastPresenting
         @SafeInject
         var subscriptionInitializer: SubscriptionInitializerLogic
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
+        @SafeInject
+        var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
 
         let registrationStorage = RegistrationStorage()
         let viewModel = RegistrationViewModel()
         let presenter = RegistrationPresenter(viewModel: viewModel)
+        let analytics = RegistrationAnalyticsTracker(
+            analyticsCoreManager: analyticsCoreManager,
+            failurePayloadResolver: analyticsFailurePayloadResolver
+        )
         let router = RegistrationRouter(
             screenRouter: navigator,
             toastPresenter: toastPresenter
@@ -32,7 +40,8 @@ final class RegistrationFactory: Screen {
             tokenStorageService: tokenStorageService,
             userProfileStorageService: userProfileStorageService,
             registrationStorage: registrationStorage,
-            subscriptionInitializer: subscriptionInitializer
+            subscriptionInitializer: subscriptionInitializer,
+            analytics: analytics
         )
 
         let viewModelStore = ViewModelStore(

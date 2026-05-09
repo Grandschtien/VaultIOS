@@ -11,6 +11,7 @@ import NetworkClient
 
 struct AppAssembly: Assembly {
     func assemble(container: Container) {
+        AnalyticsAssembly().assemble(container: container)
         registerServices(with: container)
         regiaterNetworkClient(with: container)
     }
@@ -201,7 +202,7 @@ private extension AppAssembly {
         container.register(SubscriptionInitializerLogic.self) { resolver in
             let profile = resolver.resolve(ProfileContractServicing.self)!
             return SubscriptionInitializer(
-                apiKey: "", // make throug plist
+                apiKey: "test_mtZyihFPhbDwXYJkVKWVSrMkaGR",
                 profileService: profile
             )
         }

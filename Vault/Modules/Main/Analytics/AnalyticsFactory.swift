@@ -14,6 +14,10 @@ final class AnalyticsFactory: Screen {
         var categoriesService: MainCategoriesContractServicing
         @SafeInject
         var subscriptionAccessService: SubscriptionAccessServicing
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
+        @SafeInject
+        var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
 
         let viewModel = AnalyticsViewModel()
         let presenter = AnalyticsPresenter(
@@ -34,7 +38,11 @@ final class AnalyticsFactory: Screen {
             ),
             observer: context.observer,
             summaryPeriodProvider: context.summaryPeriodProvider,
-            subscriptionAccessService: subscriptionAccessService
+            subscriptionAccessService: subscriptionAccessService,
+            analytics: AnalyticsModuleAnalyticsTracker(
+                analyticsCoreManager: analyticsCoreManager,
+                failurePayloadResolver: analyticsFailurePayloadResolver
+            )
         )
         let viewModelStore = ViewModelStore(
             viewModel: presenter.viewModel,

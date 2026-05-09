@@ -22,6 +22,10 @@ final class CategoryFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
         var toastPresenter: ToastPresenting
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
+        @SafeInject
+        var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
 
         let initialPeriod = context.summaryPeriodProvider.currentMonthPeriod()
         let viewModel = CategoryViewModel()
@@ -41,7 +45,11 @@ final class CategoryFactory: Screen {
             presenter: presenter,
             router: router,
             repository: context.repository,
-            observer: context.observer
+            observer: context.observer,
+            analytics: CategoryAnalyticsTracker(
+                analyticsCoreManager: analyticsCoreManager,
+                failurePayloadResolver: analyticsFailurePayloadResolver
+            )
         )
 
         let viewModelStore = ViewModelStore(

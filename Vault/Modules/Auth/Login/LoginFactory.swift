@@ -17,17 +17,26 @@ final class LoginFactory: Screen {
         var toastPresenter: ToastPresenting
         @SafeInject
         var subscriptionInitializer: SubscriptionInitializerLogic
-        
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
+        @SafeInject
+        var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
+
         let viewModel = LoginViewModel()
         let presenter = LoginPresenter(viewModel: viewModel)
         let router = LoginRouter(screenRouter: navigator, toastPresenter: toastPresenter)
+        let analytics = LoginAnalyticsTracker(
+            analyticsCoreManager: analyticsCoreManager,
+            failurePayloadResolver: analyticsFailurePayloadResolver
+        )
         let interactor = LoginInteractor(
             networkClient: networkClient,
             presenter: presenter,
             router: router,
             tokenStorageService: tokenStorageService,
             subscriptionInitializerLogic: subscriptionInitializer,
-            userProfileStorageService: userProfileStorageService
+            userProfileStorageService: userProfileStorageService,
+            analytics: analytics
         )
 
         let viewModelStore = ViewModelStore(

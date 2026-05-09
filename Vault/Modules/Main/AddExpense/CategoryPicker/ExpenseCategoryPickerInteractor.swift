@@ -22,10 +22,12 @@ actor ExpenseCategoryPickerInteractor: ExpenseCategoryPickerBusinessLogic {
     private let repository: MainFlowDomainRepositoryProtocol
     private let observer: MainFlowDomainObserverProtocol
     private let output: ExpenseCategoryPickerOutput
+    private let analytics: ExpenseCategoryPickerAnalyticsTracking?
 
     private var loadingState: LoadingStatus = .idle
     private var categories: [ExpenseCategorySelectionModel] = []
     private var selectedCategoryID: String?
+    private var hasTrackedScreenOpen: Bool = false
     private var observationTask: Task<Void, Never>?
 
     init(
@@ -34,7 +36,8 @@ actor ExpenseCategoryPickerInteractor: ExpenseCategoryPickerBusinessLogic {
         repository: MainFlowDomainRepositoryProtocol,
         observer: MainFlowDomainObserverProtocol,
         output: ExpenseCategoryPickerOutput,
-        selectedCategoryID: String?
+        selectedCategoryID: String?,
+        analytics: ExpenseCategoryPickerAnalyticsTracking? = nil
     ) {
         self.presenter = presenter
         self.router = router
@@ -42,9 +45,15 @@ actor ExpenseCategoryPickerInteractor: ExpenseCategoryPickerBusinessLogic {
         self.observer = observer
         self.output = output
         self.selectedCategoryID = selectedCategoryID
+        self.analytics = analytics
     }
 
     func fetchData() async {
+        if !hasTrackedScreenOpen {
+            analytics?.trackScreenOpen()
+            hasTrackedScreenOpen = true
+        }
+
         startObservingIfNeeded()
 
         loadingState = .loading
@@ -56,11 +65,18 @@ actor ExpenseCategoryPickerInteractor: ExpenseCategoryPickerBusinessLogic {
             try await repository.refreshCategories()
             categories = makeSelectionModels(from: observer.currentCategoriesSnapshot().categories)
             loadingState = .loaded
+            analytics?.trackScreenSuccess()
         } catch {
             categories = makeSelectionModels(from: observer.currentCategoriesSnapshot().categories)
             loadingState = categories.isEmpty
                 ? .failed(.undelinedError(description: error.localizedDescription))
                 : .loaded
+
+            if categories.isEmpty {
+                analytics?.trackScreenFailure(error)
+            } else {
+                analytics?.trackScreenSuccess()
+            }
         }
 
         normalizeSelection()

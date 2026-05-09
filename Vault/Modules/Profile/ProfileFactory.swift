@@ -18,9 +18,17 @@ final class ProfileFactory: Screen {
         var toastPresenter: ToastPresenting
         @SafeInject
         var subscriptionAccessService: SubscriptionAccessServicing
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
+        @SafeInject
+        var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
 
         let viewModel = ProfileViewModel()
         let presenter = ProfilePresenter(viewModel: viewModel)
+        let analytics = ProfileAnalyticsTracker(
+            analyticsCoreManager: analyticsCoreManager,
+            failurePayloadResolver: analyticsFailurePayloadResolver
+        )
         let router = ProfileRouter(
             screenRouter: navigator,
             toastPresenter: toastPresenter
@@ -32,7 +40,8 @@ final class ProfileFactory: Screen {
             currencyRateService: currencyRateService,
             userProfileStorageService: userProfileStorageService,
             authSessionService: authSessionService,
-            subscriptionAccessService: subscriptionAccessService
+            subscriptionAccessService: subscriptionAccessService,
+            analytics: analytics
         )
 
         let viewModelStore = ViewModelStore(

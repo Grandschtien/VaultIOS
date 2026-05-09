@@ -29,10 +29,12 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
     private let observer: MainFlowDomainObserverProtocol
     private let currencyCodeResolver: AddExpenseCurrencyCodeResolver
     private let draftMapper: ExpenseAIParsedDraftMapper
+    private let analytics: ExpenseAIEntryAnalyticsTracking?
 
     private var promptText: String = ""
     private var loadingState: LoadingStatus = .idle
     private var voiceRecordingState: ExpenseAIEntryVoiceRecordingState = .idle
+    private var hasTrackedScreenOpen: Bool = false
 
     init(
         presenter: ExpenseAIEntryPresentationLogic,
@@ -43,7 +45,8 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
         voiceRecordingService: ExpenseAIEntryVoiceRecordingServicing,
         observer: MainFlowDomainObserverProtocol,
         currencyCodeResolver: AddExpenseCurrencyCodeResolver,
-        draftMapper: ExpenseAIParsedDraftMapper
+        draftMapper: ExpenseAIParsedDraftMapper,
+        analytics: ExpenseAIEntryAnalyticsTracking? = nil
     ) {
         self.presenter = presenter
         self.router = router
@@ -54,10 +57,17 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
         self.observer = observer
         self.currencyCodeResolver = currencyCodeResolver
         self.draftMapper = draftMapper
+        self.analytics = analytics
     }
 
     func fetchData() async {
+        if !hasTrackedScreenOpen {
+            analytics?.trackScreenOpen()
+            hasTrackedScreenOpen = true
+        }
+
         await presentFetchedData()
+        analytics?.trackScreenSuccess()
     }
 }
 
@@ -142,6 +152,7 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
             return
         }
 
+        analytics?.trackMicrophoneTap()
         do {
             try await voiceRecordingService.startRecording()
             voiceRecordingState = .recording
@@ -179,6 +190,7 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
             return
         }
 
+        analytics?.trackConfirmTap(prompt: trimmedPrompt)
         loadingState = .loading
         await router.dismissNoExpenseAlert()
         await presentFetchedData()
@@ -194,11 +206,16 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
             loadingState = .idle
 
             if response.error == Constants.noExpenseDetected || response.expenses.isEmpty {
+                analytics?.trackNoExpenseDetected(prompt: trimmedPrompt)
                 await presentFetchedData()
                 await router.presentNoExpenseAlert(output: self)
                 return
             }
 
+            analytics?.trackProcessSuccess(
+                prompt: trimmedPrompt,
+                parsedExpenseCount: response.expenses.count
+            )
             let drafts = draftMapper.makeDrafts(
                 from: response.expenses,
                 categories: observer.currentCategoriesSnapshot().categories,
@@ -208,6 +225,7 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
             await router.openManualEntry(initialDrafts: drafts)
         } catch {
             loadingState = .idle
+            analytics?.trackProcessFailure(prompt: trimmedPrompt, error: error)
             await presentFetchedData()
             await handleParseError(error)
         }

@@ -1,0 +1,3 @@
+/* Permission usage descriptions */
+"NSMicrophoneUsageDescription" = "Разрешите доступ к микрофону для голосового ввода расходов";
+"NSSpeechRecognitionUsageDescription" = "Разрешите распознавание речи, чтобы преобразовывать голос в текст расхода";

@@ -8,9 +8,17 @@ final class ForgotPasswordFactory: Screen {
         var toastPresenter: ToastPresenting
         @SafeInject
         var passwordRestorationService: PasswordRestorationContractServicing
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
+        @SafeInject
+        var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
 
         let viewModel = ForgotPasswordViewModel()
         let presenter = ForgotPasswordPresenter(viewModel: viewModel)
+        let analytics = ForgotPasswordAnalyticsTracker(
+            analyticsCoreManager: analyticsCoreManager,
+            failurePayloadResolver: analyticsFailurePayloadResolver
+        )
         let router = ForgotPasswordRouter(
             screenRouter: navigator,
             toastPresenter: toastPresenter
@@ -18,7 +26,8 @@ final class ForgotPasswordFactory: Screen {
         let interactor = ForgotPasswordInteractor(
             passwordRestorationService: passwordRestorationService,
             presenter: presenter,
-            router: router
+            router: router,
+            analytics: analytics
         )
         let viewModelStore = ViewModelStore(
             viewModel: presenter.viewModel,

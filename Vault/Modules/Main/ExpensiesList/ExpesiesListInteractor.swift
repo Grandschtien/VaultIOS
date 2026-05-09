@@ -16,24 +16,28 @@ actor ExpesiesListInteractor: ExpesiesListBusinessLogic {
     private let router: ExpesiesListRoutingLogic
     private let repository: MainFlowDomainRepositoryProtocol
     private let observer: MainFlowDomainObserverProtocol
+    private let analytics: ExpesiesListAnalyticsTracking?
 
     private var loadingState: LoadingStatus = .idle
     private var categories: [MainCategoryModel] = []
     private var expenseGroups: [MainExpenseGroupModel] = []
     private var isLoadingNextPage: Bool = false
     private var hasMore: Bool = false
+    private var hasTrackedScreenOpen: Bool = false
     private var observationTask: Task<Void, Never>?
 
     init(
         presenter: ExpesiesListPresentationLogic,
         router: ExpesiesListRoutingLogic,
         repository: MainFlowDomainRepositoryProtocol,
-        observer: MainFlowDomainObserverProtocol
+        observer: MainFlowDomainObserverProtocol,
+        analytics: ExpesiesListAnalyticsTracking? = nil
     ) {
         self.presenter = presenter
         self.router = router
         self.repository = repository
         self.observer = observer
+        self.analytics = analytics
     }
 
     deinit {
@@ -43,6 +47,11 @@ actor ExpesiesListInteractor: ExpesiesListBusinessLogic {
     func fetchData() async {
         guard loadingState != .loading, !isLoadingNextPage else {
             return
+        }
+
+        if !hasTrackedScreenOpen {
+            analytics?.trackScreenOpen()
+            hasTrackedScreenOpen = true
         }
 
         startObservingIfNeeded()
@@ -62,14 +71,17 @@ actor ExpesiesListInteractor: ExpesiesListBusinessLogic {
             _ = await categoriesRefresh
             syncFromObserver()
             loadingState = .loaded
+            analytics?.trackScreenSuccess()
         } catch {
             _ = await categoriesRefresh
             syncFromObserver()
 
             if expenseGroups.isEmpty {
                 loadingState = .failed(.undelinedError(description: error.localizedDescription))
+                analytics?.trackScreenFailure(error)
             } else {
                 loadingState = .loaded
+                analytics?.trackScreenSuccess()
             }
         }
 

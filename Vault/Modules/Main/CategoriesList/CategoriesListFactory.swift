@@ -12,6 +12,11 @@ final class CategoriesListFactory: Screen {
     }
 
     func build(navigator: ScreenNavigator) -> UIViewController {
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
+        @SafeInject
+        var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
+
         let formatter = MainValueFormatter()
         let colorProvider = CategoryColorProvider()
 
@@ -29,7 +34,11 @@ final class CategoriesListFactory: Screen {
             presenter: presenter,
             router: router,
             repository: context.repository,
-            observer: context.observer
+            observer: context.observer,
+            analytics: CategoriesListAnalyticsTracker(
+                analyticsCoreManager: analyticsCoreManager,
+                failurePayloadResolver: analyticsFailurePayloadResolver
+            )
         )
 
         let viewModelStore = ViewModelStore(

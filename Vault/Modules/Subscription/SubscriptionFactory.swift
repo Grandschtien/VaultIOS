@@ -21,9 +21,17 @@ final class SubscriptionFactory: Screen {
         var storeKitService: SubscriptionServiceLogic
         @SafeInject
         var toastPresenter: ToastPresenting
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
+        @SafeInject
+        var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
 
         let viewModel = SubscriptionViewModel()
         let presenter = SubscriptionPresenter(viewModel: viewModel)
+        let analytics = SubscriptionAnalyticsTracker(
+            analyticsCoreManager: analyticsCoreManager,
+            failurePayloadResolver: analyticsFailurePayloadResolver
+        )
         let router = SubscriptionRouter(
             screenRouter: navigator,
             toastPresenter: toastPresenter
@@ -33,7 +41,8 @@ final class SubscriptionFactory: Screen {
             router: router,
             currentTier: currentTier,
             output: output,
-            storeKitService: storeKitService
+            storeKitService: storeKitService,
+            analytics: analytics
         )
 
         let viewModelStore = ViewModelStore(

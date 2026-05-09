@@ -15,4 +15,30 @@ final class AppAssemblyTests: XCTestCase {
         XCTAssertNotNil(firstPresenter)
         XCTAssertTrue(firstPresenter === secondPresenter)
     }
+
+    func testAssembleResolvesSharedAnalyticsCoreManager() {
+        let container = Container()
+        let sut = AppAssembly()
+
+        sut.assemble(container: container)
+
+        let firstManager = container.resolve(AnalyticsCoreManaging.self) as AnyObject?
+        let secondManager = container.resolve(AnalyticsCoreManaging.self) as AnyObject?
+
+        XCTAssertNotNil(firstManager)
+        XCTAssertTrue(firstManager === secondManager)
+    }
+
+    func testAnalyticsAssemblyResolvesSharedAnalyticsCoreManager() {
+        let container = Container()
+        let sut = AnalyticsAssembly()
+
+        sut.assemble(container: container)
+
+        let firstManager = container.resolve(AnalyticsCoreManaging.self) as AnyObject?
+        let secondManager = container.resolve(AnalyticsCoreManaging.self) as AnyObject?
+
+        XCTAssertNotNil(firstManager)
+        XCTAssertTrue(firstManager === secondManager)
+    }
 }

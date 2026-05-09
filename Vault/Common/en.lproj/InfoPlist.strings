@@ -1,0 +1,3 @@
+/* Permission usage descriptions */
+"NSMicrophoneUsageDescription" = "Allow microphone access to record voice input for expense entry";
+"NSSpeechRecognitionUsageDescription" = "Allow speech recognition to convert voice input into expense text";

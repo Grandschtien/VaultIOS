@@ -19,6 +19,10 @@ struct ExpenseAIEntryFactory: Screen {
         var voiceRecordingService: ExpenseAIEntryVoiceRecordingServicing
         @SafeInject
         var userProfileStorageService: UserProfileStorageServiceProtocol
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
+        @SafeInject
+        var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
 
         let viewModel = ExpenseAIEntryViewModel()
         let presenter = ExpenseAIEntryPresenter(viewModel: viewModel)
@@ -40,7 +44,11 @@ struct ExpenseAIEntryFactory: Screen {
                 observer: context.observer,
                 userProfileStorageService: userProfileStorageService
             ),
-            draftMapper: ExpenseAIParsedDraftMapper()
+            draftMapper: ExpenseAIParsedDraftMapper(),
+            analytics: ExpenseAIEntryAnalyticsTracker(
+                analyticsCoreManager: analyticsCoreManager,
+                failurePayloadResolver: analyticsFailurePayloadResolver
+            )
         )
 
         let viewModelStore = ViewModelStore(

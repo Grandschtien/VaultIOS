@@ -12,6 +12,14 @@ protocol AnalyticsHandler: AnyObject, Sendable {
 }
 
 actor AnalyticsInteractor: AnalyticsBusinessLogic {
+    private enum LocalError: LocalizedError {
+        case unavailableTier
+
+        var errorDescription: String? {
+            L10n.mainOverviewError
+        }
+    }
+
     private let presenter: AnalyticsPresentationLogic
     private let router: AnalyticsRoutingLogic
     private let repository: MainFlowDomainRepositoryProtocol
@@ -19,12 +27,14 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
     private let observer: MainFlowDomainObserverProtocol
     private let summaryPeriodProvider: MainSummaryPeriodServicing
     private let subscriptionAccessService: SubscriptionAccessServicing
+    private let analytics: AnalyticsModuleAnalyticsTracking?
 
     private var loadingState: LoadingStatus = .idle
     private var data: AnalyticsDataModel?
     private var currentTier: String = ""
     private var observationTask: Task<Void, Never>?
     private var didReceiveInitialObserverEvent = false
+    private var hasTrackedScreenOpen: Bool = false
 
     init(
         presenter: AnalyticsPresentationLogic,
@@ -33,7 +43,8 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
         dataProvider: AnalyticsDataProviding,
         observer: MainFlowDomainObserverProtocol,
         summaryPeriodProvider: MainSummaryPeriodServicing,
-        subscriptionAccessService: SubscriptionAccessServicing
+        subscriptionAccessService: SubscriptionAccessServicing,
+        analytics: AnalyticsModuleAnalyticsTracking? = nil
     ) {
         self.presenter = presenter
         self.router = router
@@ -42,6 +53,7 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
         self.observer = observer
         self.summaryPeriodProvider = summaryPeriodProvider
         self.subscriptionAccessService = subscriptionAccessService
+        self.analytics = analytics
     }
 
     deinit {
@@ -49,6 +61,11 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
     }
 
     func fetchData() async {
+        if !hasTrackedScreenOpen {
+            analytics?.trackScreenOpen()
+            hasTrackedScreenOpen = true
+        }
+
         guard let currentTier = await resolveCurrentTier(forceRefresh: false) else {
             await presentUnavailableTierError()
             return
@@ -64,6 +81,7 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
                 period: summaryPeriodProvider.currentMonthPeriod(),
                 isLocked: true
             )
+            analytics?.trackScreenSuccess()
             return
         }
 
@@ -98,6 +116,7 @@ private extension AnalyticsInteractor {
         data = nil
         loadingState = .failed(.undelinedError(description: L10n.mainOverviewError))
         await presentFetchedData(period: summaryPeriodProvider.currentMonthPeriod())
+        analytics?.trackScreenFailure(LocalError.unavailableTier)
     }
 
     func startObservingIfNeeded() {
@@ -142,11 +161,20 @@ private extension AnalyticsInteractor {
             let fetchedData = try await dataProvider.fetchData(for: period)
             data = fetchedData
             loadingState = .loaded
+            if showLoadingWhenEmpty {
+                analytics?.trackScreenSuccess()
+            }
         } catch {
             if data == nil {
                 loadingState = .failed(.undelinedError(description: error.localizedDescription))
+                if showLoadingWhenEmpty {
+                    analytics?.trackScreenFailure(error)
+                }
             } else {
                 loadingState = .loaded
+                if showLoadingWhenEmpty {
+                    analytics?.trackScreenSuccess()
+                }
             }
         }
 

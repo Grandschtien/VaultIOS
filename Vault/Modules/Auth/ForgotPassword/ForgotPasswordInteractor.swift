@@ -14,6 +14,7 @@ actor ForgotPasswordInteractor: ForgotPasswordBusinessLogic {
     private let passwordRestorationService: PasswordRestorationContractServicing
     private let presenter: ForgotPasswordPresentationLogic
     private let router: ForgotPasswordRoutingLogic
+    private let analytics: ForgotPasswordAnalyticsTracking?
 
     private var loadingState: LoadingStatus = .idle
     private var email = ""
@@ -22,14 +23,17 @@ actor ForgotPasswordInteractor: ForgotPasswordBusinessLogic {
     init(
         passwordRestorationService: PasswordRestorationContractServicing,
         presenter: ForgotPasswordPresentationLogic,
-        router: ForgotPasswordRoutingLogic
+        router: ForgotPasswordRoutingLogic,
+        analytics: ForgotPasswordAnalyticsTracking? = nil
     ) {
         self.passwordRestorationService = passwordRestorationService
         self.presenter = presenter
         self.router = router
+        self.analytics = analytics
     }
 
     func fetchData() async {
+        analytics?.trackScreenOpen()
         await presentFetchedData()
     }
 }
@@ -89,9 +93,11 @@ extension ForgotPasswordInteractor: ForgotPasswordHandler {
 
             loadingState = .loaded
             await presentFetchedData()
+            analytics?.trackForgotPasswordSuccess()
             await router.presentSuccess(with: L10n.forgotPasswordSuccessMessage)
             await router.close()
         } catch {
+            analytics?.trackForgotPasswordFailure(error)
             loadingState = .failed(.undelinedError(description: error.localizedDescription))
             await presentFetchedData()
             await router.presentError(with: error.localizedDescription)

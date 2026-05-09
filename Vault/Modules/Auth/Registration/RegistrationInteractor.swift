@@ -31,6 +31,7 @@ actor RegistrationInteractor: RegistrationBusinessLogic {
     private let currencyProvider: RegistrationCurrencyProviding
     private let localeProvider: RegistrationLocaleProviding
     private let subscriptionInitializer: SubscriptionInitializerLogic
+    private let analytics: RegistrationAnalyticsTracking?
 
     private let popularCurrencyCodes: [String] = ["USD", "RUB", "KZT"]
 
@@ -61,6 +62,7 @@ actor RegistrationInteractor: RegistrationBusinessLogic {
         userProfileStorageService: UserProfileStorageServiceProtocol,
         registrationStorage: RegistrationStorageProtocol,
         subscriptionInitializer: SubscriptionInitializerLogic,
+        analytics: RegistrationAnalyticsTracking? = nil,
         currencyProvider: RegistrationCurrencyProviding = RegistrationCurrencyProvider(),
         localeProvider: RegistrationLocaleProviding = RegistrationLocaleProvider()
     ) {
@@ -71,11 +73,13 @@ actor RegistrationInteractor: RegistrationBusinessLogic {
         self.userProfileStorageService = userProfileStorageService
         self.registrationStorage = registrationStorage
         self.subscriptionInitializer = subscriptionInitializer
+        self.analytics = analytics
         self.currencyProvider = currencyProvider
         self.localeProvider = localeProvider
     }
 
     func fetchData() async {
+        analytics?.trackScreenOpen()
         allCurrencies = currencyProvider.fiatCurrencies()
 
         let draft = await registrationStorage.loadDraft()
@@ -275,8 +279,10 @@ private extension RegistrationInteractor {
             await subscriptionInitializer.setUserId(response.user.id)
             await registrationStorage.clear()
             await presentFetchedData()
+            analytics?.trackRegistrationSuccess()
             await router.openMainFlow()
         } catch {
+            analytics?.trackRegistrationFailure(error)
             loadingState = .failed(.undelinedError(description: error.localizedDescription))
             await presentFetchedData()
             await router.presentError(with: error.localizedDescription)

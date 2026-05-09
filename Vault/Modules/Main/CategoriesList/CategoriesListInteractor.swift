@@ -17,21 +17,25 @@ actor CategoriesListInteractor: CategoriesListBusinessLogic {
     private let router: CategoriesListRoutingLogic
     private let repository: MainFlowDomainRepositoryProtocol
     private let observer: MainFlowDomainObserverProtocol
+    private let analytics: CategoriesListAnalyticsTracking?
 
     private var loadingState: LoadingStatus = .idle
     private var categories: [MainCategoryCardModel] = []
+    private var hasTrackedScreenOpen: Bool = false
     private var observationTask: Task<Void, Never>?
 
     init(
         presenter: CategoriesListPresentationLogic,
         router: CategoriesListRoutingLogic,
         repository: MainFlowDomainRepositoryProtocol,
-        observer: MainFlowDomainObserverProtocol
+        observer: MainFlowDomainObserverProtocol,
+        analytics: CategoriesListAnalyticsTracking? = nil
     ) {
         self.presenter = presenter
         self.router = router
         self.repository = repository
         self.observer = observer
+        self.analytics = analytics
     }
 
     deinit {
@@ -39,6 +43,11 @@ actor CategoriesListInteractor: CategoriesListBusinessLogic {
     }
 
     func fetchData() async {
+        if !hasTrackedScreenOpen {
+            analytics?.trackScreenOpen()
+            hasTrackedScreenOpen = true
+        }
+
         startObservingIfNeeded()
 
         loadingState = .loading
@@ -49,11 +58,15 @@ actor CategoriesListInteractor: CategoriesListBusinessLogic {
             try await repository.refreshCategories()
             categories = observer.currentCategoriesSnapshot().categories
             loadingState = .loaded
+            analytics?.trackScreenSuccess()
             await presentFetchedData()
         } catch {
             if categories.isEmpty {
+                analytics?.trackScreenFailure(error)
                 loadingState = .failed(.undelinedError(description: error.localizedDescription))
                 await presentFetchedData()
+            } else {
+                analytics?.trackScreenSuccess()
             }
         }
     }

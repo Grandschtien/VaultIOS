@@ -32,3 +32,5 @@ fastlane/test_output/
 
 # Generated files
 *.generated.swift
+
+Vault/GoogleService-Info.plist

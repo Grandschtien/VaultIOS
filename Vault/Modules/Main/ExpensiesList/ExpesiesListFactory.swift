@@ -14,6 +14,10 @@ final class ExpesiesListFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
         var toastPresenter: ToastPresenting
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
+        @SafeInject
+        var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
 
         let viewModel = ExpesiesListViewModel()
         let presenter = ExpesiesListPresenter(
@@ -29,7 +33,11 @@ final class ExpesiesListFactory: Screen {
             presenter: presenter,
             router: router,
             repository: context.repository,
-            observer: context.observer
+            observer: context.observer,
+            analytics: ExpesiesListAnalyticsTracker(
+                analyticsCoreManager: analyticsCoreManager,
+                failurePayloadResolver: analyticsFailurePayloadResolver
+            )
         )
 
         let viewModelStore = ViewModelStore(

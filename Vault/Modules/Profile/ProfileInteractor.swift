@@ -22,10 +22,12 @@ actor ProfileInteractor: ProfileBusinessLogic {
     private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let authSessionService: AuthSessionServiceProtocol
     private let subscriptionAccessService: SubscriptionAccessServicing
+    private let analytics: ProfileAnalyticsTracking?
 
     private var loadingState: LoadingStatus = .idle
     private var isSavingCurrency: Bool = false
     private var isLoggingOut: Bool = false
+    private var hasTrackedScreenOpen: Bool = false
     private var profile: ProfileResponseDTO?
     private var selectedCurrencyCode: String?
 
@@ -36,7 +38,8 @@ actor ProfileInteractor: ProfileBusinessLogic {
         currencyRateService: MainCurrencyRateContractServicing,
         userProfileStorageService: UserProfileStorageServiceProtocol,
         authSessionService: AuthSessionServiceProtocol,
-        subscriptionAccessService: SubscriptionAccessServicing
+        subscriptionAccessService: SubscriptionAccessServicing,
+        analytics: ProfileAnalyticsTracking? = nil
     ) {
         self.presenter = presenter
         self.router = router
@@ -45,9 +48,14 @@ actor ProfileInteractor: ProfileBusinessLogic {
         self.userProfileStorageService = userProfileStorageService
         self.authSessionService = authSessionService
         self.subscriptionAccessService = subscriptionAccessService
+        self.analytics = analytics
     }
 
     func fetchData() async {
+        if !hasTrackedScreenOpen {
+            analytics?.trackScreenOpen()
+            hasTrackedScreenOpen = true
+        }
         loadingState = .loading
         isSavingCurrency = false
         isLoggingOut = false
@@ -63,7 +71,9 @@ actor ProfileInteractor: ProfileBusinessLogic {
             loadingState = .loaded
             selectedCurrencyCode = normalizedCurrencyCode(profile?.currency)
             await presentFetchedData()
+            analytics?.trackProfileSuccess()
         } catch {
+            analytics?.trackProfileFailure(error)
             loadingState = .failed(.undelinedError(description: error.localizedDescription))
             await presentFetchedData()
         }
@@ -164,6 +174,7 @@ extension ProfileInteractor: ProfileHandler {
             return
         }
 
+        analytics?.trackLogoutScreenOpen()
         await router.openConfirmation(context: logoutConfirmationContext())
     }
 
@@ -173,6 +184,7 @@ extension ProfileInteractor: ProfileHandler {
             return
         }
 
+        analytics?.trackCurrencyScreenOpen()
         await router.openCurrencySelection(
             currentCurrencyCode: currentCurrencyCode,
             output: self
@@ -216,6 +228,10 @@ extension ProfileInteractor: ProfileHandler {
                 isSavingCurrency = false
                 loadingState = .loaded
                 await presentFetchedData()
+                analytics?.trackCurrencySaveSuccess(
+                    previousCurrencyCode: previousCurrencyCode,
+                    updatedCurrencyCode: updatedCurrencyCode
+                )
                 NotificationCenter.default.post(
                     name: .profileCurrencyDidChange,
                     object: ProfileCurrencyDidChangePayload(
@@ -236,6 +252,11 @@ extension ProfileInteractor: ProfileHandler {
             selectedCurrencyCode = previousCurrencyCode
             loadingState = .loaded
             await presentFetchedData()
+            analytics?.trackCurrencySaveFailure(
+                previousCurrencyCode: previousCurrencyCode,
+                updatedCurrencyCode: updatedCurrencyCode,
+                error: error
+            )
             await router.presentError(with: saveFailedMessage(from: error))
         }
     }
@@ -245,6 +266,7 @@ extension ProfileInteractor: ProfileHandler {
             return
         }
 
+        analytics?.trackPaywallOpen(currentTier: profile?.tier ?? "")
         await router.openSubscription(
             currentTier: profile?.tier ?? "",
             output: self
@@ -281,9 +303,11 @@ private extension ProfileInteractor {
 
         do {
             try await authSessionService.logoutFromBackend()
+            analytics?.trackLogoutSuccess()
         } catch {
             isLoggingOut = false
             await presentFetchedData()
+            analytics?.trackLogoutFailure(error)
             await router.presentError(with: logoutFailedMessage(from: error))
         }
     }
