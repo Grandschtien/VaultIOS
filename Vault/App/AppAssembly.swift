@@ -244,10 +244,18 @@ private extension AppAssembly {
         if let environmentValue = ProcessInfo.processInfo.environment[ConfigurationKey.revenueCatEnvironmentKey],
            !environmentValue.isEmpty {
             return environmentValue
-        } else {
-            fatalError(
-                "RevenueCat API key is missing. Set REVENUECAT_API_KEY in the environment or provide RevenueCatAPIKey in Info.plist."
-            )
         }
+
+        if let infoDictionaryValue = Bundle.main.object(
+            forInfoDictionaryKey: ConfigurationKey.revenueCatAPIKey
+        ) as? String,
+           !infoDictionaryValue.isEmpty,
+           !infoDictionaryValue.hasPrefix("$(") {
+            return infoDictionaryValue
+        }
+
+        fatalError(
+            "RevenueCat API key is missing. Set REVENUECAT_API_KEY in the environment or provide RevenueCatAPIKey in Info.plist."
+        )
     }
 }
