@@ -6,7 +6,7 @@ struct PagerRequest: Equatable, Sendable {
     let cursor: String?
 }
 
-protocol PagerLogic: Sendable {
+protocol PagerLogic {
     func reset()
     func beginNextPageIfPossible() -> PagerRequest?
     func commitPage(nextCursor: String?, hasMore: Bool)

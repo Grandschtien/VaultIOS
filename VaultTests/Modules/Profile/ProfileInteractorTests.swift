@@ -24,7 +24,18 @@ final class ProfileInteractorTests: XCTestCase {
         let sut = makeSut(
             presenter: presenter,
             router: router,
-            profileService: profileService
+            profileService: profileService,
+            subscriptionAccessService: SubscriptionAccessServiceSpy(
+                refreshedSnapshotResult: .init(
+                    tier: .premium,
+                    status: .active,
+                    paidAccessUntil: nil,
+                    capabilities: [],
+                    aiRequestsLimit: 0,
+                    aiRequestsRemaining: 0,
+                    statusVersion: 42
+                )
+            )
         )
 
         await sut.fetchData()
@@ -299,7 +310,7 @@ extension ProfileInteractorTests {
         await sut.handleTapSubscription()
 
         XCTAssertEqual(router.openSubscriptionCallsCount, 1)
-        XCTAssertEqual(router.lastOpenedSubscriptionTier, "ACTIVE")
+        XCTAssertEqual(router.lastOpenedSubscriptionTier, .premium)
     }
 }
 
@@ -381,7 +392,16 @@ extension ProfileInteractorTests {
                 name: "Sarah Connor",
                 currency: "USD",
                 language: "en-US",
-                currencyRate: 1
+                currencyRate: 1,
+                cachedSubscription: .init(
+                    tier: .premium,
+                    status: .active,
+                    paidAccessUntil: nil,
+                    capabilities: [.analytics],
+                    aiRequestsLimit: 300,
+                    aiRequestsRemaining: 120,
+                    statusVersion: 42
+                )
             )
         )
         let sut = makeSut(
@@ -415,6 +435,7 @@ extension ProfileInteractorTests {
         XCTAssertEqual(receivedPayload?.updatedCurrencyCode, "EUR")
         XCTAssertEqual(receivedPayload?.updatedRateToUsd, 1)
         XCTAssertEqual(localProfileStorage.loadProfile()?.currency, "EUR")
+        XCTAssertEqual(localProfileStorage.loadProfile()?.cachedSubscription?.tier, .premium)
     }
 }
 
@@ -481,7 +502,7 @@ private final class ProfileRouterSpy: ProfileRoutingLogic {
     private(set) var openSubscriptionCallsCount = 0
     private(set) var lastConfirmationContext: CommonConfirmationContext?
     private(set) var lastOpenedCurrencyCode: String?
-    private(set) var lastOpenedSubscriptionTier: String?
+    private(set) var lastOpenedSubscriptionTier: SubscriptionTier?
     private(set) var presentedErrors: [String] = []
 
     func openConfirmation(context: CommonConfirmationContext) {
@@ -498,7 +519,7 @@ private final class ProfileRouterSpy: ProfileRoutingLogic {
     }
 
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     ) {
         openSubscriptionCallsCount += 1
@@ -549,34 +570,69 @@ private actor AuthSessionServiceSpy: AuthSessionServiceProtocol {
 }
 
 private actor SubscriptionAccessServiceSpy: SubscriptionAccessServicing {
-    private var currentTierResult: String
-    private var refreshTierResult: String
+    private let currentTierResult: String
+    private let refreshTierResult: String
+    private let currentSnapshotResult: SubscriptionAccessSnapshot?
+    private let refreshedSnapshotResult: SubscriptionAccessSnapshot?
     private var refreshCallsCount = 0
 
     init(
         currentTierResult: String = "REGULAR",
-        refreshTierResult: String = "PLUS"
+        refreshTierResult: String = "PLUS",
+        currentSnapshotResult: SubscriptionAccessSnapshot? = nil,
+        refreshedSnapshotResult: SubscriptionAccessSnapshot? = nil
     ) {
         self.currentTierResult = currentTierResult
         self.refreshTierResult = refreshTierResult
+        self.currentSnapshotResult = currentSnapshotResult ?? Self.makeSnapshot(tier: currentTierResult)
+        self.refreshedSnapshotResult = refreshedSnapshotResult ?? Self.makeSnapshot(tier: refreshTierResult)
     }
 
     func currentTierState() async -> SubscriptionTierState {
-        .resolved(currentTierResult)
+        .resolved(Self.makeTier(from: currentTierResult))
     }
 
     func refreshCurrentTierState() async -> SubscriptionTierState {
         refreshCallsCount += 1
-        return .resolved(refreshTierResult)
+        return .resolved(Self.makeTier(from: refreshTierResult))
     }
 
     func refreshCurrentTierSourceState() async -> SubscriptionTierRefreshState {
         refreshCallsCount += 1
-        return .network(refreshTierResult)
+        return .network(Self.makeTier(from: refreshTierResult))
+    }
+
+    func currentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
+        currentSnapshotResult
+    }
+
+    func refreshCurrentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
+        refreshCallsCount += 1
+        return refreshedSnapshotResult
     }
 
     func refreshCurrentTierCallsCount() -> Int {
         refreshCallsCount
+    }
+
+    nonisolated private static func makeSnapshot(tier: String) -> SubscriptionAccessSnapshot? {
+        guard !tier.isEmpty else {
+            return nil
+        }
+
+        return SubscriptionAccessSnapshot(
+            tier: makeTier(from: tier),
+            status: .active,
+            paidAccessUntil: nil,
+            capabilities: [],
+            aiRequestsLimit: 0,
+            aiRequestsRemaining: 0,
+            statusVersion: 42
+        )
+    }
+
+    nonisolated private static func makeTier(from rawTier: String) -> SubscriptionTier {
+        rawTier == "REGULAR" ? .regular : .premium
     }
 }
 

@@ -31,7 +31,7 @@ actor MainInteractor: MainBusinessLogic {
     private var summaryState: LoadingStatus = .idle
     private var categoriesState: LoadingStatus = .idle
     private var expensesState: LoadingStatus = .idle
-    private var currentTier: String = ""
+    private var currentTier: SubscriptionTier = .regular
 
     private var summary: MainSummaryModel?
     private var categories: [MainCategoryCardModel] = []
@@ -67,8 +67,9 @@ actor MainInteractor: MainBusinessLogic {
             return
         }
 
-        currentTier = await subscriptionAccessService.currentTier()
-        if SubscriptionPlanResolver.hasPremiumTier(for: currentTier) == false {
+        let subscription = await subscriptionAccessService.currentSubscriptionSnapshot()
+        currentTier = subscription?.tier ?? .regular
+        if subscription?.hasCustomDateRangeAccess != true {
             summaryPeriodProvider.resetToCurrentMonth()
         }
 
@@ -253,8 +254,9 @@ extension MainInteractor: MainHandler {
             return
         }
 
-        currentTier = await subscriptionAccessService.currentTier()
-        guard SubscriptionPlanResolver.hasPremiumTier(for: currentTier) else {
+        let subscription = await subscriptionAccessService.currentSubscriptionSnapshot()
+        currentTier = subscription?.tier ?? .regular
+        guard subscription?.hasCustomDateRangeAccess == true else {
             await router.openSubscription(
                 currentTier: currentTier,
                 output: self
@@ -332,8 +334,9 @@ extension MainInteractor: CategoryPeriodPickerOutput {
 
 extension MainInteractor: SubscriptionOutput {
     func handleSubscriptionDidSync() async {
-        currentTier = await subscriptionAccessService.refreshCurrentTier()
-        if SubscriptionPlanResolver.hasPremiumTier(for: currentTier) == false {
+        let subscription = await subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
+        currentTier = subscription?.tier ?? .regular
+        if subscription?.hasCustomDateRangeAccess != true {
             summaryPeriodProvider.resetToCurrentMonth()
         }
     }

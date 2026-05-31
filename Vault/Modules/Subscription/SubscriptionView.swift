@@ -14,6 +14,7 @@ final class SubscriptionView: UIView, LayoutScaleProviding {
     private let subtitleLabel = Label()
     private let currentPlanView = SubscriptionCurrentPlanCardView()
     private let tableView = UITableView(frame: .zero, style: .plain)
+    private let restoreButton = Button()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -62,6 +63,7 @@ private extension SubscriptionView {
         subtitleLabel.apply(content.subtitle)
         currentPlanView.configure(with: content.currentPlan)
         tableAdapter.configure(plans: content.plans)
+        restoreButton.apply(content.restoreButton)
     }
 
     func setupViews() {
@@ -78,6 +80,7 @@ private extension SubscriptionView {
         subtitleLabel.isHidden = true
         currentPlanView.isHidden = true
         tableView.isHidden = true
+        restoreButton.isHidden = true
 
         tableAdapter.attach(to: tableView)
         tableView.sectionHeaderTopPadding = .zero
@@ -97,6 +100,7 @@ private extension SubscriptionView {
         addSubview(subtitleLabel)
         addSubview(currentPlanView)
         addSubview(tableView)
+        addSubview(restoreButton)
         addSubview(overlayView)
         overlayView.addSubview(overlayLoadingView)
 
@@ -132,7 +136,12 @@ private extension SubscriptionView {
         tableView.snp.makeConstraints { make in
             make.top.equalTo(currentPlanView.snp.bottom).offset(spaceS)
             make.horizontalEdges.equalToSuperview().inset(spaceS)
-            make.bottom.equalTo(safeAreaLayoutGuide)
+            make.bottom.equalTo(restoreButton.snp.top).offset(-spaceXS)
+        }
+
+        restoreButton.snp.makeConstraints { make in
+            make.horizontalEdges.equalToSuperview().inset(spaceS)
+            make.bottom.equalTo(safeAreaLayoutGuide).inset(spaceS)
         }
 
         overlayView.snp.makeConstraints { make in
@@ -149,6 +158,7 @@ private extension SubscriptionView {
         subtitleLabel.isHidden = isHidden
         currentPlanView.isHidden = isHidden
         tableView.isHidden = isHidden
+        restoreButton.isHidden = isHidden
     }
 
     func setOverlayLoading(_ isLoading: Bool) {

@@ -57,6 +57,15 @@ extension ProfilePresenterTests {
                     tier: "ACTIVE",
                     tierValidUntil: Date(timeIntervalSince1970: 1_775_001_600)
                 ),
+                subscription: .init(
+                    tier: .premium,
+                    status: .active,
+                    paidAccessUntil: Date(timeIntervalSince1970: 1_775_001_600),
+                    capabilities: [],
+                    aiRequestsLimit: 0,
+                    aiRequestsRemaining: 0,
+                    statusVersion: 42
+                ),
                 appVersion: "2.4.0",
                 appBuild: "302"
             )
@@ -76,6 +85,33 @@ extension ProfilePresenterTests {
         XCTAssertEqual(content.rows[1].title.text, L10n.profileLanguage)
         XCTAssertFalse(content.rows[1].subtitle.text.isEmpty)
         XCTAssertEqual(content.version.text, L10n.profileVersion("2.4.0", "302"))
+    }
+}
+
+extension ProfilePresenterTests {
+    func testPresentFetchedDataWithoutSubscriptionUsesGenericPlanTitle() {
+        sut.presentFetchedData(
+            ProfileFetchData(
+                loadingState: .loaded,
+                profile: .init(
+                    id: "user-1",
+                    email: "sarah@example.com",
+                    name: "Sarah Connor",
+                    currency: "GBP",
+                    preferredLanguage: "en-GB",
+                    tier: "ACTIVE",
+                    tierValidUntil: Date(timeIntervalSince1970: 1_775_001_600)
+                )
+            )
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        XCTAssertEqual(content.membership.text, L10n.profileMember)
+        XCTAssertEqual(content.plan.title.text, L10n.profilePlan)
+        XCTAssertEqual(content.plan.subtitle.text, L10n.profileValidUntilUnknown)
     }
 }
 

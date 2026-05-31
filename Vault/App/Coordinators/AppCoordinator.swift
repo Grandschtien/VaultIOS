@@ -30,6 +30,7 @@ final class AppCoordinator {
         appAssebler.apply(assembly: AppAssembly())
         appAssebler.resolver.resolve(FirstRunKeychainCleanupServiceProtocol.self)?
             .clearKeychainIfNeeded()
+        appAssebler.resolver.resolve(SubscriptionAccessServicing.self)?.startMonitoring()
         observeLogoutEvents()
         
         Task {

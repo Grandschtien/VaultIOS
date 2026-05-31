@@ -6,6 +6,7 @@ struct ProfileFetchData: Sendable {
     let navigationTitle: String
     let loadingState: LoadingStatus
     let profile: ProfileResponseDTO?
+    let subscription: SubscriptionAccessSnapshot?
     let selectedCurrencyCode: String?
     let isSavingCurrency: Bool
     let isLoggingOut: Bool
@@ -16,6 +17,7 @@ struct ProfileFetchData: Sendable {
         navigationTitle: String = L10n.profileSettingsTitle,
         loadingState: LoadingStatus = .idle,
         profile: ProfileResponseDTO? = nil,
+        subscription: SubscriptionAccessSnapshot? = nil,
         selectedCurrencyCode: String? = nil,
         isSavingCurrency: Bool = false,
         isLoggingOut: Bool = false,
@@ -25,6 +27,7 @@ struct ProfileFetchData: Sendable {
         self.navigationTitle = navigationTitle
         self.loadingState = loadingState
         self.profile = profile
+        self.subscription = subscription
         self.selectedCurrencyCode = selectedCurrencyCode
         self.isSavingCurrency = isSavingCurrency
         self.isLoggingOut = isLoggingOut

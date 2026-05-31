@@ -5,11 +5,11 @@ import Nivelir
 import Foundation
 
 final class SubscriptionFactory: Screen {
-    private let currentTier: String
+    private let currentTier: SubscriptionTier
     private let output: SubscriptionOutput
 
     init(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     ) {
         self.currentTier = currentTier

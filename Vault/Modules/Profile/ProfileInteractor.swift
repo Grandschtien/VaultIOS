@@ -29,6 +29,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
     private var isLoggingOut: Bool = false
     private var hasTrackedScreenOpen: Bool = false
     private var profile: ProfileResponseDTO?
+    private var subscription: SubscriptionAccessSnapshot?
     private var selectedCurrencyCode: String?
 
     init(
@@ -60,6 +61,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
         isSavingCurrency = false
         isLoggingOut = false
         profile = nil
+        subscription = nil
         let cachedCurrency = normalizedCurrencyCode(
             userProfileStorageService.loadProfile()?.currency
         )
@@ -67,7 +69,11 @@ actor ProfileInteractor: ProfileBusinessLogic {
         await presentFetchedData()
 
         do {
-            profile = try await profileService.getProfile()
+            async let fetchedProfile = profileService.getProfile()
+            async let fetchedSubscription = subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
+
+            profile = try await fetchedProfile
+            subscription = await fetchedSubscription
             loadingState = .loaded
             selectedCurrencyCode = normalizedCurrencyCode(profile?.currency)
             await presentFetchedData()
@@ -86,6 +92,7 @@ private extension ProfileInteractor {
             ProfileFetchData(
                 loadingState: loadingState,
                 profile: profile,
+                subscription: subscription,
                 selectedCurrencyCode: selectedCurrencyCode,
                 isSavingCurrency: isSavingCurrency,
                 isLoggingOut: isLoggingOut,
@@ -158,7 +165,8 @@ private extension ProfileInteractor {
                 currency: normalizedCurrencyCode(profile.currency),
                 language: profile.preferredLanguage,
                 currencyRate: rateToUsd,
-                currencyRateUpdatedAt: Date()
+                currencyRateUpdatedAt: Date(),
+                cachedSubscription: currentLocalProfile?.cachedSubscription
             )
         )
     }
@@ -266,9 +274,10 @@ extension ProfileInteractor: ProfileHandler {
             return
         }
 
-        analytics?.trackPaywallOpen(currentTier: profile?.tier ?? "")
+        let currentTier = subscription?.tier ?? .regular
+        analytics?.trackPaywallOpen(currentTier: currentTier.rawValue)
         await router.openSubscription(
-            currentTier: profile?.tier ?? "",
+            currentTier: currentTier,
             output: self
         )
     }
@@ -319,7 +328,6 @@ private extension ProfileInteractor {
 
 extension ProfileInteractor: SubscriptionOutput {
     func handleSubscriptionDidSync() async {
-        _ = await subscriptionAccessService.refreshCurrentTier()
         await fetchData()
     }
 }

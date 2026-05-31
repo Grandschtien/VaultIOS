@@ -70,6 +70,32 @@ extension UserProfileStorageServiceTests {
 }
 
 extension UserProfileStorageServiceTests {
+    func testSaveProfilePersistsCachedSubscriptionValues() {
+        let cachedSubscription = SubscriptionAccessSnapshot(
+            tier: .premium,
+            status: .active,
+            paidAccessUntil: Date(timeIntervalSince1970: 1_782_870_399),
+            capabilities: [.analytics, .aiInput],
+            aiRequestsLimit: 300,
+            aiRequestsRemaining: 120,
+            statusVersion: 42
+        )
+        let profile = UserProfileDefaults(
+            userId: "344c3ab5-4360-4f02-af5f-d3cabea23cb0",
+            email: "test3@example.com",
+            name: "Jane",
+            currency: "USD",
+            language: "en-US",
+            cachedSubscription: cachedSubscription
+        )
+
+        sut.saveProfile(profile)
+
+        XCTAssertEqual(sut.loadProfile()?.cachedSubscription, cachedSubscription)
+    }
+}
+
+extension UserProfileStorageServiceTests {
     func testClearProfileRemovesSavedValue() {
         sut.saveProfile(
             UserProfileDefaults(
@@ -104,6 +130,25 @@ extension UserProfileStorageServiceTests {
         XCTAssertNotNil(profile)
         XCTAssertNil(profile?.currencyRate)
         XCTAssertNil(profile?.currencyRateUpdatedAt)
+    }
+}
+
+extension UserProfileStorageServiceTests {
+    func testLoadProfileFromLegacyPayloadDecodesWithoutCachedSubscription() throws {
+        let legacy = LegacyUserProfileDefaults(
+            userId: "344c3ab5-4360-4f02-af5f-d3cabea23cb0",
+            email: "test3@example.com",
+            name: "Jane",
+            currency: "USD",
+            language: "en-US"
+        )
+        let data = try JSONEncoder().encode(legacy)
+        defaults.set(data, forKey: "auth.profile.defaults")
+
+        let profile = sut.loadProfile()
+
+        XCTAssertNotNil(profile)
+        XCTAssertNil(profile?.cachedSubscription)
     }
 }
 

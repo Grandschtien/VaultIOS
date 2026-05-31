@@ -155,10 +155,14 @@
 "subscription_unknown_description" = "Информация о плане недоступна";
 "subscription_per_month" = "%@ / месяц";
 "subscription_buy" = "Оформить подписку";
+"subscription_restore_purchase" = "Восстановить покупку";
 "subscription_loading_failed" = "Не удалось загрузить подписки";
 "subscription_purchase_failed" = "Не удалось завершить покупку";
 "subscription_purchase_pending" = "Покупка ожидает подтверждения";
 "subscription_purchase_unverified" = "Не удалось подтвердить покупку";
+"subscription_restore_failed" = "Не удалось восстановить покупку";
+"subscription_restore_not_found" = "Активная подписка не найдена";
+"subscription_restored" = "Подписка восстановлена";
 "subscription_sync_failed" = "Не удалось синхронизировать подписку";
 "subscription_ready" = "Подписка готова";
 "subscription_reload_required" = "Пожалуйста, перезагрузите приложение, чтобы получить доступ к контенту";

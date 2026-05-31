@@ -11,6 +11,10 @@ protocol ExpenseEntryChooserHandler: AnyObject, Sendable {
 }
 
 actor ExpenseEntryChooserInteractor: ExpenseEntryChooserBusinessLogic {
+    private enum Constants {
+        static let regularTier = "REGULAR"
+    }
+
     private let presenter: ExpenseEntryChooserPresentationLogic
     private let router: ExpenseEntryChooserRoutingLogic
     private let subscriptionAccessService: SubscriptionAccessServicing
@@ -36,8 +40,10 @@ extension ExpenseEntryChooserInteractor: ExpenseEntryChooserHandler {
     }
 
     func handleTapAiEntry() async {
-        let currentTier = await subscriptionAccessService.currentTier()
-        guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
+        let subscription = await subscriptionAccessService.currentSubscriptionSnapshot()
+        let currentTier = subscription?.tier ?? .regular
+
+        guard subscription?.hasAiInputAccess == true else {
             await router.openSubscription(
                 currentTier: currentTier,
                 output: self
@@ -55,6 +61,6 @@ extension ExpenseEntryChooserInteractor: ExpenseEntryChooserHandler {
 
 extension ExpenseEntryChooserInteractor: SubscriptionOutput {
     func handleSubscriptionDidSync() async {
-        _ = await subscriptionAccessService.refreshCurrentTier()
+        _ = await subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
     }
 }

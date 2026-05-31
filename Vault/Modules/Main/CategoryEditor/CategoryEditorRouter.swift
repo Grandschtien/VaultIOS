@@ -7,7 +7,7 @@ protocol CategoryEditorRoutingLogic: Sendable {
     func openEmojiPicker(selectedEmoji: String, output: CategoryEmojiPickerOutput)
     func openColorPicker(selectedHex: String)
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     )
     func presentError(with text: String)
@@ -80,7 +80,7 @@ final class CategoryEditorRouter: NSObject, CategoryEditorRoutingLogic {
     }
 
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     ) {
         guard let viewController else {

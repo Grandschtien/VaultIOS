@@ -10,6 +10,7 @@ protocol SubscriptionHandler: AnyObject, Sendable {
     func handleTapClose() async
     func handleTapRetry() async
     func handleTapPurchase(planID: String) async
+    func handleTapRestorePurchase() async
 }
 
 protocol SubscriptionOutput: AnyObject, Sendable {
@@ -24,7 +25,7 @@ actor SubscriptionInteractor: SubscriptionBusinessLogic {
 
     private let presenter: SubscriptionPresentationLogic
     private let router: SubscriptionRoutingLogic
-    private let currentTier: String
+    private let currentTier: SubscriptionTier
     private let output: SubscriptionOutput
     private let storeKitService: SubscriptionServiceLogic
     private let subscriptionAccessService: SubscriptionAccessServicing
@@ -37,11 +38,12 @@ actor SubscriptionInteractor: SubscriptionBusinessLogic {
     private var plans: [SubscriptionFetchData.SubscriptionStorePlan] = []
     private var purchasingPlanID: String?
     private var isPurchaseSyncing = false
+    private var isRestoringPurchase = false
 
     init(
         presenter: SubscriptionPresentationLogic,
         router: SubscriptionRoutingLogic,
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput,
         storeKitService: SubscriptionServiceLogic,
         subscriptionAccessService: SubscriptionAccessServicing,
@@ -69,13 +71,14 @@ actor SubscriptionInteractor: SubscriptionBusinessLogic {
         plans = []
         purchasingPlanID = nil
         isPurchaseSyncing = false
+        isRestoringPurchase = false
         await presentFetchedData()
 
         do {
             plans = try await storeKitService.loadPlans()
             loadingState = .loaded
             await presentFetchedData()
-            analytics?.trackSubscriptionSuccess(plans: plans, currentTier: currentTier)
+            analytics?.trackSubscriptionSuccess(plans: plans, currentTier: currentTier.rawValue)
         } catch {
             analytics?.trackSubscriptionFailure(error)
             loadingState = .failed(.undelinedError(description: loadFailedMessage(from: error)))
@@ -89,10 +92,11 @@ private extension SubscriptionInteractor {
         await presenter.presentFetchedData(
             .init(
                 loadingState: loadingState,
-                currentTier: currentTier,
+                currentTier: currentTier.rawValue,
                 plans: plans,
                 purchasingPlanID: purchasingPlanID,
-                isPurchaseSyncing: isPurchaseSyncing
+                isPurchaseSyncing: isPurchaseSyncing,
+                isRestoringPurchase: isRestoringPurchase
             )
         )
     }
@@ -109,12 +113,24 @@ private extension SubscriptionInteractor {
         fallbackMessage(from: error, defaultMessage: L10n.subscriptionSyncFailed)
     }
 
+    func restoreFailedMessage(from error: Error) -> String {
+        fallbackMessage(from: error, defaultMessage: L10n.subscriptionRestoreFailed)
+    }
+
     func subscriptionReadyMessage() -> String {
         L10n.subscriptionReady
     }
 
+    func subscriptionRestoredMessage() -> String {
+        L10n.subscriptionRestored
+    }
+
     func subscriptionReloadRequiredMessage() -> String {
         L10n.subscriptionReloadRequired
+    }
+
+    func restoreNotFoundMessage() -> String {
+        L10n.subscriptionRestoreNotFound
     }
 
     func pollPurchasedTier(for planID: String) async -> Bool {
@@ -126,7 +142,7 @@ private extension SubscriptionInteractor {
             let tierState = await subscriptionAccessService.refreshCurrentTierSourceState()
 
             if case .network(let tier) = tierState,
-               SubscriptionPlanResolver.matchesPurchasedPlan(planID: planID, tier: tier) {
+               SubscriptionPlanResolver.matchesPurchasedPlan(planID: planID, tier: tier.rawValue) {
                 return true
             }
 
@@ -145,12 +161,22 @@ private extension SubscriptionInteractor {
         let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         return message.isEmpty ? defaultMessage : message
     }
+
+    func restoredPlanID() -> String? {
+        switch storeKitService.currentTier {
+        case .regular:
+            return nil
+        case .premium:
+            return SubscriptionCatalog.premium.id
+        }
+    }
 }
 
 extension SubscriptionInteractor: SubscriptionHandler {
     func handleTapClose() async {
         guard purchasingPlanID == nil,
-              !isPurchaseSyncing else {
+              !isPurchaseSyncing,
+              !isRestoringPurchase else {
             return
         }
 
@@ -163,18 +189,19 @@ extension SubscriptionInteractor: SubscriptionHandler {
 
     func handleTapPurchase(planID: String) async {
         guard loadingState == .loaded,
-              purchasingPlanID == nil else {
+              purchasingPlanID == nil,
+              !isRestoringPurchase else {
             return
         }
 
         let planTitle = plans.first(where: { $0.id == planID })?.title ?? SubscriptionCatalog.title(for: planID)
-        analytics?.trackPurchaseStart(planID: planID, planTitle: planTitle, currentTier: currentTier)
+        analytics?.trackPurchaseStart(planID: planID, planTitle: planTitle, currentTier: currentTier.rawValue)
         purchasingPlanID = planID
         await presentFetchedData()
 
         do {
             try await storeKitService.purchase(planID: planID)
-            analytics?.trackPurchaseSuccess(planID: planID, planTitle: planTitle, currentTier: currentTier)
+            analytics?.trackPurchaseSuccess(planID: planID, planTitle: planTitle, currentTier: currentTier.rawValue)
             isPurchaseSyncing = true
             await presentFetchedData()
 
@@ -194,10 +221,47 @@ extension SubscriptionInteractor: SubscriptionHandler {
             analytics?.trackPurchaseFailure(
                 planID: planID,
                 planTitle: planTitle,
-                currentTier: currentTier,
+                currentTier: currentTier.rawValue,
                 error: error
             )
             await router.presentError(with: purchaseFailedMessage(from: error))
+        }
+    }
+
+    func handleTapRestorePurchase() async {
+        guard loadingState == .loaded,
+              purchasingPlanID == nil,
+              !isPurchaseSyncing,
+              !isRestoringPurchase else {
+            return
+        }
+
+        isRestoringPurchase = true
+        await presentFetchedData()
+
+        do {
+            try await storeKitService.restore()
+
+            guard let restoredPlanID = restoredPlanID() else {
+                isRestoringPurchase = false
+                await presentFetchedData()
+                await router.presentMessage(with: restoreNotFoundMessage())
+                return
+            }
+
+            if await pollPurchasedTier(for: restoredPlanID) {
+                await output.handleSubscriptionDidSync()
+                await router.close()
+                await router.presentSuccess(with: subscriptionRestoredMessage())
+                return
+            }
+
+            await router.close()
+            await router.presentError(with: subscriptionReloadRequiredMessage())
+        } catch {
+            isRestoringPurchase = false
+            await presentFetchedData()
+            await router.presentError(with: restoreFailedMessage(from: error))
         }
     }
 }

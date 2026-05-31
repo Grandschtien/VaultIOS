@@ -41,7 +41,32 @@ final class ExpenseEntryChooserInteractorTests: XCTestCase {
         await sut.handleTapAiEntry()
 
         XCTAssertEqual(router.openAiEntryCallsCount, 0)
-        XCTAssertEqual(router.lastOpenedSubscriptionTier, "REGULAR")
+        XCTAssertEqual(router.lastOpenedSubscriptionTier, .regular)
+    }
+
+    func testHandleTapAiEntryUsesCapabilityInsteadOfTier() async {
+        let router = ExpenseEntryChooserRouterSpy()
+        let sut = ExpenseEntryChooserInteractor(
+            presenter: ExpenseEntryChooserPresenterSpy(),
+            router: router,
+            subscriptionAccessService: SubscriptionAccessServiceStub(
+                currentTier: "REGULAR",
+                snapshot: .init(
+                    tier: .regular,
+                    status: .active,
+                    paidAccessUntil: nil,
+                    capabilities: [.aiInput],
+                    aiRequestsLimit: 300,
+                    aiRequestsRemaining: 5,
+                    statusVersion: 42
+                )
+            )
+        )
+
+        await sut.handleTapAiEntry()
+
+        XCTAssertEqual(router.openAiEntryCallsCount, 1)
+        XCTAssertNil(router.lastOpenedSubscriptionTier)
     }
 
     func testHandleTapManualEntryRoutesToManualScreen() async {
@@ -85,7 +110,7 @@ private final class ExpenseEntryChooserRouterSpy: ExpenseEntryChooserRoutingLogi
     private(set) var openAiEntryCallsCount = 0
     private(set) var openManualEntryCallsCount = 0
     private(set) var closeCallsCount = 0
-    private(set) var lastOpenedSubscriptionTier: String?
+    private(set) var lastOpenedSubscriptionTier: SubscriptionTier?
 
     func openAiEntry() {
         openAiEntryCallsCount += 1
@@ -96,7 +121,7 @@ private final class ExpenseEntryChooserRouterSpy: ExpenseEntryChooserRoutingLogi
     }
 
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     ) {
         lastOpenedSubscriptionTier = currentTier
@@ -108,21 +133,55 @@ private final class ExpenseEntryChooserRouterSpy: ExpenseEntryChooserRoutingLogi
 }
 
 private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
-    private let tier: String
+    private let snapshot: SubscriptionAccessSnapshot
 
-    init(currentTier: String) {
-        tier = currentTier
+    init(
+        currentTier: String,
+        snapshot: SubscriptionAccessSnapshot? = nil
+    ) {
+        self.snapshot = snapshot ?? Self.makeSnapshot(tier: currentTier)
     }
 
     func currentTierState() async -> SubscriptionTierState {
-        .resolved(tier)
+        .resolved(snapshot.tier)
     }
 
     func refreshCurrentTierState() async -> SubscriptionTierState {
-        .resolved(tier)
+        .resolved(snapshot.tier)
     }
 
     func refreshCurrentTierSourceState() async -> SubscriptionTierRefreshState {
-        .network(tier)
+        .network(snapshot.tier)
+    }
+
+    func currentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
+        snapshot
+    }
+
+    func refreshCurrentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
+        snapshot
+    }
+
+    nonisolated private static func makeSnapshot(tier: String) -> SubscriptionAccessSnapshot {
+        let capabilities: [SubscriptionCapability] = switch tier {
+        case "PREMIUM", "PLUS", "ACTIVE":
+            [
+                SubscriptionCapability.analytics,
+                .customDateRange,
+                .aiInput
+            ]
+        default:
+            []
+        }
+
+        return SubscriptionAccessSnapshot(
+            tier: tier == "REGULAR" ? .regular : .premium,
+            status: .active,
+            paidAccessUntil: nil,
+            capabilities: capabilities,
+            aiRequestsLimit: capabilities.isEmpty ? 0 : 300,
+            aiRequestsRemaining: capabilities.isEmpty ? 0 : 300,
+            statusVersion: 42
+        )
     }
 }

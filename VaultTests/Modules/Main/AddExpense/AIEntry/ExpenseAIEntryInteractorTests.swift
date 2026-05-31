@@ -223,7 +223,7 @@ extension ExpenseAIEntryInteractorTests {
         await sut.handleChangePrompt("Coffee 5")
         await sut.handleTapProcess()
 
-        XCTAssertEqual(router.openedSubscriptionTiers, ["REGULAR"])
+        XCTAssertEqual(router.openedSubscriptionTiers, [.regular])
         XCTAssertTrue(router.presentedErrors.isEmpty)
         XCTAssertNil(router.openedDrafts)
         XCTAssertEqual(presenter.presentedData.last?.loadingState, .idle)
@@ -250,6 +250,38 @@ extension ExpenseAIEntryInteractorTests {
         XCTAssertTrue(router.openedSubscriptionTiers.isEmpty)
         XCTAssertNil(router.openedDrafts)
         XCTAssertEqual(presenter.presentedData.last?.loadingState, .idle)
+    }
+
+    func testHandleTapProcessSubscriptionLimitWithExhaustedAiCreditsShowsLimitToast() async {
+        let presenter = ExpenseAIEntryPresenterSpy()
+        let router = ExpenseAIEntryRouterSpy()
+        let service = AIParseServiceSpy(result: .failure(ExpenseAIEntryTestError.any))
+        let sut = makeSUT(
+            presenter: presenter,
+            router: router,
+            aiParseService: service,
+            subscriptionAccessService: SubscriptionAccessServiceStub(
+                currentTier: "PREMIUM",
+                currentSnapshot: .init(
+                    tier: .premium,
+                    status: .active,
+                    paidAccessUntil: nil,
+                    capabilities: [],
+                    aiRequestsLimit: 300,
+                    aiRequestsRemaining: 0,
+                    statusVersion: 42
+                )
+            ),
+            subscriptionLimitErrorResolver: ExpenseAIEntrySubscriptionLimitErrorResolverStub(
+                isSubscriptionLimitError: true
+            )
+        )
+
+        await sut.handleChangePrompt("Coffee 5")
+        await sut.handleTapProcess()
+
+        XCTAssertEqual(router.presentedErrors, [L10n.expenseAiEntrySubscriptionLimitReached])
+        XCTAssertTrue(router.openedSubscriptionTiers.isEmpty)
     }
 
     func testHandleTapProcessNoExpenseShowsAlert() async {
@@ -365,7 +397,7 @@ private final class ExpenseAIEntryRouterSpy: ExpenseAIEntryRoutingLogic {
     private(set) var presentedErrors: [String] = []
     private(set) var voicePermissionPromptPresentationsCount = 0
     private(set) var openedDrafts: [ExpenseEditableDraft]?
-    private(set) var openedSubscriptionTiers: [String] = []
+    private(set) var openedSubscriptionTiers: [SubscriptionTier] = []
     private(set) var noExpenseAlertPresentationsCount = 0
     private(set) var dismissNoExpenseAlertCallsCount = 0
 
@@ -390,7 +422,7 @@ private final class ExpenseAIEntryRouterSpy: ExpenseAIEntryRoutingLogic {
     }
 
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     ) {
         openedSubscriptionTiers.append(currentTier)
@@ -414,27 +446,60 @@ private struct ExpenseAIEntrySubscriptionLimitErrorResolverStub: ExpenseAIEntryS
 }
 
 private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
-    private let currentTier: String
-    private let refreshedTier: String
+    private let currentSnapshot: SubscriptionAccessSnapshot
+    private let refreshedSnapshot: SubscriptionAccessSnapshot
 
     init(
         currentTier: String = "REGULAR",
-        refreshedTier: String? = nil
+        refreshedTier: String? = nil,
+        currentSnapshot: SubscriptionAccessSnapshot? = nil,
+        refreshedSnapshot: SubscriptionAccessSnapshot? = nil
     ) {
-        self.currentTier = currentTier
-        self.refreshedTier = refreshedTier ?? currentTier
+        self.currentSnapshot = currentSnapshot ?? Self.makeSnapshot(tier: currentTier)
+        self.refreshedSnapshot = refreshedSnapshot ?? Self.makeSnapshot(tier: refreshedTier ?? currentTier)
     }
 
     func currentTierState() async -> SubscriptionTierState {
-        .resolved(currentTier)
+        .resolved(currentSnapshot.tier)
     }
 
     func refreshCurrentTierState() async -> SubscriptionTierState {
-        .resolved(refreshedTier)
+        .resolved(refreshedSnapshot.tier)
     }
 
     func refreshCurrentTierSourceState() async -> SubscriptionTierRefreshState {
-        .network(refreshedTier)
+        .network(refreshedSnapshot.tier)
+    }
+
+    func currentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
+        currentSnapshot
+    }
+
+    func refreshCurrentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
+        refreshedSnapshot
+    }
+
+    nonisolated private static func makeSnapshot(tier: String) -> SubscriptionAccessSnapshot {
+        let capabilities: [SubscriptionCapability] = switch tier {
+        case "PREMIUM", "PLUS", "ACTIVE":
+            [
+                SubscriptionCapability.analytics,
+                .customDateRange,
+                .aiInput
+            ]
+        default:
+            []
+        }
+
+        return SubscriptionAccessSnapshot(
+            tier: tier == "REGULAR" ? .regular : .premium,
+            status: .active,
+            paidAccessUntil: nil,
+            capabilities: capabilities,
+            aiRequestsLimit: capabilities.isEmpty ? 0 : 300,
+            aiRequestsRemaining: capabilities.isEmpty ? 0 : 300,
+            statusVersion: 42
+        )
     }
 }
 

@@ -18,7 +18,7 @@ protocol SubscriptionServiceLogic: AnyObject {
 
 final class SubscriptionService: SubscriptionServiceLogic {
 
-    var currentTier: SubscriptionTier = .none
+    var currentTier: SubscriptionTier = .regular
     var loadedPlans: [SubscriptionFetchData.SubscriptionStorePlan] = []
 
     private let plusEntitlementID: String
@@ -107,7 +107,7 @@ private extension SubscriptionService {
             return .premium
         }
 
-        return .none
+        return .regular
     }
 }
 

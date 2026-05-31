@@ -32,17 +32,20 @@ extension SubscriptionViewModel {
         let subtitle: Label.LabelViewModel
         let currentPlan: CurrentPlanCard
         let plans: [PlanCard]
+        let restoreButton: Button.ButtonViewModel
 
         init(
             title: Label.LabelViewModel = .init(),
             subtitle: Label.LabelViewModel = .init(),
             currentPlan: CurrentPlanCard = .init(),
-            plans: [PlanCard] = []
+            plans: [PlanCard] = [],
+            restoreButton: Button.ButtonViewModel = .init()
         ) {
             self.title = title
             self.subtitle = subtitle
             self.currentPlan = currentPlan
             self.plans = plans
+            self.restoreButton = restoreButton
         }
     }
 

@@ -86,6 +86,7 @@ extension SubscriptionPresenterTests {
         XCTAssertEqual(content.currentPlan.description.text, L10n.subscriptionFreeDescription)
         XCTAssertEqual(content.plans.map(\.title.text), [L10n.subscriptionPremium])
         XCTAssertEqual(content.plans.map(\.price.text), [L10n.subscriptionPerMonth("$2.99")])
+        XCTAssertEqual(content.restoreButton.title, L10n.subscriptionRestorePurchase)
     }
 }
 
@@ -118,6 +119,63 @@ extension SubscriptionPresenterTests {
 }
 
 extension SubscriptionPresenterTests {
+    func testPresentFetchedDataRestoringDisablesCloseAndShowsRestoreLoader() {
+        sut.presentFetchedData(
+            .init(
+                loadingState: .loaded,
+                plans: [
+                    .init(
+                        id: SubscriptionCatalog.premium.id,
+                        title: L10n.subscriptionPremium,
+                        price: "$2.99"
+                    )
+                ],
+                isRestoringPurchase: true
+            )
+        )
+
+        XCTAssertFalse(sut.viewModel.header.isCloseEnabled)
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        XCTAssertTrue(content.restoreButton.isLoading)
+        XCTAssertFalse(content.plans[0].button.isEnabled)
+    }
+}
+
+extension SubscriptionPresenterTests {
+    func testPresentFetchedDataRestoreCommandCallsHandler() async {
+        let restoreExpectation = expectation(description: "Restore command")
+        handler.onHandleRestorePurchase = {
+            restoreExpectation.fulfill()
+        }
+
+        sut.presentFetchedData(
+            .init(
+                loadingState: .loaded,
+                plans: [
+                    .init(
+                        id: SubscriptionCatalog.premium.id,
+                        title: L10n.subscriptionPremium,
+                        price: "$2.99"
+                    )
+                ]
+            )
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        content.restoreButton.tapCommand.execute()
+
+        await fulfillment(of: [restoreExpectation], timeout: 1.0)
+    }
+}
+
+extension SubscriptionPresenterTests {
     func testPresentFetchedDataFailedBuildsRetryState() async {
         let retryExpectation = expectation(description: "Retry command")
         handler.onHandleRetry = {
@@ -143,6 +201,7 @@ extension SubscriptionPresenterTests {
 
 private final class SubscriptionHandlerSpy: SubscriptionHandler, @unchecked Sendable {
     var onHandleRetry: (() -> Void)?
+    var onHandleRestorePurchase: (() -> Void)?
 
     func handleTapClose() async {}
 
@@ -151,4 +210,8 @@ private final class SubscriptionHandlerSpy: SubscriptionHandler, @unchecked Send
     }
 
     func handleTapPurchase(planID: String) async {}
+
+    func handleTapRestorePurchase() async {
+        onHandleRestorePurchase?()
+    }
 }

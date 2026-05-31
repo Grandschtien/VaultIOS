@@ -3,9 +3,9 @@ output_dir: .
 
 strings:
   inputs:
-    - Vault/Common/en.lproj
+    - Vault/Common/en.lproj/Localizable.strings
   outputs:
-    - templateName: structured-swift5
+    - templateName: flat-swift5
       output: Vault/Common/Generated/Strings.generated.swift
 
 xcassets:

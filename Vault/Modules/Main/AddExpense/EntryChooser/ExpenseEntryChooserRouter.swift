@@ -6,7 +6,7 @@ protocol ExpenseEntryChooserRoutingLogic: Sendable {
     func openAiEntry()
     func openManualEntry()
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     )
     func close()
@@ -49,7 +49,7 @@ final class ExpenseEntryChooserRouter: ExpenseEntryChooserRoutingLogic {
     }
 
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     ) {
         let container = viewController?.navigationController ?? viewController

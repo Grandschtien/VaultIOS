@@ -14,7 +14,7 @@ protocol ExpenseAIEntryRoutingLogic: Sendable {
     func presentNoExpenseAlert(output: ExpenseAIEntryNoExpenseAlertOutput)
     func dismissNoExpenseAlert()
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     )
     func openManualEntry(initialDrafts: [ExpenseEditableDraft]) async
@@ -97,7 +97,7 @@ final class ExpenseAIEntryRouter: ExpenseAIEntryRoutingLogic {
     }
 
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     ) {
         guard let viewController else {

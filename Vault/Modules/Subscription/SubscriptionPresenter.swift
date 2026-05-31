@@ -28,7 +28,9 @@ final class SubscriptionPresenter: SubscriptionPresentationLogic {
                     textColor: Asset.Colors.textAndIconPrimary.color,
                     alignment: .center
                 ),
-                isCloseEnabled: data.purchasingPlanID == nil && !data.isPurchaseSyncing,
+                isCloseEnabled: data.purchasingPlanID == nil
+                    && !data.isPurchaseSyncing
+                    && !data.isRestoringPurchase,
                 closeCommand: Command { [weak handler] in
                     await handler?.handleTapClose()
                 }
@@ -95,18 +97,29 @@ private extension SubscriptionPresenter {
             plans: availablePlans.map { plan in
                 makePlanCard(
                     plan: plan,
-                    purchasingPlanID: data.purchasingPlanID
+                    purchasingPlanID: data.purchasingPlanID,
+                    isPurchaseSyncing: data.isPurchaseSyncing,
+                    isRestoringPurchase: data.isRestoringPurchase
                 )
-            }
+            },
+            restoreButton: makeRestoreButton(
+                purchasingPlanID: data.purchasingPlanID,
+                isPurchaseSyncing: data.isPurchaseSyncing,
+                isRestoringPurchase: data.isRestoringPurchase
+            )
         )
     }
 
     func makePlanCard(
         plan: SubscriptionFetchData.SubscriptionStorePlan,
-        purchasingPlanID: String?
+        purchasingPlanID: String?,
+        isPurchaseSyncing: Bool,
+        isRestoringPurchase: Bool
     ) -> SubscriptionViewModel.PlanCard {
         let isPurchasing = purchasingPlanID == plan.id
-        let isAnotherPlanPurchasing = purchasingPlanID != nil && !isPurchasing
+        let isActionInProgress = purchasingPlanID != nil
+            || isPurchaseSyncing
+            || isRestoringPurchase
 
         return SubscriptionViewModel.PlanCard(
             id: plan.id,
@@ -134,12 +147,35 @@ private extension SubscriptionPresenter {
                 titleColor: Asset.Colors.textAndIconPrimaryInverted.color,
                 backgroundColor: Asset.Colors.interactiveElemetsPrimary.color,
                 font: Typography.typographySemibold16,
-                isEnabled: !isAnotherPlanPurchasing,
+                isEnabled: !isActionInProgress,
                 isLoading: isPurchasing,
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapPurchase(planID: plan.id)
                 }
             )
+        )
+    }
+
+    func makeRestoreButton(
+        purchasingPlanID: String?,
+        isPurchaseSyncing: Bool,
+        isRestoringPurchase: Bool
+    ) -> Button.ButtonViewModel {
+        let isActionInProgress = purchasingPlanID != nil
+            || isPurchaseSyncing
+            || isRestoringPurchase
+
+        return .init(
+            title: L10n.subscriptionRestorePurchase,
+            titleColor: Asset.Colors.interactiveElemetsPrimary.color,
+            backgroundColor: .clear,
+            font: Typography.typographySemibold16,
+            isEnabled: !isActionInProgress,
+            isLoading: isRestoringPurchase,
+            tapCommand: Command { [weak handler] in
+                await handler?.handleTapRestorePurchase()
+            },
+            iconTintColor: Asset.Colors.interactiveElemetsPrimary.color
         )
     }
 

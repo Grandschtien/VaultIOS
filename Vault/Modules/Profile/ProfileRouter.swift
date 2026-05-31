@@ -12,7 +12,7 @@ protocol ProfileRoutingLogic: Sendable {
         output: ProfileCurrencySelectionOutput
     )
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     )
     func presentError(with text: String)
@@ -63,7 +63,7 @@ final class ProfileRouter: ProfileRoutingLogic {
     }
 
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     ) {
         let subscriptionScreen = SubscriptionFactory(

@@ -15,6 +15,7 @@ struct UserProfileDefaults: Codable, Equatable, Sendable {
     let language: String
     let currencyRate: Double?
     let currencyRateUpdatedAt: Date?
+    let cachedSubscription: SubscriptionAccessSnapshot?
 
     init(
         userId: String,
@@ -23,7 +24,8 @@ struct UserProfileDefaults: Codable, Equatable, Sendable {
         currency: String,
         language: String,
         currencyRate: Double? = nil,
-        currencyRateUpdatedAt: Date? = nil
+        currencyRateUpdatedAt: Date? = nil,
+        cachedSubscription: SubscriptionAccessSnapshot? = nil
     ) {
         self.userId = userId
         self.email = email
@@ -32,6 +34,7 @@ struct UserProfileDefaults: Codable, Equatable, Sendable {
         self.language = language
         self.currencyRate = currencyRate
         self.currencyRateUpdatedAt = currencyRateUpdatedAt
+        self.cachedSubscription = cachedSubscription
     }
 }
 
@@ -66,13 +69,17 @@ final class UserProfileStorageService: UserProfileStorageServiceProtocol, @unche
 }
 
 extension UserProfileDefaults {
-    init(user: User) {
+    init(
+        user: User,
+        cachedSubscription: SubscriptionAccessSnapshot? = nil
+    ) {
         self.init(
             userId: user.id,
             email: user.email,
             name: user.name,
             currency: user.currency,
-            language: user.preferredLanguage
+            language: user.preferredLanguage,
+            cachedSubscription: cachedSubscription
         )
     }
 
@@ -87,7 +94,23 @@ extension UserProfileDefaults {
             currency: currency,
             language: language,
             currencyRate: rate,
-            currencyRateUpdatedAt: updatedAt
+            currencyRateUpdatedAt: updatedAt,
+            cachedSubscription: cachedSubscription
+        )
+    }
+
+    func withCachedSubscription(
+        _ cachedSubscription: SubscriptionAccessSnapshot?
+    ) -> UserProfileDefaults {
+        UserProfileDefaults(
+            userId: userId,
+            email: email,
+            name: name,
+            currency: currency,
+            language: language,
+            currencyRate: currencyRate,
+            currencyRateUpdatedAt: currencyRateUpdatedAt,
+            cachedSubscription: cachedSubscription
         )
     }
 }

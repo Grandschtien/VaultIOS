@@ -92,7 +92,7 @@ private extension SubscriptionUpdatesListener {
             return .premium
         }
 
-        return .none
+        return .regular
     }
 }
 

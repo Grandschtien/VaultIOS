@@ -24,12 +24,6 @@ enum SubscriptionCatalog {
     }
 }
 
-enum SubscriptionTier: String, Equatable, Sendable {
-    case none
-    case plus
-    case premium
-}
-
 enum SubscriptionServiceError: LocalizedError {
     case emptyOfferings
     case packageNotFound(String)

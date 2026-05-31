@@ -10,7 +10,7 @@ protocol MainRoutingLogic: Sendable {
     func openAllExpenses()
     func openCategory(id: String, name: String)
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     )
     func openPeriodPicker(
@@ -65,7 +65,7 @@ final class MainRouter: MainRoutingLogic {
     }
 
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     ) {
         guard let viewController else {

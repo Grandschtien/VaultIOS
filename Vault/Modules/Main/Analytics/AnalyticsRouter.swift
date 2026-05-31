@@ -6,7 +6,7 @@ import Nivelir
 protocol AnalyticsRoutingLogic: Sendable {
     func openCategory(id: String, name: String)
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     )
     func openPeriodPicker(
@@ -45,7 +45,7 @@ final class AnalyticsRouter: AnalyticsRoutingLogic {
     }
 
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     ) {
         guard let viewController else {

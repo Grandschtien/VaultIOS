@@ -9,6 +9,7 @@ struct SubscriptionFetchData: Sendable {
     let plans: [SubscriptionStorePlan]
     let purchasingPlanID: String?
     let isPurchaseSyncing: Bool
+    let isRestoringPurchase: Bool
     
     struct SubscriptionStorePlan: Equatable, Sendable {
         let id: String
@@ -22,7 +23,8 @@ struct SubscriptionFetchData: Sendable {
         currentTier: String = "",
         plans: [SubscriptionStorePlan] = [],
         purchasingPlanID: String? = nil,
-        isPurchaseSyncing: Bool = false
+        isPurchaseSyncing: Bool = false,
+        isRestoringPurchase: Bool = false
     ) {
         self.title = title
         self.loadingState = loadingState
@@ -30,5 +32,6 @@ struct SubscriptionFetchData: Sendable {
         self.plans = plans
         self.purchasingPlanID = purchasingPlanID
         self.isPurchaseSyncing = isPurchaseSyncing
+        self.isRestoringPurchase = isRestoringPurchase
     }
 }

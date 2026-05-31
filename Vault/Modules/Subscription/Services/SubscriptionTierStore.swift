@@ -8,7 +8,7 @@
 import Foundation
 
 actor SubscriptionTierStore {
-    private var currentTier: SubscriptionTier = .none
+    private var currentTier: SubscriptionTier = .regular
     private var revision: UInt64 = 0
 
     func value() -> SubscriptionTier {

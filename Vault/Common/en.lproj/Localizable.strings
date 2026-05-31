@@ -163,10 +163,14 @@
 "subscription_unknown_description" = "Plan details are unavailable";
 "subscription_per_month" = "%@ / month";
 "subscription_buy" = "Subscribe";
+"subscription_restore_purchase" = "Restore Purchase";
 "subscription_loading_failed" = "Unable to load subscriptions";
 "subscription_purchase_failed" = "Unable to complete purchase";
 "subscription_purchase_pending" = "Purchase is pending approval";
 "subscription_purchase_unverified" = "Unable to verify purchase";
+"subscription_restore_failed" = "Unable to restore purchase";
+"subscription_restore_not_found" = "No active subscription found";
+"subscription_restored" = "Subscription Restored";
 "subscription_sync_failed" = "Unable to sync subscription";
 "subscription_ready" = "Subscription Is Ready";
 "subscription_reload_required" = "Please Restart The App To Get Access To Content";

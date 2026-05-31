@@ -28,6 +28,42 @@ final class AnalyticsInteractorTests: XCTestCase {
         XCTAssertEqual(presenter.presentedData.last?.loadingState, .loaded)
         XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 120)
     }
+
+    func testFetchDataUsesAnalyticsCapabilityInsteadOfTier() async {
+        let presenter = AnalyticsPresenterSpy()
+        let dataProvider = AnalyticsDataProviderStub(
+            results: [.success(makeData(monthStart: aprilStart, totalAmount: 120))]
+        )
+        let summaryPeriodProvider = MainSummaryPeriodServiceStub(period: aprilCurrentPeriod)
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
+            dataProvider: dataProvider,
+            observer: AnalyticsObserverStub(),
+            summaryPeriodProvider: summaryPeriodProvider,
+            subscriptionAccessService: SubscriptionAccessServiceStub(
+                currentTier: "REGULAR",
+                currentSnapshot: .init(
+                    tier: .regular,
+                    status: .active,
+                    paidAccessUntil: nil,
+                    capabilities: [.analytics],
+                    aiRequestsLimit: 0,
+                    aiRequestsRemaining: 0,
+                    statusVersion: 42
+                )
+            )
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+
+        let fetchCalls = await dataProvider.recordedFetchCalls()
+        XCTAssertEqual(fetchCalls, [aprilCurrentPeriod])
+        XCTAssertEqual(presenter.presentedData.last?.isLocked, false)
+        XCTAssertEqual(presenter.presentedData.last?.loadingState, .loaded)
+    }
 }
 
 extension AnalyticsInteractorTests {
@@ -346,7 +382,7 @@ extension AnalyticsInteractorTests {
         await sut.fetchData()
         await sut.handleTapSubscribe()
 
-        XCTAssertEqual(router.lastOpenedSubscriptionTier, "REGULAR")
+        XCTAssertEqual(router.lastOpenedSubscriptionTier, .regular)
     }
 
     func testHandleSubscriptionDidSyncRefreshesTierAndLoadsAnalyticsWhenUnlocked() async {
@@ -487,14 +523,14 @@ private final class AnalyticsPresenterSpy: AnalyticsPresentationLogic {
 private final class AnalyticsRouterSpy: AnalyticsRoutingLogic {
     private(set) var openCategoryCalls: [(String, String)] = []
     private(set) var openPeriodPickerCalls: [MainSummaryPeriod] = []
-    private(set) var lastOpenedSubscriptionTier: String?
+    private(set) var lastOpenedSubscriptionTier: SubscriptionTier?
 
     func openCategory(id: String, name: String) {
         openCategoryCalls.append((id, name))
     }
 
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     ) {
         lastOpenedSubscriptionTier = currentTier
@@ -662,16 +698,24 @@ private final class MainSummaryPeriodServiceStub: MainSummaryPeriodServicing, @u
 private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
     private let currentTierStateValue: SubscriptionTierState
     private let refreshedTierStateValue: SubscriptionTierState
+    private let currentSnapshotValue: SubscriptionAccessSnapshot?
+    private let refreshedSnapshotValue: SubscriptionAccessSnapshot?
     private var refreshCalls = 0
 
     init(
         currentTier: String = "REGULAR",
         refreshedTier: String? = nil,
         currentTierState: SubscriptionTierState? = nil,
-        refreshedTierState: SubscriptionTierState? = nil
+        refreshedTierState: SubscriptionTierState? = nil,
+        currentSnapshot: SubscriptionAccessSnapshot? = nil,
+        refreshedSnapshot: SubscriptionAccessSnapshot? = nil
     ) {
-        currentTierStateValue = currentTierState ?? .resolved(currentTier)
-        refreshedTierStateValue = refreshedTierState ?? .resolved(refreshedTier ?? currentTier)
+        currentTierStateValue = currentTierState ?? .resolved(Self.makeTier(from: currentTier))
+        refreshedTierStateValue = refreshedTierState ?? .resolved(
+            Self.makeTier(from: refreshedTier ?? currentTier)
+        )
+        currentSnapshotValue = currentSnapshot ?? Self.makeSnapshot(from: currentTierStateValue)
+        refreshedSnapshotValue = refreshedSnapshot ?? Self.makeSnapshot(from: refreshedTierStateValue)
     }
 
     func currentTierState() async -> SubscriptionTierState {
@@ -694,7 +738,46 @@ private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
         }
     }
 
+    func currentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
+        currentSnapshotValue
+    }
+
+    func refreshCurrentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
+        refreshCalls += 1
+        return refreshedSnapshotValue
+    }
+
     func refreshCallsCount() -> Int {
         refreshCalls
+    }
+
+    nonisolated private static func makeSnapshot(
+        from tierState: SubscriptionTierState
+    ) -> SubscriptionAccessSnapshot? {
+        switch tierState {
+        case .unavailable:
+            nil
+        case .resolved(let tier):
+            let capabilities: [SubscriptionCapability] = switch tier {
+            case .premium:
+                [SubscriptionCapability.analytics, .customDateRange, .aiInput]
+            case .regular:
+                []
+            }
+
+            return SubscriptionAccessSnapshot(
+                tier: tier,
+                status: .active,
+                paidAccessUntil: nil,
+                capabilities: capabilities,
+                aiRequestsLimit: capabilities.isEmpty ? 0 : 300,
+                aiRequestsRemaining: capabilities.isEmpty ? 0 : 300,
+                statusVersion: 42
+            )
+        }
+    }
+
+    nonisolated private static func makeTier(from rawTier: String) -> SubscriptionTier {
+        rawTier == "REGULAR" ? .regular : .premium
     }
 }

@@ -264,10 +264,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/firebase-crashlytics-run",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\ntouch \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 		};
 		60F8D93B307D4CEB00F4E7A1 /* SwiftGen */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -281,8 +282,8 @@
 			);
 			name = SwiftGen;
 			outputPaths = (
-				"$(SRCROOT)/Vault/Common/Generated/Assets+Generated.swift",
-				"$(SRCROOT)/Vault/Common/Generated/Strings+Generated.swift",
+				"$(SRCROOT)/Vault/Common/Generated/Assets.generated.swift",
+				"$(SRCROOT)/Vault/Common/Generated/Strings.generated.swift",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -325,7 +326,7 @@
 				CODE_SIGN_ENTITLEMENTS = Vault/VaultDebug.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = PLUM5QCSG5;
 				EXTRACT_APP_INTENTS_METADATA = NO;
@@ -369,7 +370,7 @@
 				CODE_SIGN_ENTITLEMENTS = Vault/VaultRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = PLUM5QCSG5;
 				EXTRACT_APP_INTENTS_METADATA = NO;
 				GENERATE_INFOPLIST_FILE = YES;

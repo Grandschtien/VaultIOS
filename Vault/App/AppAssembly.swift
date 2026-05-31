@@ -179,6 +179,15 @@ private extension AppAssembly {
         }
         .inObjectScope(.container)
 
+        container.register(SubscriptionAccessContractServicing.self) { resolver in
+            guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
+                fatalError("Failed to resolve AsyncNetworkClient for SubscriptionAccessContractService")
+            }
+
+            return SubscriptionAccessContractService(networkClient: networkClient)
+        }
+        .inObjectScope(.container)
+
         container.register(SubscriptionAppAccountTokenProviding.self) { resolver in
             guard let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self) else {
                 fatalError("Failed to resolve UserProfileStorageService for SubscriptionAppAccountTokenProvider")
@@ -192,13 +201,13 @@ private extension AppAssembly {
 
 
         container.register(SubscriptionAccessServicing.self) { resolver in
-            guard let profileService = resolver.resolve(ProfileContractServicing.self),
+            guard let subscriptionService = resolver.resolve(SubscriptionAccessContractServicing.self),
                   let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self) else {
                 fatalError("Failed to resolve dependencies for SubscriptionAccessService")
             }
 
             return SubscriptionAccessService(
-                profileService: profileService,
+                subscriptionService: subscriptionService,
                 userProfileStorageService: userProfileStorageService
             )
         }

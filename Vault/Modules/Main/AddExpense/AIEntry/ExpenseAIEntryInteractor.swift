@@ -18,6 +18,7 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
     private enum Constants {
         static let maximumCharacters = 280
         static let noExpenseDetected = "NO_EXPENSE_DETECTED"
+        static let regularTier = "REGULAR"
     }
 
     private let presenter: ExpenseAIEntryPresentationLogic
@@ -131,8 +132,16 @@ private extension ExpenseAIEntryInteractor {
             return
         }
 
-        let currentTier = await subscriptionAccessService.currentTier()
-        guard SubscriptionPlanResolver.hasPremiumAccess(for: currentTier) else {
+        let subscription = await subscriptionAccessService.currentSubscriptionSnapshot()
+        let currentTier = subscription?.tier ?? .regular
+
+        if subscription?.aiRequestsRemaining == .zero,
+           subscription?.aiRequestsLimit ?? .zero > .zero {
+            await router.presentError(with: L10n.expenseAiEntrySubscriptionLimitReached)
+            return
+        }
+
+        guard subscription?.hasAiInputAccess == true else {
             await router.openSubscription(
                 currentTier: currentTier,
                 output: self
@@ -280,6 +289,6 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryNoExpenseAlertOutput {}
 
 extension ExpenseAIEntryInteractor: SubscriptionOutput {
     func handleSubscriptionDidSync() async {
-        _ = await subscriptionAccessService.refreshCurrentTier()
+        _ = await subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
     }
 }

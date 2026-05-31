@@ -285,7 +285,49 @@ extension MainInteractorTests {
         await sut.handleTapPeriodButton()
 
         XCTAssertTrue(router.openPeriodPickerCalls.isEmpty)
-        XCTAssertEqual(router.lastOpenedSubscriptionTier, "REGULAR")
+        XCTAssertEqual(router.lastOpenedSubscriptionTier, .regular)
+    }
+
+    func testHandleTapPeriodButtonUsesCustomDateRangeCapabilityInsteadOfTier() async {
+        let router = MainRouterSpy()
+        let repository = MainRepositoryStub(
+            categoriesResults: [.success([])],
+            recentExpensesResults: [.success([])]
+        )
+        let summaryPeriodProvider = MainSummaryPeriodServiceStub(
+            period: .init(
+                from: Date(timeIntervalSince1970: 10),
+                to: Date(timeIntervalSince1970: 20)
+            )
+        )
+        let subscriptionAccessService = SubscriptionAccessServiceStub(
+            currentTier: "REGULAR",
+            currentSnapshot: .init(
+                tier: .regular,
+                status: .active,
+                paidAccessUntil: nil,
+                capabilities: [.customDateRange],
+                aiRequestsLimit: 0,
+                aiRequestsRemaining: 0,
+                statusVersion: 42
+            )
+        )
+        let sut = makeSut(
+            presenter: MainPresenterSpy(),
+            router: router,
+            summaryProvider: MainSummaryProviderStub(
+                result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
+            ),
+            summaryPeriodProvider: summaryPeriodProvider,
+            subscriptionAccessService: subscriptionAccessService,
+            repository: repository,
+            observer: repository.observer
+        )
+
+        await sut.handleTapPeriodButton()
+
+        XCTAssertEqual(router.openPeriodPickerCalls, [summaryPeriodProvider.currentMonthPeriod()])
+        XCTAssertNil(router.lastOpenedSubscriptionTier)
     }
 
     func testHandleTapPeriodButtonWithPlusTierOpensPeriodPicker() async {
@@ -524,7 +566,7 @@ private final class MainRouterSpy: MainRoutingLogic, @unchecked Sendable {
     private(set) var openExpensesCount: Int = .zero
     private(set) var openCategoryCalls: [(id: String, name: String)] = []
     private(set) var openPeriodPickerCalls: [MainSummaryPeriod] = []
-    private(set) var lastOpenedSubscriptionTier: String?
+    private(set) var lastOpenedSubscriptionTier: SubscriptionTier?
 
     func openAllCategories() {
         openCategoriesCount += 1
@@ -539,7 +581,7 @@ private final class MainRouterSpy: MainRoutingLogic, @unchecked Sendable {
     }
 
     func openSubscription(
-        currentTier: String,
+        currentTier: SubscriptionTier,
         output: SubscriptionOutput
     ) {
         lastOpenedSubscriptionTier = currentTier
@@ -594,29 +636,68 @@ private actor MainCurrencyRateProviderStub: MainCurrencyRateProviding {
 }
 
 private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
-    private let tier: String
+    private let currentSnapshot: SubscriptionAccessSnapshot
+    private let refreshedSnapshot: SubscriptionAccessSnapshot
     private var refreshCalls = 0
 
-    init(currentTier: String) {
-        tier = currentTier
+    init(
+        currentTier: String,
+        refreshedTier: String? = nil,
+        currentSnapshot: SubscriptionAccessSnapshot? = nil,
+        refreshedSnapshot: SubscriptionAccessSnapshot? = nil
+    ) {
+        self.currentSnapshot = currentSnapshot ?? Self.makeSnapshot(tier: currentTier)
+        self.refreshedSnapshot = refreshedSnapshot ?? Self.makeSnapshot(tier: refreshedTier ?? currentTier)
     }
 
     func currentTierState() async -> SubscriptionTierState {
-        .resolved(tier)
+        .resolved(currentSnapshot.tier)
     }
 
     func refreshCurrentTierState() async -> SubscriptionTierState {
         refreshCalls += 1
-        return .resolved(tier)
+        return .resolved(refreshedSnapshot.tier)
     }
 
     func refreshCurrentTierSourceState() async -> SubscriptionTierRefreshState {
         refreshCalls += 1
-        return .network(tier)
+        return .network(refreshedSnapshot.tier)
+    }
+
+    func currentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
+        currentSnapshot
+    }
+
+    func refreshCurrentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
+        refreshCalls += 1
+        return refreshedSnapshot
     }
 
     func refreshCallsCount() -> Int {
         refreshCalls
+    }
+
+    nonisolated private static func makeSnapshot(tier: String) -> SubscriptionAccessSnapshot {
+        let capabilities: [SubscriptionCapability] = switch tier {
+        case "PREMIUM", "PLUS", "ACTIVE":
+            [
+                SubscriptionCapability.analytics,
+                .customDateRange,
+                .aiInput
+            ]
+        default:
+            []
+        }
+
+        return SubscriptionAccessSnapshot(
+            tier: tier == "REGULAR" ? .regular : .premium,
+            status: .active,
+            paidAccessUntil: nil,
+            capabilities: capabilities,
+            aiRequestsLimit: capabilities.isEmpty ? 0 : 300,
+            aiRequestsRemaining: capabilities.isEmpty ? 0 : 300,
+            statusVersion: 42
+        )
     }
 }
 

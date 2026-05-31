@@ -69,7 +69,7 @@ private extension ProfilePresenter {
 
     func makeContent(from data: ProfileFetchData) -> ProfileViewModel.Content {
         let profileName = data.profile?.name ?? ""
-        let tier = displayTier(from: data.profile?.tier ?? "")
+        let tier = displayTier(from: (data.subscription?.tier ?? .regular).rawValue)
         let selectedCurrencyCode = resolvedSelectedCurrencyCode(from: data)
 
         return ProfileViewModel.Content(
@@ -220,7 +220,11 @@ private extension ProfilePresenter {
     }
 
     func displayTier(from rawTier: String) -> String {
-        SubscriptionPlanResolver.currentPlan(from: rawTier).title
+        guard !rawTier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return ""
+        }
+
+        return SubscriptionPlanResolver.currentPlan(from: rawTier).title
     }
 
     func membershipTitle(from tier: String) -> String {
@@ -230,7 +234,7 @@ private extension ProfilePresenter {
 
         return L10n.profileMemberStatus(tier)
     }
-
+//    profile_valid_until_unknown
     func validUntilTitle(from date: Date?) -> String {
         guard let date else {
             return L10n.profileValidUntilUnknown
