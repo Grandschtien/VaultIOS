@@ -55,16 +55,17 @@ extension ProfilePresenterTests {
                     currency: "GBP",
                     preferredLanguage: "en-GB",
                     tier: "ACTIVE",
-                    tierValidUntil: Date(timeIntervalSince1970: 1_775_001_600)
+                    tierValidUntil: nil
                 ),
                 subscription: .init(
                     tier: .premium,
                     status: .active,
                     paidAccessUntil: Date(timeIntervalSince1970: 1_775_001_600),
                     capabilities: [],
-                    aiRequestsLimit: 0,
-                    aiRequestsRemaining: 0,
-                    statusVersion: 42
+                    aiRequestsLimit: 300,
+                    aiRequestsRemaining: 285,
+                    statusVersion: 42,
+                    hasAiRequestsLimit: true
                 ),
                 appVersion: "2.4.0",
                 appBuild: "302"
@@ -79,12 +80,55 @@ extension ProfilePresenterTests {
         XCTAssertEqual(content.name.text, "Sarah Connor")
         XCTAssertEqual(content.membership.text, L10n.profileMemberStatus(L10n.subscriptionPremium))
         XCTAssertEqual(content.plan.title.text, L10n.subscriptionPremium)
+        XCTAssertEqual(
+            content.plan.subtitle.text,
+            validUntilTitle(for: Date(timeIntervalSince1970: 1_775_001_600))
+        )
+        XCTAssertEqual(
+            content.plan.usage?.text,
+            L10n.profileAiRequestsUsage("15", "300")
+        )
         XCTAssertEqual(content.rows.count, 2)
         XCTAssertEqual(content.rows[0].title.text, L10n.profileCurrency)
         XCTAssertTrue(content.rows[0].subtitle.text.contains("GBP"))
         XCTAssertEqual(content.rows[1].title.text, L10n.profileLanguage)
         XCTAssertFalse(content.rows[1].subtitle.text.isEmpty)
         XCTAssertEqual(content.version.text, L10n.profileVersion("2.4.0", "302"))
+    }
+}
+
+extension ProfilePresenterTests {
+    func testPresentFetchedDataWithoutAiUsageHidesPlanUsageRow() {
+        sut.presentFetchedData(
+            ProfileFetchData(
+                loadingState: .loaded,
+                profile: .init(
+                    id: "user-1",
+                    email: "sarah@example.com",
+                    name: "Sarah Connor",
+                    currency: "GBP",
+                    preferredLanguage: "en-GB",
+                    tier: "ACTIVE",
+                    tierValidUntil: nil
+                ),
+                subscription: .init(
+                    tier: .premium,
+                    status: .active,
+                    paidAccessUntil: nil,
+                    capabilities: [],
+                    aiRequestsLimit: 0,
+                    aiRequestsRemaining: 0,
+                    statusVersion: 42,
+                    hasAiRequestsLimit: false
+                )
+            )
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        XCTAssertNil(content.plan.usage)
     }
 }
 
@@ -100,7 +144,7 @@ extension ProfilePresenterTests {
                     currency: "GBP",
                     preferredLanguage: "en-GB",
                     tier: "ACTIVE",
-                    tierValidUntil: Date(timeIntervalSince1970: 1_775_001_600)
+                    tierValidUntil: nil
                 )
             )
         )
@@ -154,6 +198,14 @@ extension ProfilePresenterTests {
 
         errorViewModel.tapCommand.execute()
         await fulfillment(of: [retryExpectation], timeout: 1.0)
+    }
+}
+
+private extension ProfilePresenterTests {
+    func validUntilTitle(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd.MM.yyyy"
+        return L10n.profileValidUntil(formatter.string(from: date))
     }
 }
 

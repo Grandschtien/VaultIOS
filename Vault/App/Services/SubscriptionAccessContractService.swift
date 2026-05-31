@@ -31,7 +31,6 @@ final class SubscriptionAccessContractService: SubscriptionAccessContractServici
             responseType: SubscriptionAccessResponseDTO.self
         )
 
-        print("======>", response)
         return SubscriptionAccessSnapshot(response: response)
     }
 }

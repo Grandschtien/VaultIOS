@@ -86,17 +86,20 @@ extension ProfileViewModel {
         let icon: UIImage?
         let title: Label.LabelViewModel
         let subtitle: Label.LabelViewModel
+        let usage: Label.LabelViewModel?
         let tapCommand: Command
 
         init(
             icon: UIImage? = nil,
             title: Label.LabelViewModel = .init(),
             subtitle: Label.LabelViewModel = .init(),
+            usage: Label.LabelViewModel? = nil,
             tapCommand: Command = .nope
         ) {
             self.icon = icon
             self.title = title
             self.subtitle = subtitle
+            self.usage = usage
             self.tapCommand = tapCommand
         }
     }

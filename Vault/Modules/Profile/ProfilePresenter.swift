@@ -103,11 +103,12 @@ private extension ProfilePresenter {
                     alignment: .left
                 ),
                 subtitle: .init(
-                    text: validUntilTitle(from: data.profile?.tierValidUntil),
+                    text: validUntilTitle(from: data.subscription?.paidAccessUntil),
                     font: Typography.typographyRegular14,
                     textColor: Asset.Colors.textAndIconPrimaryInverted.color.withAlphaComponent(0.75),
                     alignment: .left
                 ),
+                usage: aiRequestsUsageViewModel(from: data.subscription),
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapSubscription()
                 }
@@ -234,7 +235,7 @@ private extension ProfilePresenter {
 
         return L10n.profileMemberStatus(tier)
     }
-//    profile_valid_until_unknown
+
     func validUntilTitle(from date: Date?) -> String {
         guard let date else {
             return L10n.profileValidUntilUnknown
@@ -244,6 +245,26 @@ private extension ProfilePresenter {
         formatter.dateFormat = "dd.MM.yyyy"
 
         return L10n.profileValidUntil(formatter.string(from: date))
+    }
+
+    func aiRequestsUsageViewModel(
+        from subscription: SubscriptionAccessSnapshot?
+    ) -> Label.LabelViewModel? {
+        guard let subscription,
+              subscription.hasAiRequestsLimit,
+              subscription.aiRequestsLimit > .zero else {
+            return nil
+        }
+
+        return .init(
+            text: L10n.profileAiRequestsUsage(
+                String(subscription.aiRequestsUsed),
+                String(subscription.aiRequestsLimit)
+            ),
+            font: Typography.typographyRegular14,
+            textColor: Asset.Colors.textAndIconPrimaryInverted.color.withAlphaComponent(0.75),
+            alignment: .left
+        )
     }
 
     func currencyTitle(from code: String) -> String {

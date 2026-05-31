@@ -151,6 +151,19 @@ private extension ExpenseAIEntryInteractor {
 
         await router.presentError(with: L10n.expenseAiEntrySubscriptionLimitReached)
     }
+
+    func parseResponse(
+        for request: AIParseRequestDTO
+    ) async throws -> AIParseResponseDTO {
+        do {
+            let response = try await aiParseService.parse(request)
+            _ = await subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
+            return response
+        } catch {
+            _ = await subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
+            throw error
+        }
+    }
 }
 
 extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
@@ -222,8 +235,8 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
         await presentFetchedData()
 
         do {
-            let response = try await aiParseService.parse(
-                .init(
+            let response = try await parseResponse(
+                for: .init(
                     text: trimmedPrompt,
                     currencyHint: currentCurrencyCode()
                 )

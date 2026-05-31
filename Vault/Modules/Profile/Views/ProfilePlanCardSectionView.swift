@@ -5,10 +5,13 @@ import SkeletonView
 final class ProfilePlanCardSectionView: UIView, LayoutScaleProviding {
     private let cardView = UIView()
     private let iconView = UIImageView()
+    private let textStackView = UIStackView()
     private let titleLabel = Label()
     private let subtitleLabel = Label()
+    private let usageLabel = Label()
 
     private var isSkeletonAnimating = false
+    private var isUsageHidden = true
     private var tapCommand: Command = .nope
 
     override init(frame: CGRect) {
@@ -26,6 +29,9 @@ final class ProfilePlanCardSectionView: UIView, LayoutScaleProviding {
         iconView.image = viewModel.icon
         titleLabel.apply(viewModel.title)
         subtitleLabel.apply(viewModel.subtitle)
+        usageLabel.apply(viewModel.usage ?? .init())
+        isUsageHidden = viewModel.usage == nil
+        usageLabel.isHidden = isUsageHidden
         tapCommand = viewModel.tapCommand
         isUserInteractionEnabled = viewModel.tapCommand != .nope
     }
@@ -51,13 +57,21 @@ private extension ProfilePlanCardSectionView {
 
         iconView.contentMode = .scaleAspectFit
         iconView.tintColor = Asset.Colors.textAndIconPrimaryInverted.color
+
+        textStackView.axis = .vertical
+        textStackView.alignment = .fill
+        textStackView.distribution = .fill
+        textStackView.spacing = spaceXXS
     }
 
     func setupLayout() {
         addSubview(cardView)
         cardView.addSubview(iconView)
-        cardView.addSubview(titleLabel)
-        cardView.addSubview(subtitleLabel)
+        cardView.addSubview(textStackView)
+
+        textStackView.addArrangedSubview(titleLabel)
+        textStackView.addArrangedSubview(subtitleLabel)
+        textStackView.addArrangedSubview(usageLabel)
 
         cardView.snp.makeConstraints {
             $0.edges.equalToSuperview()
@@ -70,16 +84,10 @@ private extension ProfilePlanCardSectionView {
             $0.size.equalTo(sizeM)
         }
 
-        titleLabel.snp.makeConstraints {
+        textStackView.snp.makeConstraints {
             $0.leading.equalTo(iconView.snp.trailing).offset(spaceXS)
             $0.trailing.equalToSuperview().inset(spaceS)
             $0.top.equalToSuperview().offset(spaceS)
-        }
-
-        subtitleLabel.snp.makeConstraints {
-            $0.leading.equalTo(titleLabel)
-            $0.trailing.equalToSuperview().inset(spaceS)
-            $0.top.equalTo(titleLabel.snp.bottom).offset(spaceXXS)
             $0.bottom.equalToSuperview().inset(spaceS)
         }
     }
@@ -93,6 +101,7 @@ private extension ProfilePlanCardSectionView {
         iconView.isHidden = true
         titleLabel.isHidden = true
         subtitleLabel.isHidden = true
+        usageLabel.isHidden = true
         cardView.showAnimatedGradientSkeleton()
     }
 
@@ -105,6 +114,7 @@ private extension ProfilePlanCardSectionView {
         iconView.isHidden = false
         titleLabel.isHidden = false
         subtitleLabel.isHidden = false
+        usageLabel.isHidden = isUsageHidden
         cardView.hideSkeleton()
     }
 

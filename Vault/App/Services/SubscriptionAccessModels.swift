@@ -28,6 +28,7 @@ struct SubscriptionAccessSnapshot: Codable, Equatable, Sendable {
     let aiRequestsLimit: Int
     let aiRequestsRemaining: Int
     let statusVersion: Int
+    private let aiRequestsLimitProvided: Bool?
 
     var hasAnalyticsAccess: Bool {
         hasCapability(.analytics)
@@ -40,7 +41,22 @@ struct SubscriptionAccessSnapshot: Codable, Equatable, Sendable {
     var hasAiInputAccess: Bool {
         hasCapability(.aiInput) && aiRequestsRemaining > 0
     }
-    
+
+    var hasAiRequestsLimit: Bool {
+        aiRequestsLimitProvided
+            ?? (
+                aiRequestsLimit > .zero
+                || aiRequestsRemaining > .zero
+            )
+    }
+
+    var aiRequestsUsed: Int {
+        min(
+            max(aiRequestsLimit - aiRequestsRemaining, .zero),
+            aiRequestsLimit
+        )
+    }
+
     var hasActiveSubscription: Bool {
         status == .active
     }
@@ -52,7 +68,8 @@ struct SubscriptionAccessSnapshot: Codable, Equatable, Sendable {
         capabilities: [SubscriptionCapability],
         aiRequestsLimit: Int,
         aiRequestsRemaining: Int,
-        statusVersion: Int
+        statusVersion: Int,
+        hasAiRequestsLimit: Bool? = nil
     ) {
         self.tier = tier
         self.status = status
@@ -61,6 +78,7 @@ struct SubscriptionAccessSnapshot: Codable, Equatable, Sendable {
         self.aiRequestsLimit = aiRequestsLimit
         self.aiRequestsRemaining = aiRequestsRemaining
         self.statusVersion = statusVersion
+        aiRequestsLimitProvided = hasAiRequestsLimit
     }
 
     init(response: SubscriptionAccessResponseDTO) {
@@ -71,7 +89,8 @@ struct SubscriptionAccessSnapshot: Codable, Equatable, Sendable {
             capabilities: response.capabilities,
             aiRequestsLimit: response.usageLimits?.aiRequests.limit ?? 0,
             aiRequestsRemaining: response.usageLimits?.aiRequests.remaining ?? 0,
-            statusVersion: response.statusVersion
+            statusVersion: response.statusVersion,
+            hasAiRequestsLimit: response.usageLimits != nil
         )
     }
 

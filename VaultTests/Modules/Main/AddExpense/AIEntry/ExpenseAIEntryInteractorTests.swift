@@ -135,6 +135,7 @@ extension ExpenseAIEntryInteractorTests {
     func testHandleTapProcessSuccessOpensManualEntryWithMappedDraft() async {
         let presenter = ExpenseAIEntryPresenterSpy()
         let router = ExpenseAIEntryRouterSpy()
+        let subscriptionAccessService = SubscriptionAccessServiceStub()
         let service = AIParseServiceSpy(
             result: .success(
                 .init(
@@ -171,17 +172,21 @@ extension ExpenseAIEntryInteractorTests {
             presenter: presenter,
             router: router,
             aiParseService: service,
+            subscriptionAccessService: subscriptionAccessService,
             observer: observer
         )
 
         await sut.handleChangePrompt("Coffee 5")
         await sut.handleTapProcess()
 
+        let refreshCallsCount = await subscriptionAccessService.refreshCurrentSubscriptionSnapshotCallsCount()
+
         XCTAssertEqual(router.openedDrafts?.count, 1)
         XCTAssertEqual(router.openedDrafts?.first?.titleText, "Coffee")
         XCTAssertEqual(router.openedDrafts?.first?.amountText, "5")
         XCTAssertEqual(router.openedDrafts?.first?.currencyCode, "EUR")
         XCTAssertEqual(router.openedDrafts?.first?.selectedCategory?.id, "food")
+        XCTAssertEqual(refreshCallsCount, 1)
         XCTAssertTrue(router.presentedErrors.isEmpty)
         XCTAssertEqual(presenter.presentedData.last?.loadingState, .loading)
     }
@@ -189,18 +194,23 @@ extension ExpenseAIEntryInteractorTests {
     func testHandleTapProcessFailureShowsErrorToast() async {
         let presenter = ExpenseAIEntryPresenterSpy()
         let router = ExpenseAIEntryRouterSpy()
+        let subscriptionAccessService = SubscriptionAccessServiceStub()
         let service = AIParseServiceSpy(result: .failure(ExpenseAIEntryTestError.any))
         let sut = makeSUT(
             presenter: presenter,
             router: router,
-            aiParseService: service
+            aiParseService: service,
+            subscriptionAccessService: subscriptionAccessService
         )
 
         await sut.handleChangePrompt("Coffee 5")
         await sut.handleTapProcess()
 
+        let refreshCallsCount = await subscriptionAccessService.refreshCurrentSubscriptionSnapshotCallsCount()
+
         XCTAssertEqual(router.presentedErrors, [L10n.mainOverviewError])
         XCTAssertNil(router.openedDrafts)
+        XCTAssertEqual(refreshCallsCount, 1)
         XCTAssertEqual(presenter.presentedData.last?.loadingState, .idle)
         XCTAssertTrue(presenter.presentedData.last?.isPromptEditable ?? false)
         XCTAssertTrue(presenter.presentedData.last?.isCloseEnabled ?? false)
@@ -448,6 +458,7 @@ private struct ExpenseAIEntrySubscriptionLimitErrorResolverStub: ExpenseAIEntryS
 private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
     private let currentSnapshot: SubscriptionAccessSnapshot
     private let refreshedSnapshot: SubscriptionAccessSnapshot
+    private var refreshCurrentSubscriptionSnapshotCallsCountValue = 0
 
     init(
         currentTier: String = "REGULAR",
@@ -476,7 +487,12 @@ private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
     }
 
     func refreshCurrentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
+        refreshCurrentSubscriptionSnapshotCallsCountValue += 1
         refreshedSnapshot
+    }
+
+    func refreshCurrentSubscriptionSnapshotCallsCount() async -> Int {
+        refreshCurrentSubscriptionSnapshotCallsCountValue
     }
 
     nonisolated private static func makeSnapshot(tier: String) -> SubscriptionAccessSnapshot {

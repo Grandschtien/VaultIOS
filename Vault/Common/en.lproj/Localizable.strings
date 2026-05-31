@@ -144,6 +144,7 @@
 "profile_logout" = "Log Out";
 "profile_logout_confirmation_title" = "Are you sure?";
 "profile_version" = "Version %@ (Build %@)";
+"profile_ai_requests_usage" = "Used AI Requests: %@ / %@";
 "profile_error" = "Something went wrong";
 "profile_select_currency_title" = "Select Currency";
 "profile_currency_update_failed" = "Unable to update currency";
