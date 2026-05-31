@@ -8,6 +8,19 @@ struct SubscriptionResolvedPlan: Equatable, Sendable {
 }
 
 enum SubscriptionPlanResolver {
+    static func matchesPurchasedPlan(planID: String, tier: String) -> Bool {
+        let normalizedTier = normalizedTierValue(from: tier)
+
+        switch planID {
+        case SubscriptionCatalog.plus.id:
+            return normalizedTier.contains("PLUS") || normalizedTier == "ACTIVE"
+        case SubscriptionCatalog.premium.id:
+            return normalizedTier.contains("PREMIUM")
+        default:
+            return false
+        }
+    }
+
     static func hasPremiumAccess(for rawTier: String) -> Bool {
         currentProductID(from: rawTier) != nil
     }
@@ -69,9 +82,7 @@ private extension SubscriptionPlanResolver {
     }
 
     static func normalizedTier(from rawTier: String) -> Tier {
-        let normalized = rawTier
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .uppercased()
+        let normalized = normalizedTierValue(from: rawTier)
 
         guard !normalized.isEmpty else {
             return .free
@@ -90,6 +101,12 @@ private extension SubscriptionPlanResolver {
         }
 
         return .unknown(displayTitle(from: normalized))
+    }
+
+    static func normalizedTierValue(from rawTier: String) -> String {
+        rawTier
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
     }
 
     static func displayTitle(from normalizedTier: String) -> String {

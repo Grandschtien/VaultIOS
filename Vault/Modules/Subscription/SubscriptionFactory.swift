@@ -20,6 +20,8 @@ final class SubscriptionFactory: Screen {
         @SafeInject
         var storeKitService: SubscriptionServiceLogic
         @SafeInject
+        var subscriptionAccessService: SubscriptionAccessServicing
+        @SafeInject
         var toastPresenter: ToastPresenting
         @SafeInject
         var analyticsCoreManager: AnalyticsCoreManaging
@@ -42,6 +44,7 @@ final class SubscriptionFactory: Screen {
             currentTier: currentTier,
             output: output,
             storeKitService: storeKitService,
+            subscriptionAccessService: subscriptionAccessService,
             analytics: analytics
         )
 

@@ -345,6 +345,10 @@ private final class SubscriptionRouterSpy: SubscriptionRoutingLogic {
     func presentMessage(with text: String) {
         presentedMessages.append(text)
     }
+
+    func presentSuccess(with text: String) {
+        presentedMessages.append(text)
+    }
 }
 
 private actor SubscriptionOutputSpy: SubscriptionOutput {

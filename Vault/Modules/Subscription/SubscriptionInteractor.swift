@@ -17,17 +17,26 @@ protocol SubscriptionOutput: AnyObject, Sendable {
 }
 
 actor SubscriptionInteractor: SubscriptionBusinessLogic {
+    private enum Constants {
+        static let pollingIntervalNanoseconds: UInt64 = 1_000_000_000
+        static let maximumPollingAttempts = 30
+    }
+
     private let presenter: SubscriptionPresentationLogic
     private let router: SubscriptionRoutingLogic
     private let currentTier: String
     private let output: SubscriptionOutput
     private let storeKitService: SubscriptionServiceLogic
+    private let subscriptionAccessService: SubscriptionAccessServicing
     private let analytics: SubscriptionAnalyticsTracking?
+    private let pollingIntervalNanoseconds: UInt64
+    private let maximumPollingAttempts: Int
 
     private var loadingState: LoadingStatus = .idle
     private var hasTrackedScreenOpen: Bool = false
     private var plans: [SubscriptionFetchData.SubscriptionStorePlan] = []
     private var purchasingPlanID: String?
+    private var isPurchaseSyncing = false
 
     init(
         presenter: SubscriptionPresentationLogic,
@@ -35,6 +44,9 @@ actor SubscriptionInteractor: SubscriptionBusinessLogic {
         currentTier: String,
         output: SubscriptionOutput,
         storeKitService: SubscriptionServiceLogic,
+        subscriptionAccessService: SubscriptionAccessServicing,
+        pollingIntervalNanoseconds: UInt64 = Constants.pollingIntervalNanoseconds,
+        maximumPollingAttempts: Int = Constants.maximumPollingAttempts,
         analytics: SubscriptionAnalyticsTracking? = nil
     ) {
         self.presenter = presenter
@@ -42,6 +54,9 @@ actor SubscriptionInteractor: SubscriptionBusinessLogic {
         self.currentTier = currentTier
         self.output = output
         self.storeKitService = storeKitService
+        self.subscriptionAccessService = subscriptionAccessService
+        self.pollingIntervalNanoseconds = pollingIntervalNanoseconds
+        self.maximumPollingAttempts = maximumPollingAttempts
         self.analytics = analytics
     }
 
@@ -53,6 +68,7 @@ actor SubscriptionInteractor: SubscriptionBusinessLogic {
         loadingState = .loading
         plans = []
         purchasingPlanID = nil
+        isPurchaseSyncing = false
         await presentFetchedData()
 
         do {
@@ -75,7 +91,8 @@ private extension SubscriptionInteractor {
                 loadingState: loadingState,
                 currentTier: currentTier,
                 plans: plans,
-                purchasingPlanID: purchasingPlanID
+                purchasingPlanID: purchasingPlanID,
+                isPurchaseSyncing: isPurchaseSyncing
             )
         )
     }
@@ -92,6 +109,38 @@ private extension SubscriptionInteractor {
         fallbackMessage(from: error, defaultMessage: L10n.subscriptionSyncFailed)
     }
 
+    func subscriptionReadyMessage() -> String {
+        L10n.subscriptionReady
+    }
+
+    func subscriptionReloadRequiredMessage() -> String {
+        L10n.subscriptionReloadRequired
+    }
+
+    func pollPurchasedTier(for planID: String) async -> Bool {
+        guard maximumPollingAttempts > 0 else {
+            return false
+        }
+
+        for attempt in 0..<maximumPollingAttempts {
+            let tierState = await subscriptionAccessService.refreshCurrentTierSourceState()
+
+            if case .network(let tier) = tierState,
+               SubscriptionPlanResolver.matchesPurchasedPlan(planID: planID, tier: tier) {
+                return true
+            }
+
+            guard attempt < maximumPollingAttempts - 1,
+                  pollingIntervalNanoseconds > .zero else {
+                continue
+            }
+
+            try? await Task.sleep(nanoseconds: pollingIntervalNanoseconds)
+        }
+
+        return false
+    }
+
     func fallbackMessage(from error: Error, defaultMessage: String) -> String {
         let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         return message.isEmpty ? defaultMessage : message
@@ -100,7 +149,8 @@ private extension SubscriptionInteractor {
 
 extension SubscriptionInteractor: SubscriptionHandler {
     func handleTapClose() async {
-        guard purchasingPlanID == nil else {
+        guard purchasingPlanID == nil,
+              !isPurchaseSyncing else {
             return
         }
 
@@ -124,11 +174,22 @@ extension SubscriptionInteractor: SubscriptionHandler {
 
         do {
             try await storeKitService.purchase(planID: planID)
-            await presentFetchedData()
             analytics?.trackPurchaseSuccess(planID: planID, planTitle: planTitle, currentTier: currentTier)
+            isPurchaseSyncing = true
+            await presentFetchedData()
+
+            if await pollPurchasedTier(for: planID) {
+                await output.handleSubscriptionDidSync()
+                await router.close()
+                await router.presentSuccess(with: subscriptionReadyMessage())
+                return
+            }
+
             await router.close()
+            await router.presentError(with: subscriptionReloadRequiredMessage())
         } catch {
             purchasingPlanID = nil
+            isPurchaseSyncing = false
             await presentFetchedData()
             analytics?.trackPurchaseFailure(
                 planID: planID,

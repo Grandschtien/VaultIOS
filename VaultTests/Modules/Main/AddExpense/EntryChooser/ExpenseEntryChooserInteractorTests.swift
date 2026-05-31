@@ -121,4 +121,8 @@ private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
     func refreshCurrentTierState() async -> SubscriptionTierState {
         .resolved(tier)
     }
+
+    func refreshCurrentTierSourceState() async -> SubscriptionTierRefreshState {
+        .network(tier)
+    }
 }

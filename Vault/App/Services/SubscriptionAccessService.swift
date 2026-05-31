@@ -16,9 +16,25 @@ enum SubscriptionTierState: Equatable, Sendable {
     }
 }
 
+enum SubscriptionTierRefreshState: Equatable, Sendable {
+    case network(String)
+    case cache(String)
+    case unavailable
+
+    var tierState: SubscriptionTierState {
+        switch self {
+        case .network(let tier), .cache(let tier):
+            .resolved(tier)
+        case .unavailable:
+            .unavailable
+        }
+    }
+}
+
 protocol SubscriptionAccessServicing: Sendable {
     func currentTierState() async -> SubscriptionTierState
     func refreshCurrentTierState() async -> SubscriptionTierState
+    func refreshCurrentTierSourceState() async -> SubscriptionTierRefreshState
 }
 
 extension SubscriptionAccessServicing {
@@ -67,28 +83,31 @@ final class SubscriptionAccessService: SubscriptionAccessServicing, @unchecked S
     }
 
     func currentTierState() async -> SubscriptionTierState {
-        await resolvedTierState(forceRefresh: false)
+        await resolvedCurrentTierState()
     }
 
     func refreshCurrentTierState() async -> SubscriptionTierState {
-        await resolvedTierState(forceRefresh: true)
+        await refreshCurrentTierSourceState().tierState
+    }
+
+    func refreshCurrentTierSourceState() async -> SubscriptionTierRefreshState {
+        await resolvedRefreshedTierState()
     }
 }
 
 private extension SubscriptionAccessService {
-    func resolvedTierState(forceRefresh: Bool) async -> SubscriptionTierState {
+    func resolvedCurrentTierState() async -> SubscriptionTierState {
         guard let userID = currentUserID() else {
             await state.clear()
             return .resolved(Constants.regularTier)
         }
 
-        if !forceRefresh,
-           let cachedTier = await state.cachedTier(for: userID) {
+        if let cachedTier = await state.cachedTier(for: userID) {
             return .resolved(cachedTier)
         }
 
         do {
-            let profile = try await resolvedProfile(forceRefresh: forceRefresh)
+            let profile = try await profileService.getProfile()
             let tier = normalizedTier(profile.tier)
             await state.setCachedTier(tier, for: profile.id)
             return .resolved(tier)
@@ -101,19 +120,31 @@ private extension SubscriptionAccessService {
         }
     }
 
+    func resolvedRefreshedTierState() async -> SubscriptionTierRefreshState {
+        guard let userID = currentUserID() else {
+            await state.clear()
+            return .unavailable
+        }
+
+        do {
+            let profile = try await profileService.refreshProfile()
+            let tier = normalizedTier(profile.tier)
+            await state.setCachedTier(tier, for: profile.id)
+            return .network(tier)
+        } catch {
+            if let cachedTier = await state.cachedTier(for: userID) {
+                return .cache(cachedTier)
+            }
+
+            return .unavailable
+        }
+    }
+
     func currentUserID() -> String? {
         let userID = (userProfileStorageService.loadProfile()?.userId ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         return userID.isEmpty ? nil : userID
-    }
-
-    func resolvedProfile(forceRefresh: Bool) async throws -> ProfileResponseDTO {
-        if forceRefresh {
-            return try await profileService.refreshProfile()
-        }
-
-        return try await profileService.getProfile()
     }
 
     func normalizedTier(_ tier: String) -> String {

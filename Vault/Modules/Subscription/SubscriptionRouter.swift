@@ -9,6 +9,7 @@ protocol SubscriptionRoutingLogic: Sendable {
     func close()
     func presentError(with text: String)
     func presentMessage(with text: String)
+    func presentSuccess(with text: String)
 }
 
 final class SubscriptionRouter: SubscriptionRoutingLogic {
@@ -43,6 +44,13 @@ final class SubscriptionRouter: SubscriptionRoutingLogic {
     func presentMessage(with text: String) {
         toastPresenter.present(
             state: .neutral,
+            title: SubscriptionToastMessageSanitizer.sanitize(text)
+        )
+    }
+
+    func presentSuccess(with text: String) {
+        toastPresenter.present(
+            state: .success,
             title: SubscriptionToastMessageSanitizer.sanitize(text)
         )
     }

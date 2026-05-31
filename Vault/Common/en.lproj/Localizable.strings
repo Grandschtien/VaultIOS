@@ -168,5 +168,7 @@
 "subscription_purchase_pending" = "Purchase is pending approval";
 "subscription_purchase_unverified" = "Unable to verify purchase";
 "subscription_sync_failed" = "Unable to sync subscription";
+"subscription_ready" = "Subscription Is Ready";
+"subscription_reload_required" = "Please Restart The App To Get Access To Content";
 "subscription_account_token_unavailable" = "Unable to identify your account for purchase";
 "expense_ai_entry_subscription_limit_reached" = "You reached your subscription limits, please, wait for renew them";

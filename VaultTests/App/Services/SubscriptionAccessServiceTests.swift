@@ -31,6 +31,8 @@ extension SubscriptionAccessServiceTests {
         let profileService = ProfileContractServiceStub(
             results: [
                 .success(makeProfile(id: "user-1", tier: "PLUS")),
+            ],
+            refreshResults: [
                 .success(makeProfile(id: "user-1", tier: "PREMIUM"))
             ]
         )
@@ -49,6 +51,30 @@ extension SubscriptionAccessServiceTests {
         XCTAssertEqual(refreshedTier, "PREMIUM")
         XCTAssertEqual(resolvedTier, "PREMIUM")
         XCTAssertEqual(callsCount, 2)
+    }
+
+    func testRefreshCurrentTierSourceStateReturnsNetworkAndUpdatesCachedTier() async {
+        let profileService = ProfileContractServiceStub(
+            results: [
+                .success(makeProfile(id: "user-1", tier: "REGULAR"))
+            ],
+            refreshResults: [
+                .success(makeProfile(id: "user-1", tier: "PREMIUM"))
+            ]
+        )
+        let sut = SubscriptionAccessService(
+            profileService: profileService,
+            userProfileStorageService: UserProfileStorageServiceSpy(
+                storedProfile: makeStoredProfile(userID: "user-1")
+            )
+        )
+
+        _ = await sut.currentTier()
+        let refreshedState = await sut.refreshCurrentTierSourceState()
+        let resolvedTier = await sut.currentTier()
+
+        XCTAssertEqual(refreshedState, .network("PREMIUM"))
+        XCTAssertEqual(resolvedTier, "PREMIUM")
     }
 
     func testCurrentTierWhenUserChangesFetchesFreshTierForNewUser() async {
@@ -105,6 +131,28 @@ extension SubscriptionAccessServiceTests {
         let tier = await sut.currentTier()
 
         XCTAssertEqual(tier, "REGULAR")
+    }
+
+    func testRefreshCurrentTierSourceStateWhenRefreshFailsWithCacheReturnsCache() async {
+        let profileService = ProfileContractServiceStub(
+            results: [
+                .success(makeProfile(id: "user-1", tier: "PLUS"))
+            ],
+            refreshResults: [
+                .failure(StubError.any)
+            ]
+        )
+        let sut = SubscriptionAccessService(
+            profileService: profileService,
+            userProfileStorageService: UserProfileStorageServiceSpy(
+                storedProfile: makeStoredProfile(userID: "user-1")
+            )
+        )
+
+        _ = await sut.currentTier()
+        let refreshedState = await sut.refreshCurrentTierSourceState()
+
+        XCTAssertEqual(refreshedState, .cache("PLUS"))
     }
 
     func testLogoutNotificationClearsCachedTier() async {
@@ -164,16 +212,28 @@ private extension SubscriptionAccessServiceTests {
 
 private actor ProfileContractServiceStub: ProfileContractServicing {
     private let results: [Result<ProfileResponseDTO, Error>]
-    private var currentIndex = 0
+    private let refreshResults: [Result<ProfileResponseDTO, Error>]
+    private var getProfileCallsCount = 0
+    private var refreshProfileCallsCount = 0
 
-    init(results: [Result<ProfileResponseDTO, Error>]) {
+    init(
+        results: [Result<ProfileResponseDTO, Error>],
+        refreshResults: [Result<ProfileResponseDTO, Error>]? = nil
+    ) {
         self.results = results
+        self.refreshResults = refreshResults ?? results
     }
 
     func getProfile() async throws -> ProfileResponseDTO {
-        let index = min(currentIndex, max(results.count - 1, 0))
-        currentIndex += 1
+        let index = min(getProfileCallsCount, max(results.count - 1, 0))
+        getProfileCallsCount += 1
         return try results[index].get()
+    }
+
+    func refreshProfile() async throws -> ProfileResponseDTO {
+        let index = min(refreshProfileCallsCount, max(refreshResults.count - 1, 0))
+        refreshProfileCallsCount += 1
+        return try refreshResults[index].get()
     }
 
     func updateProfile(_ request: ProfileUpdateRequestDTO) async throws -> ProfileResponseDTO {
@@ -181,7 +241,7 @@ private actor ProfileContractServiceStub: ProfileContractServicing {
     }
 
     func callsCount() -> Int {
-        currentIndex
+        getProfileCallsCount + refreshProfileCallsCount
     }
 }
 

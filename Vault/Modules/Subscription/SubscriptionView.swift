@@ -7,6 +7,8 @@ final class SubscriptionView: UIView, LayoutScaleProviding {
     private let tableAdapter = SubscriptionTableAdapter()
     private let headerView = AddExpenseSheetHeaderView()
     private let loadingView = UIActivityIndicatorView(style: .medium)
+    private let overlayView = UIView()
+    private let overlayLoadingView = UIActivityIndicatorView(style: .medium)
     private let errorView = FullScreenCommonErrorView()
     private let titleLabel = Label()
     private let subtitleLabel = Label()
@@ -28,6 +30,7 @@ final class SubscriptionView: UIView, LayoutScaleProviding {
 extension SubscriptionView {
     func configure(with viewModel: SubscriptionViewModel) {
         headerView.apply(viewModel.header)
+        setOverlayLoading(viewModel.isOverlayLoading)
 
         switch viewModel.state {
         case .loading:
@@ -66,6 +69,10 @@ private extension SubscriptionView {
 
         loadingView.hidesWhenStopped = true
         loadingView.color = Asset.Colors.interactiveElemetsPrimary.color
+        overlayView.backgroundColor = UIColor.black.withAlphaComponent(0.12)
+        overlayView.isHidden = true
+        overlayLoadingView.hidesWhenStopped = true
+        overlayLoadingView.color = Asset.Colors.interactiveElemetsPrimary.color
         errorView.isHidden = true
         titleLabel.isHidden = true
         subtitleLabel.isHidden = true
@@ -90,6 +97,8 @@ private extension SubscriptionView {
         addSubview(subtitleLabel)
         addSubview(currentPlanView)
         addSubview(tableView)
+        addSubview(overlayView)
+        overlayView.addSubview(overlayLoadingView)
 
         headerView.snp.makeConstraints { make in
             make.top.equalTo(safeAreaLayoutGuide)
@@ -125,6 +134,14 @@ private extension SubscriptionView {
             make.horizontalEdges.equalToSuperview().inset(spaceS)
             make.bottom.equalTo(safeAreaLayoutGuide)
         }
+
+        overlayView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+
+        overlayLoadingView.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+        }
     }
 
     func setContentHidden(_ isHidden: Bool) {
@@ -132,6 +149,16 @@ private extension SubscriptionView {
         subtitleLabel.isHidden = isHidden
         currentPlanView.isHidden = isHidden
         tableView.isHidden = isHidden
+    }
+
+    func setOverlayLoading(_ isLoading: Bool) {
+        overlayView.isHidden = !isLoading
+
+        if isLoading {
+            overlayLoadingView.startAnimating()
+        } else {
+            overlayLoadingView.stopAnimating()
+        }
     }
 }
 

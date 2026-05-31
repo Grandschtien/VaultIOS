@@ -5,13 +5,16 @@ import Foundation
 struct SubscriptionViewModel: Equatable {
     let header: AddExpenseSheetHeaderView.ViewModel
     let state: State
+    let isOverlayLoading: Bool
 
     init(
         header: AddExpenseSheetHeaderView.ViewModel = .init(),
-        state: State = .loading
+        state: State = .loading,
+        isOverlayLoading: Bool = false
     ) {
         self.header = header
         self.state = state
+        self.isOverlayLoading = isOverlayLoading
     }
 }
 

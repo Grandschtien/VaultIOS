@@ -683,6 +683,17 @@ private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
         return refreshedTierStateValue
     }
 
+    func refreshCurrentTierSourceState() async -> SubscriptionTierRefreshState {
+        refreshCalls += 1
+
+        switch refreshedTierStateValue {
+        case .resolved(let tier):
+            return .network(tier)
+        case .unavailable:
+            return .unavailable
+        }
+    }
+
     func refreshCallsCount() -> Int {
         refreshCalls
     }

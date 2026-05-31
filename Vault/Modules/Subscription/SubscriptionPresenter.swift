@@ -28,12 +28,13 @@ final class SubscriptionPresenter: SubscriptionPresentationLogic {
                     textColor: Asset.Colors.textAndIconPrimary.color,
                     alignment: .center
                 ),
-                isCloseEnabled: data.purchasingPlanID == nil,
+                isCloseEnabled: data.purchasingPlanID == nil && !data.isPurchaseSyncing,
                 closeCommand: Command { [weak handler] in
                     await handler?.handleTapClose()
                 }
             ),
-            state: makeState(from: data)
+            state: makeState(from: data),
+            isOverlayLoading: data.isPurchaseSyncing
         )
     }
 }

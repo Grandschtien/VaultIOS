@@ -101,11 +101,13 @@ extension SubscriptionPresenterTests {
                         price: "$2.99"
                     )
                 ],
-                purchasingPlanID: SubscriptionCatalog.premium.id
+                purchasingPlanID: SubscriptionCatalog.premium.id,
+                isPurchaseSyncing: true
             )
         )
 
         XCTAssertFalse(sut.viewModel.header.isCloseEnabled)
+        XCTAssertTrue(sut.viewModel.isOverlayLoading)
 
         guard case let .loaded(content) = sut.viewModel.state else {
             return XCTFail("Expected loaded state")

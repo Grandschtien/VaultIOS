@@ -160,4 +160,6 @@
 "subscription_purchase_pending" = "Покупка ожидает подтверждения";
 "subscription_purchase_unverified" = "Не удалось подтвердить покупку";
 "subscription_sync_failed" = "Не удалось синхронизировать подписку";
+"subscription_ready" = "Подписка готова";
+"subscription_reload_required" = "Пожалуйста, перезагрузите приложение, чтобы получить доступ к контенту";
 "subscription_account_token_unavailable" = "Не удалось определить ваш аккаунт для покупки";

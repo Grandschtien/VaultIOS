@@ -570,6 +570,11 @@ private actor SubscriptionAccessServiceSpy: SubscriptionAccessServicing {
         return .resolved(refreshTierResult)
     }
 
+    func refreshCurrentTierSourceState() async -> SubscriptionTierRefreshState {
+        refreshCallsCount += 1
+        return .network(refreshTierResult)
+    }
+
     func refreshCurrentTierCallsCount() -> Int {
         refreshCallsCount
     }
