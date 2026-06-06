@@ -21,8 +21,8 @@ final class ProfileLogoutSectionView: UIView, LayoutScaleProviding {
 
     func configure(with viewModel: Button.ButtonViewModel) {
         button.apply(viewModel)
-        button.layer.borderWidth = 1
-        button.layer.borderColor = Asset.Colors.errorColor.color.withAlphaComponent(0.2).cgColor
+        button.layer.borderWidth = .zero
+        button.layer.borderColor = UIColor.clear.cgColor
     }
 
     func setLoading(_ isLoading: Bool) {

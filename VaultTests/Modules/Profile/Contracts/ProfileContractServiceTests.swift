@@ -158,6 +158,25 @@ extension ProfileContractServiceTests {
             Date(timeIntervalSince1970: 1_775_001_600)
         )
     }
+
+    func testDeleteAccountForwardsDeleteTarget() async throws {
+        let spy = AsyncNetworkClientContractSpy()
+
+        var didCallDelete = false
+        spy.onRequest = { target in
+            guard let api = target as? AccountAPI,
+                  case .delete = api else {
+                return XCTFail("Expected AccountAPI.delete")
+            }
+
+            didCallDelete = true
+        }
+
+        let sut = ProfileContractService(networkClient: spy)
+        try await sut.deleteAccount()
+
+        XCTAssertTrue(didCallDelete)
+    }
 }
 
 extension ProfileContractServiceTests {

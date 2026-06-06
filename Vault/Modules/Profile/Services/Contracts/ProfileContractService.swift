@@ -7,6 +7,7 @@ protocol ProfileContractServicing: Sendable {
     func getProfile() async throws -> ProfileResponseDTO
     func refreshProfile() async throws -> ProfileResponseDTO
     func updateProfile(_ request: ProfileUpdateRequestDTO) async throws -> ProfileResponseDTO
+    func deleteAccount() async throws
 }
 
 extension ProfileContractServicing {
@@ -66,6 +67,10 @@ final class ProfileContractService: ProfileContractServicing, @unchecked Sendabl
 
         await state.setProfile(profile)
         return profile
+    }
+
+    func deleteAccount() async throws {
+        try await networkClient.request(AccountAPI.delete)
     }
 }
 

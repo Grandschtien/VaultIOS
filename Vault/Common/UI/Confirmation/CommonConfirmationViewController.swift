@@ -47,6 +47,7 @@ private extension CommonConfirmationViewController {
 
         return CommonConfirmationView.ViewModel(
             title: baseViewModel.title,
+            subtitle: baseViewModel.subtitle,
             confirmButton: .init(
                 title: confirmButton.title,
                 titleColor: confirmButton.titleColor,

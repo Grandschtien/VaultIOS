@@ -20,9 +20,9 @@ final class LoginView: UIView, LayoutScaleProviding {
     private let signInButton = Button()
 
     private let footerStackView = UIStackView()
-    private let privacyLabel = Label()
-    private let termsLabel = Label()
-    private let supportLabel = Label()
+//    private let privacyLabel = Label()
+//    private let termsLabel = Label()
+//    private let supportLabel = Label()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -47,9 +47,9 @@ extension LoginView {
         passwordTextField.apply(viewModel.passwordField)
         signInButton.apply(viewModel.signInButton)
 
-        privacyLabel.apply(viewModel.privacyLabel)
-        termsLabel.apply(viewModel.termsLabel)
-        supportLabel.apply(viewModel.supportLabel)
+//        privacyLabel.apply(viewModel.privacyLabel)
+//        termsLabel.apply(viewModel.termsLabel)
+//        supportLabel.apply(viewModel.supportLabel)
     }
 }
 
@@ -72,10 +72,10 @@ private extension LoginView {
         footerStackView.alignment = .center
         footerStackView.distribution = .fillProportionally
 
-        [privacyLabel, termsLabel, supportLabel].forEach {
-            footerStackView.addArrangedSubview($0)
-            $0.setContentCompressionResistancePriority(.required, for: .horizontal)
-        }
+//        [privacyLabel, termsLabel, supportLabel].forEach {
+//            footerStackView.addArrangedSubview($0)
+//            $0.setContentCompressionResistancePriority(.required, for: .horizontal)
+//        }
     }
 
     func setupLayout() {

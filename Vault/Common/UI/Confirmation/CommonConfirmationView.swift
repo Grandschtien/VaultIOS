@@ -3,6 +3,7 @@ import SnapKit
 
 final class CommonConfirmationView: UIView, LayoutScaleProviding, ImageProviding {
     private let titleLabel = Label()
+    private let subtitleLabel = Label()
     private let closeButton = UIButton(type: .system)
     private let confirmButton = Button()
     private let cancelButton = Button()
@@ -23,6 +24,8 @@ final class CommonConfirmationView: UIView, LayoutScaleProviding, ImageProviding
 
     func configure(with viewModel: ViewModel) {
         titleLabel.apply(viewModel.title)
+        subtitleLabel.apply(viewModel.subtitle)
+        subtitleLabel.isHidden = viewModel.subtitle.text.isEmpty
         confirmButton.apply(viewModel.confirmButton)
         cancelButton.apply(viewModel.cancelButton)
         closeCommand = viewModel.closeCommand
@@ -45,6 +48,7 @@ private extension CommonConfirmationView {
 
     func setupLayout() {
         addSubview(titleLabel)
+        addSubview(subtitleLabel)
         addSubview(closeButton)
         addSubview(buttonStackView)
 
@@ -63,8 +67,13 @@ private extension CommonConfirmationView {
             make.trailing.equalTo(safeAreaLayoutGuide).inset(spaceXL)
         }
 
+        subtitleLabel.snp.makeConstraints { make in
+            make.top.equalTo(titleLabel.snp.bottom).offset(spaceXS)
+            make.horizontalEdges.equalTo(titleLabel)
+        }
+
         buttonStackView.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(spaceL)
+            make.top.equalTo(subtitleLabel.snp.bottom).offset(spaceL)
             make.horizontalEdges.equalTo(safeAreaLayoutGuide).inset(spaceS)
             make.bottom.equalTo(safeAreaLayoutGuide).inset(spaceS)
         }
@@ -79,6 +88,7 @@ private extension CommonConfirmationView {
 extension CommonConfirmationView {
     struct ViewModel: Equatable {
         let title: Label.LabelViewModel
+        let subtitle: Label.LabelViewModel
         let confirmButton: Button.ButtonViewModel
         let cancelButton: Button.ButtonViewModel
         let closeCommand: Command
@@ -86,12 +96,14 @@ extension CommonConfirmationView {
 
         init(
             title: Label.LabelViewModel = .init(),
+            subtitle: Label.LabelViewModel = .init(),
             confirmButton: Button.ButtonViewModel = .init(),
             cancelButton: Button.ButtonViewModel = .init(),
             closeCommand: Command = .nope,
             isCloseEnabled: Bool = true
         ) {
             self.title = title
+            self.subtitle = subtitle
             self.confirmButton = confirmButton
             self.cancelButton = cancelButton
             self.closeCommand = closeCommand

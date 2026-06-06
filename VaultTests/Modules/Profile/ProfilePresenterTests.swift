@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import Vault
 
 @MainActor
@@ -39,6 +40,7 @@ extension ProfilePresenterTests {
         XCTAssertEqual(content.generalSectionTitle.text, L10n.profileGeneral)
         XCTAssertEqual(content.rows.count, 2)
         XCTAssertEqual(content.logoutButton.title, L10n.profileLogout)
+        XCTAssertEqual(content.deleteAccountButton.title, L10n.profileDeleteAccount)
         XCTAssertEqual(content.version.text, L10n.profileVersion("2.4.0", "302"))
     }
 }
@@ -175,6 +177,42 @@ extension ProfilePresenterTests {
         XCTAssertTrue(content.logoutButton.isLoading)
         XCTAssertFalse(content.logoutButton.isEnabled)
     }
+
+    func testPresentFetchedDataLoadedBuildsLogoutButtonLikeCancel() {
+        sut.presentFetchedData(
+            ProfileFetchData(loadingState: .loaded)
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        XCTAssertEqual(content.logoutButton.title, L10n.profileLogout)
+        XCTAssertEqual(content.logoutButton.titleColor.cgColor, Asset.Colors.errorColor.color.cgColor)
+        XCTAssertEqual(content.logoutButton.backgroundColor.cgColor, Asset.Colors.interactiveInputBackground.color.cgColor)
+    }
+
+    func testPresentFetchedDataLoadedBuildsDeleteAccountButton() async {
+        let deleteExpectation = expectation(description: "Delete account command")
+        handler.onHandleTapDeleteAccount = {
+            deleteExpectation.fulfill()
+        }
+
+        sut.presentFetchedData(
+            ProfileFetchData(loadingState: .loaded)
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        XCTAssertEqual(content.deleteAccountButton.title, L10n.profileDeleteAccount)
+        XCTAssertEqual(content.deleteAccountButton.titleColor.cgColor, Asset.Colors.errorColor.color.cgColor)
+        XCTAssertEqual(content.deleteAccountButton.backgroundColor.cgColor, UIColor.clear.cgColor)
+
+        content.deleteAccountButton.tapCommand.execute()
+        await fulfillment(of: [deleteExpectation], timeout: 1.0)
+    }
 }
 
 extension ProfilePresenterTests {
@@ -212,6 +250,7 @@ private extension ProfilePresenterTests {
 private final class ProfileHandlerSpy: ProfileHandler, @unchecked Sendable {
     var onHandleRetry: (() -> Void)?
     var onHandleLogout: (() -> Void)?
+    var onHandleTapDeleteAccount: (() -> Void)?
     var onHandleTapCurrency: (() -> Void)?
     var onHandleTapSaveCurrency: (() -> Void)?
     var onHandleTapSubscription: (() -> Void)?
@@ -222,6 +261,10 @@ private final class ProfileHandlerSpy: ProfileHandler, @unchecked Sendable {
 
     func handleTapLogout() async {
         onHandleLogout?()
+    }
+
+    func handleTapDeleteAccount() async {
+        onHandleTapDeleteAccount?()
     }
 
     func handleTapCurrency() async {

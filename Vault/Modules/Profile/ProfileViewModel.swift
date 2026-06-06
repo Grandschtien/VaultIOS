@@ -39,6 +39,7 @@ extension ProfileViewModel {
         let generalSectionTitle: Label.LabelViewModel
         let rows: [GeneralRow]
         let logoutButton: Button.ButtonViewModel
+        let deleteAccountButton: Button.ButtonViewModel
         let version: Label.LabelViewModel
         let isSavingCurrency: Bool
 
@@ -50,6 +51,7 @@ extension ProfileViewModel {
             generalSectionTitle: Label.LabelViewModel = .init(),
             rows: [GeneralRow] = [],
             logoutButton: Button.ButtonViewModel = .init(),
+            deleteAccountButton: Button.ButtonViewModel = .init(),
             version: Label.LabelViewModel = .init(),
             isSavingCurrency: Bool = false
         ) {
@@ -60,6 +62,7 @@ extension ProfileViewModel {
             self.generalSectionTitle = generalSectionTitle
             self.rows = rows
             self.logoutButton = logoutButton
+            self.deleteAccountButton = deleteAccountButton
             self.version = version
             self.isSavingCurrency = isSavingCurrency
         }

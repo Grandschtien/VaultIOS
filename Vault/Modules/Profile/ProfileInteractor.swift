@@ -9,6 +9,7 @@ protocol ProfileBusinessLogic: Sendable {
 protocol ProfileHandler: AnyObject, Sendable {
     func handleTapRetry() async
     func handleTapLogout() async
+    func handleTapDeleteAccount() async
     func handleTapCurrency() async
     func handleTapSaveCurrency() async
     func handleTapSubscription() async
@@ -27,6 +28,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
     private var loadingState: LoadingStatus = .idle
     private var isSavingCurrency: Bool = false
     private var isLoggingOut: Bool = false
+    private var isDeletingAccount: Bool = false
     private var hasTrackedScreenOpen: Bool = false
     private var profile: ProfileResponseDTO?
     private var subscription: SubscriptionAccessSnapshot?
@@ -60,6 +62,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
         loadingState = .loading
         isSavingCurrency = false
         isLoggingOut = false
+        isDeletingAccount = false
         profile = nil
         subscription = nil
         let cachedCurrency = normalizedCurrencyCode(
@@ -146,6 +149,17 @@ private extension ProfileInteractor {
         return message
     }
 
+    func deleteAccountFailedMessage(from error: Error) -> String {
+        let message = error.localizedDescription
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if message.isEmpty {
+            return L10n.profileDeleteAccountFailed
+        }
+
+        return message
+    }
+
     func persistLocalProfile(
         with profile: ProfileResponseDTO,
         rateToUsd: Double
@@ -184,6 +198,14 @@ extension ProfileInteractor: ProfileHandler {
 
         analytics?.trackLogoutScreenOpen()
         await router.openConfirmation(context: logoutConfirmationContext())
+    }
+
+    func handleTapDeleteAccount() async {
+        guard !isDeletingAccount else {
+            return
+        }
+
+        await router.openConfirmation(context: deleteAccountConfirmationContext())
     }
 
     func handleTapCurrency() async {
@@ -302,6 +324,20 @@ private extension ProfileInteractor {
         )
     }
 
+    func deleteAccountConfirmationContext() -> CommonConfirmationContext {
+        CommonConfirmationContext(
+            title: L10n.profileDeleteAccount,
+            subtitle: L10n.profileDeleteAccountConfirmationTitle,
+            confirmButtonTitle: L10n.profileDeleteAccount,
+            confirmButtonStyle: .destructive,
+            cancelButtonTitle: L10n.commonCancel,
+            cancelButtonStyle: .primary,
+            confirmCommand: Command { [weak self] in
+                await self?.performDeleteAccount()
+            }
+        )
+    }
+
     func performLogout() async {
         guard !isLoggingOut else {
             return
@@ -318,6 +354,22 @@ private extension ProfileInteractor {
             await presentFetchedData()
             analytics?.trackLogoutFailure(error)
             await router.presentError(with: logoutFailedMessage(from: error))
+        }
+    }
+
+    func performDeleteAccount() async {
+        guard !isDeletingAccount else {
+            return
+        }
+
+        isDeletingAccount = true
+
+        do {
+            try await profileService.deleteAccount()
+            await authSessionService.logout()
+        } catch {
+            isDeletingAccount = false
+            await router.presentError(with: deleteAccountFailedMessage(from: error))
         }
     }
 

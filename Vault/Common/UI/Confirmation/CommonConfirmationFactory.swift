@@ -32,18 +32,25 @@ private extension CommonConfirmationFactory {
                 alignment: .center,
                 numberOfLines: .zero
             ),
+            subtitle: .init(
+                text: context.subtitle ?? "",
+                font: Typography.typographyRegular14,
+                textColor: Asset.Colors.textAndIconPlaceseholder.color,
+                alignment: .center,
+                numberOfLines: .zero
+            ),
             confirmButton: .init(
                 title: context.confirmButtonTitle,
-                titleColor: Asset.Colors.textAndIconPrimaryInverted.color,
-                backgroundColor: Asset.Colors.interactiveElemetsPrimary.color,
-                font: Typography.typographySemibold16,
+                titleColor: buttonTitleColor(for: context.confirmButtonStyle),
+                backgroundColor: buttonBackgroundColor(for: context.confirmButtonStyle),
+                font: Typography.typographyBold16,
                 tapCommand: context.confirmCommand
             ),
             cancelButton: .init(
                 title: context.cancelButtonTitle,
-                titleColor: Asset.Colors.textAndIconPrimary.color,
-                backgroundColor: Asset.Colors.interactiveInputBackground.color,
-                font: Typography.typographySemibold16,
+                titleColor: buttonTitleColor(for: context.cancelButtonStyle),
+                backgroundColor: buttonBackgroundColor(for: context.cancelButtonStyle),
+                font: Typography.typographyBold16,
                 tapCommand: resolvedCommand(
                     for: context.cancelAction,
                     router: router
@@ -54,6 +61,26 @@ private extension CommonConfirmationFactory {
                 router: router
             )
         )
+    }
+
+    func buttonTitleColor(for style: CommonConfirmationButtonStyle) -> UIColor {
+        switch style {
+        case .primary:
+            Asset.Colors.textAndIconPrimaryInverted.color
+        case .secondary:
+            Asset.Colors.textAndIconPrimary.color
+        case .destructive:
+            Asset.Colors.errorColor.color
+        }
+    }
+
+    func buttonBackgroundColor(for style: CommonConfirmationButtonStyle) -> UIColor {
+        switch style {
+        case .primary:
+            Asset.Colors.interactiveElemetsPrimary.color
+        case .secondary, .destructive:
+            Asset.Colors.interactiveInputBackground.color
+        }
     }
 
     func resolvedCommand(

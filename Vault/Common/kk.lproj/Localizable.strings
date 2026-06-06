@@ -32,6 +32,8 @@
 "onboarding_3_subtitle" = "Ақшаңыз қайда кететінін ақылды аналитика арқылы түсініңіз";
 
 "common_fill_field" = "Осы өрісті толтырыңыз";
+"common_confirm" = "Растау";
+"common_cancel" = "Бас тарту";
 
 "step_number" = "%@ қадам %@-дан";
 "account_step_registration_sutitle" = "Деректеріңізді қорғау үшін сенімді құпиясөз қолданыңыз";
@@ -74,3 +76,6 @@
 "category_delete" = "Жою";
 "category_edit_title" = "%@ өңдеу";
 "category_edit_subtitle" = "Санат ID: %@";
+"profile_delete_account" = "Аккаунтты жою";
+"profile_delete_account_confirmation_title" = "Аккаунтыңызды шынымен жойғыңыз келе ме? Барлық деректеріңіз жойылады.";
+"profile_delete_account_failed" = "Аккаунтты жою мүмкін болмады";

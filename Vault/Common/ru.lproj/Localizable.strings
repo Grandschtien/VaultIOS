@@ -32,6 +32,8 @@
 "onboarding_3_subtitle" = "Понимайте свои расходы с помощью умной аналитики";
 
 "common_fill_field" = "Пожалуйста, заполните поле";
+"common_confirm" = "Подтвердить";
+"common_cancel" = "Отмена";
 
 "step_number" = "Шаг %@ из %@";
 "account_step_registration_sutitle" = "Используйте надежный пароль для защиты данных";
@@ -135,6 +137,9 @@
 "profile_currency" = "Валюта";
 "profile_language" = "Язык";
 "profile_logout" = "Выйти";
+"profile_delete_account" = "Удалить аккаунт";
+"profile_delete_account_confirmation_title" = "Вы уверены, что хотите удалить аккаунт? Все ваши данные будут удалены.";
+"profile_delete_account_failed" = "Не удалось удалить аккаунт";
 "profile_version" = "Версия %@ (Сборка %@)";
 "profile_error" = "Что-то пошло не так";
 "profile_select_currency_title" = "Выберите валюту";

@@ -125,7 +125,7 @@ private extension ProfilePresenter {
             ),
             logoutButton: .init(
                 title: L10n.profileLogout,
-                titleColor: Asset.Colors.errorColor.color,
+                titleColor: Asset.Colors.textAndIconPrimary.color,
                 backgroundColor: .clear,
                 font: Typography.typographyMedium16,
                 isEnabled: !data.isLoggingOut,
@@ -133,8 +133,16 @@ private extension ProfilePresenter {
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapLogout()
                 },
-                leftIcon: Asset.Icons.logout.image,
-                iconTintColor: Asset.Colors.errorColor.color
+                iconTintColor: Asset.Colors.textAndIconPrimary.color
+            ),
+            deleteAccountButton: .init(
+                title: L10n.profileDeleteAccount,
+                titleColor: Asset.Colors.errorColor.color,
+                backgroundColor: .clear,
+                font: Typography.typographyMedium16,
+                tapCommand: Command { [weak handler] in
+                    await handler?.handleTapDeleteAccount()
+                }
             ),
             version: .init(
                 text: L10n.profileVersion(data.appVersion, data.appBuild),

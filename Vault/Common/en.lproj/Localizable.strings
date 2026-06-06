@@ -142,6 +142,9 @@
 "profile_currency" = "Currency";
 "profile_language" = "Language";
 "profile_logout" = "Log Out";
+"profile_delete_account" = "Delete Account";
+"profile_delete_account_confirmation_title" = "Are you sure you want to delete your account? All your data will be deleted.";
+"profile_delete_account_failed" = "Unable to delete account";
 "profile_logout_confirmation_title" = "Are you sure?";
 "profile_version" = "Version %@ (Build %@)";
 "profile_ai_requests_usage" = "Used AI Requests: %@ / %@";

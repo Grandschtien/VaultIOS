@@ -249,6 +249,98 @@ extension ProfileInteractorTests {
 }
 
 extension ProfileInteractorTests {
+    func testHandleTapDeleteAccountOpensDestructiveConfirmationWithoutStartingDeletion() async {
+        let presenter = ProfilePresenterSpy()
+        let router = ProfileRouterSpy()
+        let profileService = ProfileServiceStub(results: [])
+        let authSessionService = AuthSessionServiceSpy(logoutResult: .success(()))
+        let sut = makeSut(
+            presenter: presenter,
+            router: router,
+            profileService: profileService,
+            authSessionService: authSessionService
+        )
+
+        await sut.handleTapDeleteAccount()
+
+        XCTAssertEqual(router.openConfirmationCallsCount, 1)
+        XCTAssertEqual(router.lastConfirmationContext?.title, L10n.profileDeleteAccount)
+        XCTAssertEqual(router.lastConfirmationContext?.subtitle, L10n.profileDeleteAccountConfirmationTitle)
+        XCTAssertEqual(router.lastConfirmationContext?.confirmButtonTitle, L10n.profileDeleteAccount)
+        XCTAssertEqual(router.lastConfirmationContext?.confirmButtonStyle, .destructive)
+        XCTAssertEqual(router.lastConfirmationContext?.cancelButtonTitle, L10n.commonCancel)
+        XCTAssertEqual(router.lastConfirmationContext?.cancelButtonStyle, .primary)
+        XCTAssertTrue(router.presentedErrors.isEmpty)
+
+        let deleteCallsCount = await profileService.currentDeleteAccountCallsCount()
+        let logoutCallsCount = await authSessionService.currentLogoutCallsCount()
+        XCTAssertEqual(deleteCallsCount, 0)
+        XCTAssertEqual(logoutCallsCount, 0)
+        XCTAssertTrue(presenter.presentedData.isEmpty)
+    }
+}
+
+extension ProfileInteractorTests {
+    func testHandleTapDeleteAccountConfirmWhenRequestSucceedsLogsOutLocally() async {
+        let presenter = ProfilePresenterSpy()
+        let router = ProfileRouterSpy()
+        let profileService = ProfileServiceStub(
+            results: [],
+            deleteAccountResult: .success(())
+        )
+        let authSessionService = AuthSessionServiceSpy(logoutResult: .success(()))
+        let sut = makeSut(
+            presenter: presenter,
+            router: router,
+            profileService: profileService,
+            authSessionService: authSessionService
+        )
+
+        await sut.handleTapDeleteAccount()
+        router.lastConfirmationContext?.confirmCommand.execute()
+        await waitForCommandExecution()
+
+        XCTAssertTrue(router.presentedErrors.isEmpty)
+
+        let deleteCallsCount = await profileService.currentDeleteAccountCallsCount()
+        let logoutCallsCount = await authSessionService.currentLogoutCallsCount()
+        let logoutFromBackendCallsCount = await authSessionService.currentLogoutFromBackendCallsCount()
+        XCTAssertEqual(deleteCallsCount, 1)
+        XCTAssertEqual(logoutCallsCount, 1)
+        XCTAssertEqual(logoutFromBackendCallsCount, 0)
+    }
+}
+
+extension ProfileInteractorTests {
+    func testHandleTapDeleteAccountConfirmWhenRequestFailsPresentsErrorWithoutLogout() async {
+        let presenter = ProfilePresenterSpy()
+        let router = ProfileRouterSpy()
+        let profileService = ProfileServiceStub(
+            results: [],
+            deleteAccountResult: .failure(StubError.any)
+        )
+        let authSessionService = AuthSessionServiceSpy(logoutResult: .success(()))
+        let sut = makeSut(
+            presenter: presenter,
+            router: router,
+            profileService: profileService,
+            authSessionService: authSessionService
+        )
+
+        await sut.handleTapDeleteAccount()
+        router.lastConfirmationContext?.confirmCommand.execute()
+        await waitForCommandExecution()
+
+        XCTAssertEqual(router.presentedErrors.count, 1)
+
+        let deleteCallsCount = await profileService.currentDeleteAccountCallsCount()
+        let logoutCallsCount = await authSessionService.currentLogoutCallsCount()
+        XCTAssertEqual(deleteCallsCount, 1)
+        XCTAssertEqual(logoutCallsCount, 0)
+    }
+}
+
+extension ProfileInteractorTests {
     func testHandleTapCurrencyWhenProfileLoadedOpensCurrencySelection() async {
         let presenter = ProfilePresenterSpy()
         let router = ProfileRouterSpy()
@@ -534,6 +626,7 @@ private final class ProfileRouterSpy: ProfileRoutingLogic {
 private actor AuthSessionServiceSpy: AuthSessionServiceProtocol {
     private let logoutResult: Result<Void, Error>
     private var logoutFromBackendCallsCount = 0
+    private var logoutCallsCount = 0
 
     init(logoutResult: Result<Void, Error>) {
         self.logoutResult = logoutResult
@@ -562,10 +655,16 @@ private actor AuthSessionServiceSpy: AuthSessionServiceProtocol {
         }
     }
 
-    func logout() async {}
+    func logout() async {
+        logoutCallsCount += 1
+    }
 
     func currentLogoutFromBackendCallsCount() -> Int {
         logoutFromBackendCallsCount
+    }
+
+    func currentLogoutCallsCount() -> Int {
+        logoutCallsCount
     }
 }
 
@@ -639,15 +738,19 @@ private actor SubscriptionAccessServiceSpy: SubscriptionAccessServicing {
 private actor ProfileServiceStub: ProfileContractServicing {
     private var results: [Result<ProfileResponseDTO, Error>]
     private let updateResults: [Result<ProfileResponseDTO, Error>]
+    private let deleteAccountResult: Result<Void, Error>
     private var getProfileCallsCount = 0
     private var updateProfileCallsCount = 0
+    private var deleteAccountCallsCount = 0
 
     init(
         results: [Result<ProfileResponseDTO, Error>],
-        updateResults: [Result<ProfileResponseDTO, Error>] = [.failure(StubError.any)]
+        updateResults: [Result<ProfileResponseDTO, Error>] = [.failure(StubError.any)],
+        deleteAccountResult: Result<Void, Error> = .success(())
     ) {
         self.results = results
         self.updateResults = updateResults
+        self.deleteAccountResult = deleteAccountResult
     }
 
     func getProfile() async throws -> ProfileResponseDTO {
@@ -667,8 +770,17 @@ private actor ProfileServiceStub: ProfileContractServicing {
         return try updateResults[index].get()
     }
 
+    func deleteAccount() async throws {
+        deleteAccountCallsCount += 1
+        try deleteAccountResult.get()
+    }
+
     func callsCount() -> Int {
         getProfileCallsCount
+    }
+
+    func currentDeleteAccountCallsCount() -> Int {
+        deleteAccountCallsCount
     }
 }
 

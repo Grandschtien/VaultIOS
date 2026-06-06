@@ -37,4 +37,18 @@ extension ProfileContractsAPITests {
             return XCTFail("Expected custom JSON request type")
         }
     }
+
+    func testDeleteAccountBuildsExpectedConfiguration() {
+        let target = AccountAPI.delete
+
+        XCTAssertEqual(target.path, "/account")
+        XCTAssertEqual(target.method.rawValue, "DELETE")
+        XCTAssertEqual(target.host, "localhost")
+        XCTAssertEqual(target.timeoutInterval, 30)
+        XCTAssertEqual(target.url.absoluteString, "https://localhost:8080/account")
+
+        guard case .plain = target.requestType else {
+            return XCTFail("Expected plain request type")
+        }
+    }
 }

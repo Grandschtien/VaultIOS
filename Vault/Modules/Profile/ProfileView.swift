@@ -15,6 +15,7 @@ final class ProfileView: UIView, LayoutScaleProviding {
     private let planSectionView = ProfilePlanCardSectionView()
     private let generalSectionView = ProfileGeneralSectionView()
     private let logoutSectionView = ProfileLogoutSectionView()
+    private let deleteAccountSectionView = ProfileLogoutSectionView()
     private let versionSectionView = ProfileVersionSectionView()
 
     override init(frame: CGRect) {
@@ -69,6 +70,7 @@ private extension ProfileView {
             rows: content.rows
         )
         logoutSectionView.configure(with: content.logoutButton)
+        deleteAccountSectionView.configure(with: content.deleteAccountButton)
         versionSectionView.configure(with: content.version)
     }
 
@@ -101,7 +103,10 @@ private extension ProfileView {
         contentStackView.addArrangedSubview(planSectionView)
         contentStackView.addArrangedSubview(generalSectionView)
         contentStackView.addArrangedSubview(logoutSectionView)
+        contentStackView.addArrangedSubview(deleteAccountSectionView)
         contentStackView.addArrangedSubview(versionSectionView)
+        contentStackView.setCustomSpacing(.zero, after: logoutSectionView)
+        contentStackView.setCustomSpacing(.zero, after: deleteAccountSectionView)
 
         scrollView.snp.makeConstraints {
             $0.edges.equalTo(safeAreaLayoutGuide)
@@ -128,6 +133,10 @@ private extension ProfileView {
             $0.height.equalTo(sizeXL)
         }
 
+        deleteAccountSectionView.snp.makeConstraints {
+            $0.height.equalTo(sizeXL)
+        }
+
         versionSectionView.snp.makeConstraints {
             $0.height.equalTo(sizeM)
         }
@@ -142,6 +151,7 @@ private extension ProfileView {
         planSectionView.setLoading(isLoading)
         generalSectionView.setLoading(isLoading)
         logoutSectionView.setLoading(isLoading)
+        deleteAccountSectionView.setLoading(isLoading)
         versionSectionView.setLoading(isLoading)
     }
 
