@@ -27,6 +27,8 @@ final class SubscriptionFactory: Screen {
         var analyticsCoreManager: AnalyticsCoreManaging
         @SafeInject
         var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
+        @SafeInject
+        var appLogService: AppLogServiceProtocol
 
         let viewModel = SubscriptionViewModel()
         let presenter = SubscriptionPresenter(viewModel: viewModel)
@@ -45,7 +47,8 @@ final class SubscriptionFactory: Screen {
             output: output,
             storeKitService: storeKitService,
             subscriptionAccessService: subscriptionAccessService,
-            analytics: analytics
+            analytics: analytics,
+            appLogService: appLogService
         )
 
         let viewModelStore = ViewModelStore(

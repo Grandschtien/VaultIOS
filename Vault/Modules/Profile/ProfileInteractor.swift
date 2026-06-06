@@ -4,6 +4,7 @@ import Foundation
 
 protocol ProfileBusinessLogic: Sendable {
     func fetchData() async
+    func sendLogs() async
 }
 
 protocol ProfileHandler: AnyObject, Sendable {
@@ -24,6 +25,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
     private let authSessionService: AuthSessionServiceProtocol
     private let subscriptionAccessService: SubscriptionAccessServicing
     private let analytics: ProfileAnalyticsTracking?
+    private let applogSink: AppLogSinkProtocol
 
     private var loadingState: LoadingStatus = .idle
     private var isSavingCurrency: Bool = false
@@ -42,6 +44,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
         userProfileStorageService: UserProfileStorageServiceProtocol,
         authSessionService: AuthSessionServiceProtocol,
         subscriptionAccessService: SubscriptionAccessServicing,
+        applogSink: AppLogSinkProtocol,
         analytics: ProfileAnalyticsTracking? = nil
     ) {
         self.presenter = presenter
@@ -52,6 +55,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
         self.authSessionService = authSessionService
         self.subscriptionAccessService = subscriptionAccessService
         self.analytics = analytics
+        self.applogSink = applogSink
     }
 
     func fetchData() async {
@@ -85,6 +89,30 @@ actor ProfileInteractor: ProfileBusinessLogic {
             analytics?.trackProfileFailure(error)
             loadingState = .failed(.undelinedError(description: error.localizedDescription))
             await presentFetchedData()
+        }
+    }
+    
+    func sendLogs() async {
+        do {
+            let link: URL = try await withCheckedThrowingContinuation { [weak self] continuation in
+                guard let self else {
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+                
+                self.applogSink.exportLogFile { result in
+                    switch result {
+                    case let .success(link):
+                        continuation.resume(returning: link)
+                        
+                    case let .failure(error):
+                        continuation.resume(throwing: error)
+                    }
+                }
+            }
+            await router.openActivity(with: link)
+        } catch {
+            await router.presentError(with: error.localizedDescription)
         }
     }
 }

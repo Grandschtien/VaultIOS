@@ -18,6 +18,8 @@ struct ExpenseManualEntryFactory: Screen {
         var toastPresenter: ToastPresenting
         @SafeInject
         var userProfileStorageService: UserProfileStorageServiceProtocol
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
 
         let viewModel = ExpenseManualEntryViewModel()
         let presenter = ExpenseManualEntryPresenter(
@@ -38,7 +40,10 @@ struct ExpenseManualEntryFactory: Screen {
                 userProfileStorageService: userProfileStorageService
             ),
             requestBuilder: ExpenseManualEntryRequestBuilder(),
-            initialDrafts: initialDrafts
+            initialDrafts: initialDrafts,
+            analytics: ExpenseManualEntryAnalyticsTracker(
+                analyticsCoreManager: analyticsCoreManager
+            )
         )
 
         let viewModelStore = ViewModelStore(

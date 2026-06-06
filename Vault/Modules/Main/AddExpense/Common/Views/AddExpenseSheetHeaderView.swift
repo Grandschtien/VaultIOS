@@ -55,6 +55,11 @@ private extension AddExpenseSheetHeaderView {
 
     @objc
     func handleTapClose() {
+        let titleText = viewModel.title.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        AppLogBridge.logTap(
+            source: titleText.isEmpty ? String(describing: Self.self) : titleText,
+            payload: ["control_type": "AddExpenseSheetHeaderView"]
+        )
         executeAfterDismissingKeyboard(viewModel.closeCommand)
     }
 }

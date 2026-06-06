@@ -24,7 +24,7 @@ enum SubscriptionCatalog {
     }
 }
 
-enum SubscriptionServiceError: LocalizedError {
+enum SubscriptionServiceError: LocalizedError, Equatable {
     case emptyOfferings
     case packageNotFound(String)
     case purchaseCancelled

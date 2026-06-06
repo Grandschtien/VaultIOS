@@ -142,6 +142,7 @@ private extension ExpenseAIEntryInteractor {
         }
 
         guard subscription?.hasAiInputAccess == true else {
+            analytics?.trackPaywallOpen(currentTier: currentTier.rawValue)
             await router.openSubscription(
                 currentTier: currentTier,
                 output: self

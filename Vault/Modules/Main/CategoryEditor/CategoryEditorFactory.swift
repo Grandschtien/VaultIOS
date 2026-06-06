@@ -19,6 +19,8 @@ final class CategoryEditorFactory: Screen {
         var toastPresenter: ToastPresenting
         @SafeInject
         var subscriptionAccessService: SubscriptionAccessServicing
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
 
         let presetProvider = CategoryEditorPresetProvider()
         let colorProvider = CategoryColorProvider()
@@ -43,7 +45,10 @@ final class CategoryEditorFactory: Screen {
             subscriptionAccessService: subscriptionAccessService,
             subscriptionLimitErrorResolver: CategoryEditorSubscriptionLimitErrorResolver(),
             presetProvider: presetProvider,
-            colorProvider: colorProvider
+            colorProvider: colorProvider,
+            analytics: CategoryEditorAnalyticsTracker(
+                analyticsCoreManager: analyticsCoreManager
+            )
         )
 
         let viewModelStore = ViewModelStore(

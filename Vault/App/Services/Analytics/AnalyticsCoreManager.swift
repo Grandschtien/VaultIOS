@@ -7,19 +7,28 @@ protocol AnalyticsServiceProtocol: Sendable {
 
 final class AnalyticsCoreManager: AnalyticsCoreManaging, @unchecked Sendable {
     private let dispatcher: Dispatcher
-    private let userProfileStorageService: UserProfileStorageServiceProtocol
+    private let userProfileStorageService: UserProfileStorageServiceProtocol?
+    private let appLogService: AppLogServiceProtocol
 
     init(
         services: [any AnalyticsServiceProtocol],
-        userProfileStorageService: UserProfileStorageServiceProtocol
+        userProfileStorageService: UserProfileStorageServiceProtocol?,
+        appLogService: AppLogServiceProtocol
     ) {
         self.userProfileStorageService = userProfileStorageService
+        self.appLogService = appLogService
         dispatcher = Dispatcher(services: services)
     }
 
     func sendEvent(provider: AnalyticsProvider, event: AnalyticsEvent, payload: [String: Any]) {
         let normalizedPayload = AnalyticsPayload(
             rawPayload: mergedPayload(defaultPayload(), payload)
+        )
+        appLogService.log(
+            category: .analytics,
+            name: event.name,
+            source: provider.logName,
+            payload: normalizedPayload.foundationValues ?? [:]
         )
         Task { await dispatcher.dispatch(provider: provider, event: event, payload: normalizedPayload) }
     }
@@ -29,7 +38,7 @@ private extension AnalyticsCoreManager {
     func defaultPayload() -> [String: Any] {
         [
             "date_utc": ISO8601DateFormatter().string(from: Date()),
-            "user_id": userProfileStorageService.loadProfile()?.userId ?? ""
+            "user_id": userProfileStorageService?.loadProfile()?.userId ?? ""
         ]
     }
 
@@ -51,7 +60,6 @@ private extension AnalyticsCoreManager {
         func dispatch(provider: AnalyticsProvider, event: AnalyticsEvent, payload: AnalyticsPayload) async {
             let resolvedServices = resolvedServices(for: provider)
             guard !resolvedServices.isEmpty else { return }
-            logDispatch(provider: provider, event: event, payload: payload)
 
             await withTaskGroup(of: Void.self) { group in
                 for service in resolvedServices {
@@ -67,14 +75,6 @@ private extension AnalyticsCoreManager {
             case .firebase:
                 services.filter { $0.provider == .firebase }
             }
-        }
-
-        func logDispatch(provider: AnalyticsProvider, event: AnalyticsEvent, payload: AnalyticsPayload) {
-            #if DEBUG
-            print(
-                "[Analytics] provider=\(provider.logName) event=\(event.name) payload=\(payload.logDescription)"
-            )
-            #endif
         }
     }
 }

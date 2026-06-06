@@ -2,6 +2,7 @@ import UIKit
 import SnapKit
 
 final class NavigationBarActionView: UIView, LayoutScaleProviding, ImageProviding {
+    private(set) var viewModel: ViewModel = .init()
     private let button = UIButton(type: .system)
     private var tapCommand: Command = .nope
 
@@ -21,6 +22,7 @@ final class NavigationBarActionView: UIView, LayoutScaleProviding, ImageProvidin
     }
 
     func configure(with viewModel: ViewModel) {
+        self.viewModel = viewModel
         tapCommand = viewModel.tapCommand
         button.tintColor = viewModel.tintColor
         button.setTitle(nil, for: .normal)
@@ -54,6 +56,10 @@ private extension NavigationBarActionView {
 
     @objc
     func handleTap() {
+        AppLogBridge.logTap(
+            source: resolvedTrackingName(),
+            payload: ["control_type": "NavigationBarActionView"]
+        )
         tapCommand.execute()
     }
 }
@@ -69,17 +75,37 @@ extension NavigationBarActionView {
         let tintColor: UIColor
         let isEnabled: Bool
         let tapCommand: Command
+        let trackingName: String?
 
         init(
             content: Content = .plus,
             tintColor: UIColor = Asset.Colors.interactiveElemetsPrimary.color,
             isEnabled: Bool = true,
-            tapCommand: Command = .nope
+            tapCommand: Command = .nope,
+            trackingName: String? = nil
         ) {
             self.content = content
             self.tintColor = tintColor
             self.isEnabled = isEnabled
             self.tapCommand = tapCommand
+            self.trackingName = trackingName
+        }
+    }
+}
+
+private extension NavigationBarActionView {
+    func resolvedTrackingName() -> String {
+        if let trackingName = viewModel.trackingName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !trackingName.isEmpty {
+            return trackingName
+        }
+
+        switch viewModel.content {
+        case .plus:
+            return "plus"
+        case .text(let title):
+            let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmedTitle.isEmpty ? String(describing: Self.self) : trimmedTitle
         }
     }
 }

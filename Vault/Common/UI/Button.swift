@@ -103,6 +103,10 @@ final class Button: UIButton, LayoutScaleProviding {
     @objc
     private func handleTap() {
         guard viewModel.isEnabled, !viewModel.isLoading else { return }
+        AppLogBridge.logTap(
+            source: resolvedTrackingName(),
+            payload: resolvedTrackingPayload()
+        )
         executeAfterDismissingKeyboard(viewModel.tapCommand)
     }
 
@@ -191,6 +195,27 @@ final class Button: UIButton, LayoutScaleProviding {
         imageView.tintColor = tintColor
         imageView.isHidden = false
     }
+
+    func resolvedTrackingName() -> String {
+        if let trackingName = viewModel.trackingName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !trackingName.isEmpty {
+            return trackingName
+        }
+
+        let title = viewModel.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return title.isEmpty ? String(describing: Self.self) : title
+    }
+
+    func resolvedTrackingPayload() -> [String: Any] {
+        var payload: [String: Any] = [
+            "control_type": "Button"
+        ]
+        let title = viewModel.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !title.isEmpty {
+            payload["title"] = title
+        }
+        return payload
+    }
 }
 
 extension Button {
@@ -205,6 +230,7 @@ extension Button {
         let leftIcon: UIImage?
         let rightIcon: UIImage?
         let iconTintColor: UIColor?
+        let trackingName: String?
         let height: CGFloat
         let cornerRadius: CGFloat
 
@@ -219,6 +245,7 @@ extension Button {
             leftIcon: UIImage? = nil,
             rightIcon: UIImage? = nil,
             iconTintColor: UIColor? = nil,
+            trackingName: String? = nil,
             height: CGFloat = Constants.defaultHeight,
             cornerRadius: CGFloat = Constants.defaultCornerRadius
         ) {
@@ -232,6 +259,7 @@ extension Button {
             self.leftIcon = leftIcon
             self.rightIcon = rightIcon
             self.iconTintColor = iconTintColor
+            self.trackingName = trackingName
             self.height = height
             self.cornerRadius = cornerRadius
         }

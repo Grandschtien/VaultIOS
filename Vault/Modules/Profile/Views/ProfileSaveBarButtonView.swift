@@ -45,6 +45,10 @@ private extension ProfileSaveBarButtonView {
 
     @objc
     func handleTap() {
+        AppLogBridge.logTap(
+            source: "profile_save",
+            payload: ["control_type": "ProfileSaveBarButtonView"]
+        )
         tapCommand.execute()
     }
 }

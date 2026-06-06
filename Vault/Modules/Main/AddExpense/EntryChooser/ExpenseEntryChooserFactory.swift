@@ -11,6 +11,8 @@ struct ExpenseEntryChooserFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
         var subscriptionAccessService: SubscriptionAccessServicing
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
 
         let viewModel = ExpenseEntryChooserViewModel()
         let presenter = ExpenseEntryChooserPresenter(viewModel: viewModel)
@@ -21,7 +23,10 @@ struct ExpenseEntryChooserFactory: Screen {
         let interactor = ExpenseEntryChooserInteractor(
             presenter: presenter,
             router: router,
-            subscriptionAccessService: subscriptionAccessService
+            subscriptionAccessService: subscriptionAccessService,
+            analytics: ExpenseEntryChooserAnalyticsTracker(
+                analyticsCoreManager: analyticsCoreManager
+            )
         )
 
         let viewModelStore = ViewModelStore(

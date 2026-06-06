@@ -31,7 +31,8 @@ private extension AppAssembly {
     func regiaterNetworkClient(with container: Container) {
         container.register(NetworkClient.self) { resolver in
             guard let authInterceptor = resolver.resolve(AuthInterceptor.self),
-                  let retryInterceptor = resolver.resolve(RetryInterceptor.self)
+                  let retryInterceptor = resolver.resolve(RetryInterceptor.self),
+                  let appLogService = resolver.resolve(AppLogServiceProtocol.self)
             else {
                 fatalError("Failed to resolve auth interceptors for network client")
             }
@@ -39,6 +40,7 @@ private extension AppAssembly {
             return NetworkClientFactory().buildClient(
                 interceptors: [retryInterceptor],
                 adapters: [authInterceptor],
+                networkLogger: RedactingNetworkCallLogger(appLogService: appLogService),
                 urlSessionConfiguration: .default
             )
         }
@@ -62,8 +64,13 @@ private extension AppAssembly {
         }
         .inObjectScope(.transient)
 
-        container.register(AsyncNetworkClient.self, name: DependencyName.refreshNetworkClient) { _ in
-            NetworkClientFactory().buildClient(
+        container.register(AsyncNetworkClient.self, name: DependencyName.refreshNetworkClient) { resolver in
+            guard let appLogService = resolver.resolve(AppLogServiceProtocol.self) else {
+                fatalError("Failed to resolve AppLogService for refresh AsyncNetworkClient")
+            }
+
+            return NetworkClientFactory().buildClient(
+                networkLogger: RedactingNetworkCallLogger(appLogService: appLogService),
                 urlSessionConfiguration: .default
             )
         }
@@ -223,7 +230,11 @@ private extension AppAssembly {
         .inObjectScope(.container)
         
         container.register(SubscriptionServiceLogic.self) { resolver in
-            return SubscriptionService()
+            guard let appLogService = resolver.resolve(AppLogServiceProtocol.self) else {
+                fatalError("Failed to resolve AppLogService for SubscriptionService")
+            }
+
+            return SubscriptionService(appLogService: appLogService)
         }
         .inObjectScope(.transient)
         

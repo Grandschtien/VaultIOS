@@ -30,6 +30,7 @@ actor CategoryEditorInteractor: CategoryEditorBusinessLogic {
     private let subscriptionLimitErrorResolver: CategoryEditorSubscriptionLimitErrorResolving
     private let presetProvider: CategoryEditorPresetProviding
     private let colorProvider: CategoryColorProviding
+    private let analytics: CategoryEditorAnalyticsTracking?
 
     private var loadingState: LoadingStatus = .idle
     private var draft: CategoryEditorDraft
@@ -37,6 +38,7 @@ actor CategoryEditorInteractor: CategoryEditorBusinessLogic {
     private var isPrimaryLoading = false
     private var isDeleteLoading = false
     private var shouldShowNameError = false
+    private var hasTrackedScreenOpen = false
 
     init(
         mode: CategoryEditorMode,
@@ -47,7 +49,8 @@ actor CategoryEditorInteractor: CategoryEditorBusinessLogic {
         subscriptionAccessService: SubscriptionAccessServicing,
         subscriptionLimitErrorResolver: CategoryEditorSubscriptionLimitErrorResolving,
         presetProvider: CategoryEditorPresetProviding,
-        colorProvider: CategoryColorProviding
+        colorProvider: CategoryColorProviding,
+        analytics: CategoryEditorAnalyticsTracking? = nil
     ) {
         let initialDraft = CategoryEditorDraft(
             name: "",
@@ -64,10 +67,16 @@ actor CategoryEditorInteractor: CategoryEditorBusinessLogic {
         self.subscriptionLimitErrorResolver = subscriptionLimitErrorResolver
         self.presetProvider = presetProvider
         self.colorProvider = colorProvider
+        self.analytics = analytics
         self.draft = initialDraft
     }
 
     func fetchData() async {
+        if !hasTrackedScreenOpen {
+            analytics?.trackScreenOpen()
+            hasTrackedScreenOpen = true
+        }
+
         switch mode {
         case .create:
             loadingState = .loaded
@@ -214,6 +223,7 @@ private extension CategoryEditorInteractor {
         }
 
         let currentTier = await subscriptionAccessService.currentTier()
+        analytics?.trackPaywallOpen(currentTier: currentTier.rawValue)
         await router.openSubscription(
             currentTier: currentTier,
             output: self

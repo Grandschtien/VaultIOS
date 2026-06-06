@@ -151,7 +151,8 @@ private extension SubscriptionPresenter {
                 isLoading: isPurchasing,
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapPurchase(planID: plan.id)
-                }
+                },
+                trackingName: "subscription_buy_\(plan.id)"
             )
         )
     }
@@ -175,7 +176,8 @@ private extension SubscriptionPresenter {
             tapCommand: Command { [weak handler] in
                 await handler?.handleTapRestorePurchase()
             },
-            iconTintColor: Asset.Colors.interactiveElemetsPrimary.color
+            iconTintColor: Asset.Colors.interactiveElemetsPrimary.color,
+            trackingName: "subscription_restore_purchase"
         )
     }
 

@@ -27,10 +27,12 @@ actor ExpenseManualEntryInteractor: ExpenseManualEntryBusinessLogic {
     private let repository: MainFlowDomainRepositoryProtocol
     private let currencyCodeResolver: AddExpenseCurrencyCodeResolver
     private let requestBuilder: ExpenseManualEntryRequestBuilder
+    private let analytics: ExpenseManualEntryAnalyticsTracking?
 
     private var drafts: [ExpenseEditableDraft]
     private var draftStatuses: [DraftStatus]
     private var currentDraftIndex: Int
+    private var hasTrackedScreenOpen = false
     
     var currentDraft: ExpenseEditableDraft {
         drafts[currentDraftIndex]
@@ -44,7 +46,8 @@ actor ExpenseManualEntryInteractor: ExpenseManualEntryBusinessLogic {
         repository: MainFlowDomainRepositoryProtocol,
         currencyCodeResolver: AddExpenseCurrencyCodeResolver,
         requestBuilder: ExpenseManualEntryRequestBuilder,
-        initialDrafts: [ExpenseEditableDraft]
+        initialDrafts: [ExpenseEditableDraft],
+        analytics: ExpenseManualEntryAnalyticsTracking? = nil
     ) {
         let resolvedCurrencyCode = currencyCodeResolver.resolve()
         let normalizedDrafts = Self.makeInitialDrafts(
@@ -57,12 +60,17 @@ actor ExpenseManualEntryInteractor: ExpenseManualEntryBusinessLogic {
         self.repository = repository
         self.currencyCodeResolver = currencyCodeResolver
         self.requestBuilder = requestBuilder
+        self.analytics = analytics
         self.currentDraftIndex = 0
         self.drafts = normalizedDrafts
         self.draftStatuses = drafts.map { _ in .pending }
     }
 
     func fetchData() async {
+        if !hasTrackedScreenOpen {
+            analytics?.trackScreenOpen()
+            hasTrackedScreenOpen = true
+        }
         await presentFetchedData()
     }
 }
@@ -181,6 +189,7 @@ extension ExpenseManualEntryInteractor: ExpenseManualEntryHandler {
         }
 
         currentDraftIndex = page
+        analytics?.trackPageChange(page: page)
         resetLoadingStateIfNeeded()
         await presentFetchedData()
     }
@@ -190,6 +199,7 @@ extension ExpenseManualEntryInteractor: ExpenseManualEntryHandler {
             return
         }
 
+        analytics?.trackTapCategory()
         await router.openCategoryPicker(
             selectedCategoryID: currentDraft.selectedCategory?.id,
             output: self
@@ -201,6 +211,7 @@ extension ExpenseManualEntryInteractor: ExpenseManualEntryHandler {
             return
         }
 
+        analytics?.trackTapPrimaryButton(isFinalStep: currentDraftIndex >= drafts.count - 1)
         if currentDraftIndex < drafts.count - 1 {
             guard isCurrentDraftValid() else {
                 return
@@ -263,6 +274,7 @@ extension ExpenseManualEntryInteractor: ExpenseManualEntryHandler {
             return
         }
 
+        analytics?.trackTapSkip()
         draftStatuses[currentDraftIndex] = .skipped
         advanceToNextPageIfPossible()
         await presentFetchedData()
@@ -273,6 +285,7 @@ extension ExpenseManualEntryInteractor: ExpenseManualEntryHandler {
             return
         }
 
+        analytics?.trackTapClose()
         await router.close()
     }
 }

@@ -18,18 +18,22 @@ actor ExpenseEntryChooserInteractor: ExpenseEntryChooserBusinessLogic {
     private let presenter: ExpenseEntryChooserPresentationLogic
     private let router: ExpenseEntryChooserRoutingLogic
     private let subscriptionAccessService: SubscriptionAccessServicing
+    private let analytics: ExpenseEntryChooserAnalyticsTracking?
 
     init(
         presenter: ExpenseEntryChooserPresentationLogic,
         router: ExpenseEntryChooserRoutingLogic,
-        subscriptionAccessService: SubscriptionAccessServicing
+        subscriptionAccessService: SubscriptionAccessServicing,
+        analytics: ExpenseEntryChooserAnalyticsTracking? = nil
     ) {
         self.presenter = presenter
         self.router = router
         self.subscriptionAccessService = subscriptionAccessService
+        self.analytics = analytics
     }
 
     func fetchData() async {
+        analytics?.trackScreenOpen()
         await presenter.presentFetchedData(.init())
     }
 }
@@ -44,6 +48,7 @@ extension ExpenseEntryChooserInteractor: ExpenseEntryChooserHandler {
         let currentTier = subscription?.tier ?? .regular
 
         guard subscription?.hasAiInputAccess == true else {
+            analytics?.trackPaywallOpen(currentTier: currentTier.rawValue)
             await router.openSubscription(
                 currentTier: currentTier,
                 output: self

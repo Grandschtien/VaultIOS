@@ -28,6 +28,8 @@ final class AppCoordinator {
 
     func start() {
         appAssebler.apply(assembly: AppAssembly())
+        AppLogBridge.install(service: appAssebler.resolver.resolve(AppLogServiceProtocol.self))
+        AppLogBridge.log(category: .app, name: "start", source: "AppCoordinator")
         appAssebler.resolver.resolve(FirstRunKeychainCleanupServiceProtocol.self)?
             .clearKeychainIfNeeded()
         appAssebler.resolver.resolve(SubscriptionAccessServicing.self)?.startMonitoring()
@@ -62,7 +64,15 @@ private extension AppCoordinator {
             return
         }
 
-        if await authSessionService.hasValidSession() {
+        let hasValidSession = await authSessionService.hasValidSession()
+        AppLogBridge.log(
+            category: .app,
+            name: "initial_flow_resolved",
+            source: "AppCoordinator",
+            payload: ["has_valid_session": hasValidSession]
+        )
+
+        if hasValidSession {
             showMainFlow()
         } else {
             showAuthFlow()
@@ -76,12 +86,22 @@ private extension AppCoordinator {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
+                AppLogBridge.log(
+                    category: .navigation,
+                    name: "logout_route_to_auth",
+                    source: "AppCoordinator"
+                )
                 self?.showAuthFlow()
             }
         }
     }
 
     func showOnboardingFlow() {
+        AppLogBridge.log(
+            category: .navigation,
+            name: "show_onboarding_flow",
+            source: "AppCoordinator"
+        )
         let onboardingController = OnboardingFactory(output: self).build(
             navigator: screenNavigator
         ) as! OnboardingViewController
@@ -94,6 +114,11 @@ private extension AppCoordinator {
     }
 
     func showAuthFlow() {
+        AppLogBridge.log(
+            category: .navigation,
+            name: "show_auth_flow",
+            source: "AppCoordinator"
+        )
         let loginController = LoginFactory().build(navigator: screenNavigator)
         let root = RootAuthViewController(rootViewController: loginController)
         root.setNavigationBarHidden(true, animated: false)
@@ -106,6 +131,11 @@ private extension AppCoordinator {
     }
 
     func showMainFlow() {
+        AppLogBridge.log(
+            category: .navigation,
+            name: "show_main_flow",
+            source: "AppCoordinator"
+        )
         screenNavigator.navigate { route in
             route
                 .setRoot(to: MainFlowRootFactory())

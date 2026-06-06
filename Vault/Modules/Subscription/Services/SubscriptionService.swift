@@ -23,51 +23,77 @@ final class SubscriptionService: SubscriptionServiceLogic {
 
     private let plusEntitlementID: String
     private let premiumEntitlementID: String
+    private let appLogService: AppLogServiceProtocol?
     private var packagesByProductID: [String: Package] = [:]
 
     init(
         plusEntitlementID: String = "plus_access",
-        premiumEntitlementID: String = "premium_access"
+        premiumEntitlementID: String = "premium_access",
+        appLogService: AppLogServiceProtocol? = nil
     ) {
         self.plusEntitlementID = plusEntitlementID
         self.premiumEntitlementID = premiumEntitlementID
+        self.appLogService = appLogService
     }
 
     @discardableResult
     func loadPlans() async throws -> [SubscriptionFetchData.SubscriptionStorePlan] {
-        async let offerings = fetchOfferings()
-        async let customerInfo = fetchCustomerInfo()
+        do {
+            async let offerings = fetchOfferings()
+            async let customerInfo = fetchCustomerInfo()
 
-        let (resolvedOfferings, resolvedCustomerInfo) = try await (offerings, customerInfo)
+            let (resolvedOfferings, resolvedCustomerInfo) = try await (offerings, customerInfo)
 
-        guard let packages = resolvedOfferings.current?.availablePackages, !packages.isEmpty else {
-            throw SubscriptionServiceError.emptyOfferings
-        }
-
-        let filteredPackages = packages.filter { package in
-            SubscriptionCatalog.orderedPlans.contains {
-                $0.id == package.storeProduct.productIdentifier
+            guard let packages = resolvedOfferings.current?.availablePackages, !packages.isEmpty else {
+                throw SubscriptionServiceError.emptyOfferings
             }
-        }
 
-        packagesByProductID = Dictionary(
-            uniqueKeysWithValues: filteredPackages.map {
-                ($0.storeProduct.productIdentifier, $0)
+            let filteredPackages = packages.filter { package in
+                SubscriptionCatalog.orderedPlans.contains {
+                    $0.id == package.storeProduct.productIdentifier
+                }
             }
-        )
 
-        loadedPlans = SubscriptionCatalog.orderedPlans.compactMap { plan in
-            guard let package = packagesByProductID[plan.id] else { return nil }
-
-            return SubscriptionFetchData.SubscriptionStorePlan(
-                id: plan.id,
-                title: plan.title,
-                price: package.storeProduct.localizedPriceString
+            packagesByProductID = Dictionary(
+                uniqueKeysWithValues: filteredPackages.map {
+                    ($0.storeProduct.productIdentifier, $0)
+                }
             )
-        }
 
-        currentTier = resolveTier(from: resolvedCustomerInfo)
-        return loadedPlans
+            loadedPlans = SubscriptionCatalog.orderedPlans.compactMap { plan in
+                guard let package = packagesByProductID[plan.id] else { return nil }
+
+                return SubscriptionFetchData.SubscriptionStorePlan(
+                    id: plan.id,
+                    title: plan.title,
+                    price: package.storeProduct.localizedPriceString
+                )
+            }
+
+            currentTier = resolveTier(from: resolvedCustomerInfo)
+            appLogService?.log(
+                category: .subscription,
+                name: "load_plans_result",
+                source: "SubscriptionService",
+                payload: [
+                    "result": "success",
+                    "plan_count": loadedPlans.count,
+                    "current_tier": currentTier.rawValue
+                ]
+            )
+            return loadedPlans
+        } catch {
+            appLogService?.log(
+                category: .subscription,
+                name: "load_plans_result",
+                source: "SubscriptionService",
+                payload: [
+                    "result": "failure",
+                    "error_description": error.localizedDescription
+                ]
+            )
+            throw error
+        }
     }
 
     func purchase(planID: String) async throws {

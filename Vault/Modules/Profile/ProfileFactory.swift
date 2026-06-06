@@ -22,6 +22,8 @@ final class ProfileFactory: Screen {
         var analyticsCoreManager: AnalyticsCoreManaging
         @SafeInject
         var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
+        @SafeInject
+        var appLogsSink: AppLogSinkProtocol
 
         let viewModel = ProfileViewModel()
         let presenter = ProfilePresenter(viewModel: viewModel)
@@ -41,6 +43,7 @@ final class ProfileFactory: Screen {
             userProfileStorageService: userProfileStorageService,
             authSessionService: authSessionService,
             subscriptionAccessService: subscriptionAccessService,
+            applogSink: appLogsSink,
             analytics: analytics
         )
 

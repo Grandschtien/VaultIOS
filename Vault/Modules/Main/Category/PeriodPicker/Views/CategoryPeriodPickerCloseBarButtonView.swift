@@ -43,6 +43,10 @@ private extension CategoryPeriodPickerCloseBarButtonView {
 
     @objc
     func handleTap() {
+        AppLogBridge.logTap(
+            source: "category_period_picker_close",
+            payload: ["control_type": "CategoryPeriodPickerCloseBarButtonView"]
+        )
         tapCommand.execute()
     }
 }

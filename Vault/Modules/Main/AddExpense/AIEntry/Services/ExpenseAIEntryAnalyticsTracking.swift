@@ -3,6 +3,7 @@ import Foundation
 protocol ExpenseAIEntryAnalyticsTracking: Sendable {
     func trackScreenOpen()
     func trackScreenSuccess()
+    func trackPaywallOpen(currentTier: String)
     func trackMicrophoneTap()
     func trackConfirmTap(prompt: String)
     func trackProcessSuccess(prompt: String, parsedExpenseCount: Int)
@@ -31,6 +32,21 @@ final class ExpenseAIEntryAnalyticsTracker: ExpenseAIEntryAnalyticsTracking {
             provider: .all,
             event: .screenSuccess(.expenseAIEntry),
             payload: [:]
+        )
+    }
+
+    func trackPaywallOpen(currentTier: String) {
+        var payload: [String: Any] = [
+            "source_screen": AnalyticsScreen.expenseAIEntry.rawValue
+        ]
+        if !currentTier.isEmpty {
+            payload["current_tier"] = currentTier
+        }
+
+        analyticsCoreManager.sendEvent(
+            provider: .all,
+            event: .paywallOpen(source: .expenseAIEntry),
+            payload: payload
         )
     }
 

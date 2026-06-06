@@ -47,6 +47,11 @@ private extension FullScreenCommonErrorView {
 
     @objc
     func handleTap() {
+        let titleText = viewModel.title.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        AppLogBridge.logTap(
+            source: titleText.isEmpty ? String(describing: Self.self) : titleText,
+            payload: ["control_type": "FullScreenCommonErrorView"]
+        )
         viewModel.tapCommand.execute()
     }
 }

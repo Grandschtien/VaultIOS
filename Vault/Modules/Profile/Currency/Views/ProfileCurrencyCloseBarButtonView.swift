@@ -42,6 +42,10 @@ private extension ProfileCurrencyCloseBarButtonView {
 
     @objc
     func handleTap() {
+        AppLogBridge.logTap(
+            source: "profile_currency_close",
+            payload: ["control_type": "ProfileCurrencyCloseBarButtonView"]
+        )
         tapCommand.execute()
     }
 }

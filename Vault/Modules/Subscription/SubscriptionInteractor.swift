@@ -30,6 +30,7 @@ actor SubscriptionInteractor: SubscriptionBusinessLogic {
     private let storeKitService: SubscriptionServiceLogic
     private let subscriptionAccessService: SubscriptionAccessServicing
     private let analytics: SubscriptionAnalyticsTracking?
+    private let appLogService: AppLogServiceProtocol?
     private let pollingIntervalNanoseconds: UInt64
     private let maximumPollingAttempts: Int
 
@@ -49,7 +50,8 @@ actor SubscriptionInteractor: SubscriptionBusinessLogic {
         subscriptionAccessService: SubscriptionAccessServicing,
         pollingIntervalNanoseconds: UInt64 = Constants.pollingIntervalNanoseconds,
         maximumPollingAttempts: Int = Constants.maximumPollingAttempts,
-        analytics: SubscriptionAnalyticsTracking? = nil
+        analytics: SubscriptionAnalyticsTracking? = nil,
+        appLogService: AppLogServiceProtocol? = nil
     ) {
         self.presenter = presenter
         self.router = router
@@ -60,6 +62,7 @@ actor SubscriptionInteractor: SubscriptionBusinessLogic {
         self.pollingIntervalNanoseconds = pollingIntervalNanoseconds
         self.maximumPollingAttempts = maximumPollingAttempts
         self.analytics = analytics
+        self.appLogService = appLogService
     }
 
     func fetchData() async {
@@ -133,8 +136,21 @@ private extension SubscriptionInteractor {
         L10n.subscriptionRestoreNotFound
     }
 
-    func pollPurchasedTier(for planID: String) async -> Bool {
+    func pollPurchasedTier(
+        for planID: String,
+        flow: String,
+        subscriptionAttemptID: String
+    ) async -> Bool {
         guard maximumPollingAttempts > 0 else {
+            logSubscriptionEvent(
+                name: "\(flow)_sync_result",
+                payload: [
+                    "result": "timeout",
+                    "plan_id": planID,
+                    "attempt_count": 0
+                ],
+                subscriptionAttemptID: subscriptionAttemptID
+            )
             return false
         }
 
@@ -143,6 +159,16 @@ private extension SubscriptionInteractor {
 
             if case .network(let tier) = tierState,
                SubscriptionPlanResolver.matchesPurchasedPlan(planID: planID, tier: tier.rawValue) {
+                logSubscriptionEvent(
+                    name: "\(flow)_sync_result",
+                    payload: [
+                        "result": "success",
+                        "plan_id": planID,
+                        "resolved_tier": tier.rawValue,
+                        "attempt_count": attempt + 1
+                    ],
+                    subscriptionAttemptID: subscriptionAttemptID
+                )
                 return true
             }
 
@@ -154,6 +180,15 @@ private extension SubscriptionInteractor {
             try? await Task.sleep(nanoseconds: pollingIntervalNanoseconds)
         }
 
+        logSubscriptionEvent(
+            name: "\(flow)_sync_result",
+            payload: [
+                "result": "timeout",
+                "plan_id": planID,
+                "attempt_count": maximumPollingAttempts
+            ],
+            subscriptionAttemptID: subscriptionAttemptID
+        )
         return false
     }
 
@@ -169,6 +204,30 @@ private extension SubscriptionInteractor {
         case .premium:
             return SubscriptionCatalog.premium.id
         }
+    }
+
+    func logSubscriptionEvent(
+        name: String,
+        payload: [String: Any],
+        subscriptionAttemptID: String
+    ) {
+        appLogService?.log(
+            category: .subscription,
+            name: name,
+            source: "SubscriptionInteractor",
+            payload: payload,
+            requestID: nil,
+            subscriptionAttemptID: subscriptionAttemptID
+        )
+    }
+
+    func resolvedRevenueCatResultName(from error: Error) -> String {
+        if let subscriptionError = error as? SubscriptionServiceError,
+           subscriptionError == .purchaseCancelled {
+            return "cancelled"
+        }
+
+        return "failure"
     }
 }
 
@@ -194,30 +253,86 @@ extension SubscriptionInteractor: SubscriptionHandler {
             return
         }
 
+        let subscriptionAttemptID = UUID().uuidString.lowercased()
         let planTitle = plans.first(where: { $0.id == planID })?.title ?? SubscriptionCatalog.title(for: planID)
+        logSubscriptionEvent(
+            name: "purchase_start",
+            payload: [
+                "plan_id": planID,
+                "plan_title": planTitle,
+                "current_tier": currentTier.rawValue
+            ],
+            subscriptionAttemptID: subscriptionAttemptID
+        )
         analytics?.trackPurchaseStart(planID: planID, planTitle: planTitle, currentTier: currentTier.rawValue)
         purchasingPlanID = planID
         await presentFetchedData()
 
         do {
             try await storeKitService.purchase(planID: planID)
+            logSubscriptionEvent(
+                name: "purchase_revenuecat_result",
+                payload: [
+                    "result": "success",
+                    "plan_id": planID
+                ],
+                subscriptionAttemptID: subscriptionAttemptID
+            )
             analytics?.trackPurchaseSuccess(planID: planID, planTitle: planTitle, currentTier: currentTier.rawValue)
             isPurchaseSyncing = true
             await presentFetchedData()
 
-            if await pollPurchasedTier(for: planID) {
+            if await pollPurchasedTier(
+                for: planID,
+                flow: "purchase",
+                subscriptionAttemptID: subscriptionAttemptID
+            ) {
+                logSubscriptionEvent(
+                    name: "purchase_outcome",
+                    payload: [
+                        "result": "success",
+                        "plan_id": planID
+                    ],
+                    subscriptionAttemptID: subscriptionAttemptID
+                )
                 await output.handleSubscriptionDidSync()
                 await router.close()
                 await router.presentSuccess(with: subscriptionReadyMessage())
                 return
             }
 
+            logSubscriptionEvent(
+                name: "purchase_outcome",
+                payload: [
+                    "result": "timeout",
+                    "plan_id": planID
+                ],
+                subscriptionAttemptID: subscriptionAttemptID
+            )
             await router.close()
             await router.presentError(with: subscriptionReloadRequiredMessage())
         } catch {
             purchasingPlanID = nil
             isPurchaseSyncing = false
             await presentFetchedData()
+            logSubscriptionEvent(
+                name: "purchase_revenuecat_result",
+                payload: [
+                    "result": resolvedRevenueCatResultName(from: error),
+                    "plan_id": planID,
+                    "error_description": error.localizedDescription
+                ],
+                subscriptionAttemptID: subscriptionAttemptID
+            )
+            logSubscriptionEvent(
+                name: "purchase_outcome",
+                payload: [
+                    "result": resolvedRevenueCatResultName(from: error),
+                    "plan_id": planID,
+                    "error_description": error.localizedDescription
+                ],
+                subscriptionAttemptID: subscriptionAttemptID
+            )
             analytics?.trackPurchaseFailure(
                 planID: planID,
                 planTitle: planTitle,
@@ -236,31 +351,89 @@ extension SubscriptionInteractor: SubscriptionHandler {
             return
         }
 
+        let subscriptionAttemptID = UUID().uuidString.lowercased()
+        logSubscriptionEvent(
+            name: "restore_start",
+            payload: [
+                "current_tier": currentTier.rawValue
+            ],
+            subscriptionAttemptID: subscriptionAttemptID
+        )
         isRestoringPurchase = true
         await presentFetchedData()
 
         do {
             try await storeKitService.restore()
+            logSubscriptionEvent(
+                name: "restore_revenuecat_result",
+                payload: [
+                    "result": "success"
+                ],
+                subscriptionAttemptID: subscriptionAttemptID
+            )
 
             guard let restoredPlanID = restoredPlanID() else {
                 isRestoringPurchase = false
                 await presentFetchedData()
+                logSubscriptionEvent(
+                    name: "restore_outcome",
+                    payload: [
+                        "result": "not_found"
+                    ],
+                    subscriptionAttemptID: subscriptionAttemptID
+                )
                 await router.presentMessage(with: restoreNotFoundMessage())
                 return
             }
 
-            if await pollPurchasedTier(for: restoredPlanID) {
+            if await pollPurchasedTier(
+                for: restoredPlanID,
+                flow: "restore",
+                subscriptionAttemptID: subscriptionAttemptID
+            ) {
+                logSubscriptionEvent(
+                    name: "restore_outcome",
+                    payload: [
+                        "result": "success",
+                        "plan_id": restoredPlanID
+                    ],
+                    subscriptionAttemptID: subscriptionAttemptID
+                )
                 await output.handleSubscriptionDidSync()
                 await router.close()
                 await router.presentSuccess(with: subscriptionRestoredMessage())
                 return
             }
 
+            logSubscriptionEvent(
+                name: "restore_outcome",
+                payload: [
+                    "result": "timeout",
+                    "plan_id": restoredPlanID
+                ],
+                subscriptionAttemptID: subscriptionAttemptID
+            )
             await router.close()
             await router.presentError(with: subscriptionReloadRequiredMessage())
         } catch {
             isRestoringPurchase = false
             await presentFetchedData()
+            logSubscriptionEvent(
+                name: "restore_revenuecat_result",
+                payload: [
+                    "result": "failure",
+                    "error_description": error.localizedDescription
+                ],
+                subscriptionAttemptID: subscriptionAttemptID
+            )
+            logSubscriptionEvent(
+                name: "restore_outcome",
+                payload: [
+                    "result": "failure",
+                    "error_description": error.localizedDescription
+                ],
+                subscriptionAttemptID: subscriptionAttemptID
+            )
             await router.presentError(with: restoreFailedMessage(from: error))
         }
     }

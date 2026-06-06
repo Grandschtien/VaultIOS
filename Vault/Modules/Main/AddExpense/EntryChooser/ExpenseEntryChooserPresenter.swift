@@ -37,7 +37,8 @@ final class ExpenseEntryChooserPresenter: ExpenseEntryChooserPresentationLogic, 
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapAiEntry()
                 },
-                leftIcon: sparklesImage
+                leftIcon: sparklesImage,
+                trackingName: "expense_entry_chooser_ai"
             ),
             manualButton: .init(
                 title: L10n.expenseEntryChooserEnterManually,
@@ -48,7 +49,8 @@ final class ExpenseEntryChooserPresenter: ExpenseEntryChooserPresentationLogic, 
                     await handler?.handleTapManualEntry()
                 },
                 leftIcon: squareAndPencilImage,
-                iconTintColor: Asset.Colors.textAndIconPrimary.color
+                iconTintColor: Asset.Colors.textAndIconPrimary.color,
+                trackingName: "expense_entry_chooser_manual"
             )
         )
     }

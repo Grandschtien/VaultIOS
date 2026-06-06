@@ -53,5 +53,17 @@ private extension ProfileViewController {
         } else {
             navigationItem.leftBarButtonItem = nil
         }
+        
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            image: Asset.Icons.logs.image,
+            style: .plain,
+            target: self,
+            action: #selector(sendLogs)
+        )
+    }
+    
+    @objc
+    func sendLogs() {
+        Task { await interactor.sendLogs() }
     }
 }

@@ -15,6 +15,7 @@ protocol ProfileRoutingLogic: Sendable {
         currentTier: SubscriptionTier,
         output: SubscriptionOutput
     )
+    func openActivity(with link: URL)
     func presentError(with text: String)
 }
 
@@ -81,5 +82,29 @@ final class ProfileRouter: ProfileRoutingLogic {
 
     func presentError(with text: String) {
         toastPresenter.present(state: .error, title: text)
+    }
+    
+    func openActivity(with link: URL) {
+        guard let presenter = viewController?.navigationController ?? viewController else {
+            return
+        }
+
+        let activityViewController = UIActivityViewController(
+            activityItems: [link],
+            applicationActivities: nil
+        )
+
+        if let popover = activityViewController.popoverPresentationController {
+            popover.sourceView = presenter.view
+            popover.sourceRect = CGRect(
+                x: presenter.view.bounds.midX,
+                y: presenter.view.bounds.midY,
+                width: 0,
+                height: 0
+            )
+            popover.permittedArrowDirections = []
+        }
+
+        presenter.present(activityViewController, animated: true)
     }
 }

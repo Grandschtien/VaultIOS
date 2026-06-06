@@ -4,17 +4,20 @@ import XCTest
 final class AnalyticsCoreManagerTests: XCTestCase {
     func testSendEventToFirebaseDispatchesMatchingService() async {
         let service = AnalyticsServiceSpy(provider: .firebase)
+        let appLogService = AppLogServiceSpy()
         let sut = AnalyticsCoreManager(
             services: [service],
-            userProfileStorageService: UserProfileStorageSpy()
+            userProfileStorageService: UserProfileStorageSpy(),
+            appLogService: appLogService
         )
 
         sut.sendEvent(
-            provider: .firebase,
-            event: .screenOpen(.login),
+            provider: AnalyticsProvider.firebase,
+            event: AnalyticsEvent.screenOpen(.login),
             payload: ["name": "Coffee"]
         )
         await waitForCalls(expected: 1, service: service)
+        await waitForLogEntries(expected: 1, service: appLogService)
 
         let calls = await service.calls()
         XCTAssertEqual(calls.count, 1)
@@ -25,18 +28,21 @@ final class AnalyticsCoreManagerTests: XCTestCase {
     func testSendEventToAllDispatchesEveryRegisteredService() async {
         let firstService = AnalyticsServiceSpy(provider: .firebase)
         let secondService = AnalyticsServiceSpy(provider: .firebase)
+        let appLogService = AppLogServiceSpy()
         let sut = AnalyticsCoreManager(
             services: [firstService, secondService],
-            userProfileStorageService: UserProfileStorageSpy()
+            userProfileStorageService: UserProfileStorageSpy(),
+            appLogService: appLogService
         )
 
         sut.sendEvent(
-            provider: .all,
-            event: .screenOpen(.profile),
+            provider: AnalyticsProvider.all,
+            event: AnalyticsEvent.screenOpen(.profile),
             payload: [:]
         )
         await waitForCalls(expected: 1, service: firstService)
         await waitForCalls(expected: 1, service: secondService)
+        await waitForLogEntries(expected: 1, service: appLogService)
 
         let firstCallsCount = await firstService.calls().count
         let secondCallsCount = await secondService.calls().count
@@ -46,6 +52,7 @@ final class AnalyticsCoreManagerTests: XCTestCase {
 
     func testSendEventAddsDefaultPayload() async {
         let service = AnalyticsServiceSpy(provider: .firebase)
+        let appLogService = AppLogServiceSpy()
         let sut = AnalyticsCoreManager(
             services: [service],
             userProfileStorageService: UserProfileStorageSpy(
@@ -56,20 +63,47 @@ final class AnalyticsCoreManagerTests: XCTestCase {
                     currency: "USD",
                     language: "en"
                 )
-            )
+            ),
+            appLogService: appLogService
         )
 
         sut.sendEvent(
-            provider: .firebase,
-            event: .screenOpen(.login),
+            provider: AnalyticsProvider.firebase,
+            event: AnalyticsEvent.screenOpen(.login),
             payload: ["name": "Coffee"]
         )
         await waitForCalls(expected: 1, service: service)
+        await waitForLogEntries(expected: 1, service: appLogService)
 
         let call = await service.calls().first
         XCTAssertEqual(call?.payload.values["user_id"], .string("user-1"))
         XCTAssertEqual(call?.payload.values["name"], .string("Coffee"))
         XCTAssertNotNil(call?.payload.values["date_utc"])
+    }
+
+    func testSendEventMirrorsAnalyticsEventIntoLocalLogger() async {
+        let service = AnalyticsServiceSpy(provider: .firebase)
+        let appLogService = AppLogServiceSpy()
+        let sut = AnalyticsCoreManager(
+            services: [service],
+            userProfileStorageService: UserProfileStorageSpy(),
+            appLogService: appLogService
+        )
+
+        sut.sendEvent(
+            provider: AnalyticsProvider.firebase,
+            event: AnalyticsEvent.tap(.manualTapPrimaryConfirm),
+            payload: ["step": 4]
+        )
+        await waitForCalls(expected: 1, service: service)
+        await waitForLogEntries(expected: 1, service: appLogService)
+
+        let logEntry = await appLogService.entries().first
+        XCTAssertEqual(logEntry?.category, .analytics)
+        XCTAssertEqual(logEntry?.name, AnalyticsEvent.tap(.manualTapPrimaryConfirm).name)
+        XCTAssertEqual(logEntry?.source, "firebase")
+        XCTAssertEqual(logEntry?.payload["step"], .int(4))
+        XCTAssertEqual(logEntry?.session_id, appLogService.sessionID)
     }
 
     func testPayloadNormalizationKeepsSupportedValuesAndDropsUnsupportedValues() {
@@ -100,6 +134,12 @@ final class AnalyticsCoreManagerTests: XCTestCase {
 private extension AnalyticsCoreManagerTests {
     func waitForCalls(expected: Int, service: AnalyticsServiceSpy) async {
         while await service.calls().count < expected {
+            await Task.yield()
+        }
+    }
+
+    func waitForLogEntries(expected: Int, service: AppLogServiceSpy) async {
+        while await service.entries().count < expected {
             await Task.yield()
         }
     }
