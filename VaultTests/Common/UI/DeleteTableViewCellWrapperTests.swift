@@ -53,9 +53,60 @@ extension DeleteTableViewCellWrapperTests {
         XCTAssertEqual(sut.deleteViewModel.state, .idle)
         XCTAssertGreaterThan(sut.currentRevealOffset, .zero)
     }
+
+    func testSettleSwipePositionDoesNotExecuteDeleteCommandForFastSwipe() {
+        let sut = makeSut()
+
+        let expectation = expectation(description: "Delete command should not be called")
+        expectation.isInverted = true
+
+        sut.configure(
+            with: .init(
+                wrappedViewModel: .init(text: "Coffee"),
+                deleteViewModel: .init(
+                    id: "exp-1",
+                    deleteCommand: Command {
+                        expectation.fulfill()
+                    }
+                )
+            )
+        )
+
+        sut.setRevealOffset(.greatestFiniteMagnitude, animated: false)
+        let maxRevealOffset = sut.currentRevealOffset
+        sut.setRevealOffset(maxRevealOffset * 2, animated: false, allowsRubberBand: true)
+
+        sut.settleSwipePosition(horizontalVelocity: -2_000)
+
+        wait(for: [expectation], timeout: 0.2)
+        XCTAssertEqual(sut.currentRevealOffset, maxRevealOffset)
+        XCTAssertEqual(sut.deleteViewModel.state, .idle)
+    }
 }
 
 extension DeleteTableViewCellWrapperTests {
+    func testSetRevealOffsetAppliesRubberBandBeyondMaximumRevealOffset() {
+        let sut = makeSut()
+
+        sut.setRevealOffset(.greatestFiniteMagnitude, animated: false)
+        let maxRevealOffset = sut.currentRevealOffset
+
+        sut.setRevealOffset(maxRevealOffset * 2, animated: false, allowsRubberBand: true)
+
+        XCTAssertGreaterThan(sut.currentRevealOffset, maxRevealOffset)
+        XCTAssertLessThan(sut.currentRevealOffset, maxRevealOffset * 2)
+    }
+
+    func testSettleSwipePositionClosesCellWhenRevealOffsetIsBelowThreshold() {
+        let sut = makeSut()
+
+        sut.setRevealOffset(1, animated: false)
+
+        sut.settleSwipePosition(horizontalVelocity: .zero)
+
+        XCTAssertEqual(sut.currentRevealOffset, .zero)
+    }
+
     func testPrepareForReuseResetsSwipeState() {
         let sut = makeSut()
 
