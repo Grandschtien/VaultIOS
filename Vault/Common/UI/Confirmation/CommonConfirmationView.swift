@@ -24,8 +24,10 @@ final class CommonConfirmationView: UIView, LayoutScaleProviding, ImageProviding
 
     func configure(with viewModel: ViewModel) {
         titleLabel.apply(viewModel.title)
-        subtitleLabel.apply(viewModel.subtitle)
-        subtitleLabel.isHidden = viewModel.subtitle.text.isEmpty
+        if let subtitle = viewModel.subtitle {
+            subtitleLabel.apply(subtitle)
+        }
+        subtitleLabel.isHidden = viewModel.subtitle == nil
         confirmButton.apply(viewModel.confirmButton)
         cancelButton.apply(viewModel.cancelButton)
         closeCommand = viewModel.closeCommand
@@ -63,13 +65,12 @@ private extension CommonConfirmationView {
 
         titleLabel.snp.makeConstraints { make in
             make.top.equalTo(safeAreaLayoutGuide).inset(spaceS)
-            make.leading.equalTo(safeAreaLayoutGuide).inset(spaceS)
-            make.trailing.equalTo(safeAreaLayoutGuide).inset(spaceXL)
+            make.centerX.equalToSuperview()
         }
 
         subtitleLabel.snp.makeConstraints { make in
             make.top.equalTo(titleLabel.snp.bottom).offset(spaceXS)
-            make.horizontalEdges.equalTo(titleLabel)
+            make.horizontalEdges.equalToSuperview().inset(spaceS)
         }
 
         buttonStackView.snp.makeConstraints { make in
@@ -88,7 +89,7 @@ private extension CommonConfirmationView {
 extension CommonConfirmationView {
     struct ViewModel: Equatable {
         let title: Label.LabelViewModel
-        let subtitle: Label.LabelViewModel
+        let subtitle: Label.LabelViewModel?
         let confirmButton: Button.ButtonViewModel
         let cancelButton: Button.ButtonViewModel
         let closeCommand: Command
@@ -96,7 +97,7 @@ extension CommonConfirmationView {
 
         init(
             title: Label.LabelViewModel = .init(),
-            subtitle: Label.LabelViewModel = .init(),
+            subtitle: Label.LabelViewModel? = nil,
             confirmButton: Button.ButtonViewModel = .init(),
             cancelButton: Button.ButtonViewModel = .init(),
             closeCommand: Command = .nope,

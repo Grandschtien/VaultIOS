@@ -32,8 +32,8 @@ private extension CommonConfirmationFactory {
                 alignment: .center,
                 numberOfLines: .zero
             ),
-            subtitle: .init(
-                text: context.subtitle ?? "",
+            subtitle: context.subtitle == nil ? nil : .init(
+                text: context.subtitle!,
                 font: Typography.typographyRegular14,
                 textColor: Asset.Colors.textAndIconPlaceseholder.color,
                 alignment: .center,
