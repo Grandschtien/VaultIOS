@@ -20,6 +20,9 @@ final class SubscriptionPresenter: SubscriptionPresentationLogic {
     }
 
     func presentFetchedData(_ data: SubscriptionFetchData) {
+        let isPurchaseProcessing = data.purchasingPlanID != nil || data.isPurchaseSyncing
+        let isActionInProgress = isPurchaseProcessing || data.isRestoringPurchase
+
         viewModel = SubscriptionViewModel(
             header: .init(
                 title: .init(
@@ -28,15 +31,15 @@ final class SubscriptionPresenter: SubscriptionPresentationLogic {
                     textColor: Asset.Colors.textAndIconPrimary.color,
                     alignment: .center
                 ),
-                isCloseEnabled: data.purchasingPlanID == nil
-                    && !data.isPurchaseSyncing
-                    && !data.isRestoringPurchase,
+                isCloseEnabled: !isActionInProgress,
                 closeCommand: Command { [weak handler] in
                     await handler?.handleTapClose()
                 }
             ),
             state: makeState(from: data),
-            isOverlayLoading: data.isPurchaseSyncing
+            isDismissLocked: isActionInProgress,
+            isOverlayLoading: isPurchaseProcessing,
+            overlayMessage: makeOverlayMessage(isVisible: isPurchaseProcessing)
         )
     }
 }
@@ -107,6 +110,20 @@ private extension SubscriptionPresenter {
                 isPurchaseSyncing: data.isPurchaseSyncing,
                 isRestoringPurchase: data.isRestoringPurchase
             )
+        )
+    }
+
+    func makeOverlayMessage(isVisible: Bool) -> Label.LabelViewModel? {
+        guard isVisible else {
+            return nil
+        }
+
+        return .init(
+            text: L10n.subscriptionPurchaseProcessing,
+            font: Typography.typographySemibold16,
+            textColor: Asset.Colors.textAndIconPrimary.color,
+            alignment: .center,
+            numberOfLines: 0
         )
     }
 

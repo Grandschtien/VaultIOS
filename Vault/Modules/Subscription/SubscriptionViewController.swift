@@ -41,6 +41,8 @@ final class SubscriptionViewController: UIViewController, HasContentView {
 
 private extension SubscriptionViewController {
     func render(with viewModel: SubscriptionViewModel) {
+        isModalInPresentation = viewModel.isDismissLocked
+        navigationController?.isModalInPresentation = viewModel.isDismissLocked
         contentView.configure(with: viewModel)
     }
 }

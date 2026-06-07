@@ -91,7 +91,7 @@ extension SubscriptionPresenterTests {
 }
 
 extension SubscriptionPresenterTests {
-    func testPresentFetchedDataPurchasingDisablesCloseAndShowsLoader() {
+    func testPresentFetchedDataPurchasingDisablesCloseAndShowsOverlayImmediately() {
         sut.presentFetchedData(
             .init(
                 loadingState: .loaded,
@@ -102,13 +102,17 @@ extension SubscriptionPresenterTests {
                         price: "$2.99"
                     )
                 ],
-                purchasingPlanID: SubscriptionCatalog.premium.id,
-                isPurchaseSyncing: true
+                purchasingPlanID: SubscriptionCatalog.premium.id
             )
         )
 
         XCTAssertFalse(sut.viewModel.header.isCloseEnabled)
+        XCTAssertTrue(sut.viewModel.isDismissLocked)
         XCTAssertTrue(sut.viewModel.isOverlayLoading)
+        XCTAssertEqual(
+            sut.viewModel.overlayMessage?.text,
+            L10n.subscriptionPurchaseProcessing
+        )
 
         guard case let .loaded(content) = sut.viewModel.state else {
             return XCTFail("Expected loaded state")
@@ -135,6 +139,9 @@ extension SubscriptionPresenterTests {
         )
 
         XCTAssertFalse(sut.viewModel.header.isCloseEnabled)
+        XCTAssertTrue(sut.viewModel.isDismissLocked)
+        XCTAssertFalse(sut.viewModel.isOverlayLoading)
+        XCTAssertNil(sut.viewModel.overlayMessage)
 
         guard case let .loaded(content) = sut.viewModel.state else {
             return XCTFail("Expected loaded state")

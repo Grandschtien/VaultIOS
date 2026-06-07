@@ -163,7 +163,7 @@
 "subscription_current_plan" = "Current Plan";
 "subscription_free_description" = "Manual entry only";
 "subscription_regular_description" = "Manual entry only";
-"subscription_premium_description" = "AI entry with 600 AI requests per month";
+"subscription_premium_description" = "300 AI requests per month, analytics, unlimited categories";
 "subscription_unknown_description" = "Plan details are unavailable";
 "subscription_per_month" = "%@ / month";
 "subscription_buy" = "Subscribe";
@@ -179,4 +179,5 @@
 "subscription_ready" = "Subscription Is Ready";
 "subscription_reload_required" = "Please Restart The App To Get Access To Content";
 "subscription_account_token_unavailable" = "Unable to identify your account for purchase";
+"subscription_purchase_processing" = "Purchase is being processed, please do not close this screen";
 "expense_ai_entry_subscription_limit_reached" = "You reached your subscription limits, please, wait for renew them";

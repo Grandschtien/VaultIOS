@@ -1,9 +1,13 @@
 "ai_powered" = "Поддержка AI";
 "ai_smart_entry" = "Умный ввод с AI";
-"email_address" = "Email";
+"email_address" = "Электронная почта";
 "email_placeholder" = "name@example.com";
 "enter_your_name" = "Введите имя";
 "forgot" = "Забыли?";
+"forgot_password_send" = "Отправить";
+"forgot_password_subtitle" = "Введите email, и мы отправим инструкции по сбросу пароля.";
+"forgot_password_success_message" = "Если аккаунт с таким email существует, инструкции по сбросу пароля уже отправлены.";
+"forgot_password_title" = "Забыли пароль";
 "get_started" = "Начать";
 "insightful_analytics" = "Понятная аналитика";
 "join_vault_to_start_tracking_effortlessly" = "Присоединяйтесь к Vault и начните легко отслеживать расходы";
@@ -22,7 +26,7 @@
 "vault" = "Vault";
 
 "onboarding_1_title" = "Легко отслеживайте расходы";
-"onboarding_2_title" = "Голос или текст — AI всё сделает";
+"onboarding_2_title" = "Голос или текст - AI всё сделает";
 "onboarding_3_title" = "Смотрите, куда уходят деньги";
 "password" = "Пароль";
 "password_placeholder" = "••••••••";
@@ -140,7 +144,9 @@
 "profile_delete_account" = "Удалить аккаунт";
 "profile_delete_account_confirmation_title" = "Вы уверены, что хотите удалить аккаунт? Все ваши данные будут удалены.";
 "profile_delete_account_failed" = "Не удалось удалить аккаунт";
+"profile_logout_confirmation_title" = "Вы уверены?";
 "profile_version" = "Версия %@ (Сборка %@)";
+"profile_ai_requests_usage" = "Использовано AI-запросов: %@ / %@";
 "profile_error" = "Что-то пошло не так";
 "profile_select_currency_title" = "Выберите валюту";
 "profile_currency_update_failed" = "Не удалось обновить валюту";
@@ -156,7 +162,7 @@
 "subscription_current_plan" = "Текущий план";
 "subscription_free_description" = "Только ручной ввод";
 "subscription_regular_description" = "Только ручной ввод";
-"subscription_premium_description" = "Ввод с AI и 600 AI-запросов в месяц";
+"subscription_premium_description" = "300 AI-запросов в месяц, аналитика, неограниченное количество категорий";
 "subscription_unknown_description" = "Информация о плане недоступна";
 "subscription_per_month" = "%@ / месяц";
 "subscription_buy" = "Оформить подписку";
@@ -172,3 +178,5 @@
 "subscription_ready" = "Подписка готова";
 "subscription_reload_required" = "Пожалуйста, перезагрузите приложение, чтобы получить доступ к контенту";
 "subscription_account_token_unavailable" = "Не удалось определить ваш аккаунт для покупки";
+"subscription_purchase_processing" = "Покупка обрабатывается, пожалуйста, не закрывайте экран";
+"expense_ai_entry_subscription_limit_reached" = "Вы достигли лимита подписки, пожалуйста, дождитесь его обновления";

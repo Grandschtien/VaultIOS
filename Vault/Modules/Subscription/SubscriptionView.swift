@@ -8,7 +8,10 @@ final class SubscriptionView: UIView, LayoutScaleProviding {
     private let headerView = AddExpenseSheetHeaderView()
     private let loadingView = UIActivityIndicatorView(style: .medium)
     private let overlayView = UIView()
+    private let overlayCardView = UIView()
+    private let overlayStackView = UIStackView()
     private let overlayLoadingView = UIActivityIndicatorView(style: .medium)
+    private let overlayMessageLabel = Label()
     private let errorView = FullScreenCommonErrorView()
     private let titleLabel = Label()
     private let subtitleLabel = Label()
@@ -31,7 +34,10 @@ final class SubscriptionView: UIView, LayoutScaleProviding {
 extension SubscriptionView {
     func configure(with viewModel: SubscriptionViewModel) {
         headerView.apply(viewModel.header)
-        setOverlayLoading(viewModel.isOverlayLoading)
+        setOverlay(
+            isLoading: viewModel.isOverlayLoading,
+            message: viewModel.overlayMessage
+        )
 
         switch viewModel.state {
         case .loading:
@@ -73,8 +79,14 @@ private extension SubscriptionView {
         loadingView.color = Asset.Colors.interactiveElemetsPrimary.color
         overlayView.backgroundColor = UIColor.black.withAlphaComponent(0.12)
         overlayView.isHidden = true
+        overlayCardView.backgroundColor = Asset.Colors.backgroundPrimary.color
+        overlayCardView.layer.cornerRadius = sizeL
+        overlayStackView.axis = .vertical
+        overlayStackView.alignment = .center
+        overlayStackView.spacing = spaceS
         overlayLoadingView.hidesWhenStopped = true
         overlayLoadingView.color = Asset.Colors.interactiveElemetsPrimary.color
+        overlayMessageLabel.isHidden = true
         errorView.isHidden = true
         titleLabel.isHidden = true
         subtitleLabel.isHidden = true
@@ -102,7 +114,13 @@ private extension SubscriptionView {
         addSubview(tableView)
         addSubview(restoreButton)
         addSubview(overlayView)
-        overlayView.addSubview(overlayLoadingView)
+        overlayView.addSubview(overlayCardView)
+        overlayCardView.addSubview(overlayStackView)
+        overlayStackView.addArrangedSubview(overlayLoadingView)
+        overlayStackView.addArrangedSubview(overlayMessageLabel)
+        overlayMessageLabel.snp.makeConstraints { make in
+            make.horizontalEdges.equalToSuperview()
+        }
 
         headerView.snp.makeConstraints { make in
             make.top.equalTo(safeAreaLayoutGuide)
@@ -148,8 +166,15 @@ private extension SubscriptionView {
             make.edges.equalToSuperview()
         }
 
-        overlayLoadingView.snp.makeConstraints { make in
+        overlayCardView.snp.makeConstraints { make in
             make.center.equalToSuperview()
+            make.horizontalEdges
+                .greaterThanOrEqualToSuperview()
+                .inset(spaceS)
+        }
+
+        overlayStackView.snp.makeConstraints { make in
+            make.edges.equalToSuperview().inset(spaceS)
         }
     }
 
@@ -161,8 +186,16 @@ private extension SubscriptionView {
         restoreButton.isHidden = isHidden
     }
 
-    func setOverlayLoading(_ isLoading: Bool) {
+    func setOverlay(
+        isLoading: Bool,
+        message: Label.LabelViewModel?
+    ) {
         overlayView.isHidden = !isLoading
+        overlayMessageLabel.isHidden = message == nil
+
+        if let message {
+            overlayMessageLabel.apply(message)
+        }
 
         if isLoading {
             overlayLoadingView.startAnimating()
