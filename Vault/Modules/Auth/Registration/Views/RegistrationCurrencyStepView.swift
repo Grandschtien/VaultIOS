@@ -26,6 +26,10 @@ final class RegistrationCurrencyStepView: UIView, LayoutScaleProviding {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+    
+    func setContentInset(_ inset: CGFloat) {
+        tableView.contentInset.bottom = inset
+    }
 
     func configure(with viewModel: RegistrationViewModel.CurrencyViewModel) {
         titleLabel.apply(viewModel.title)
