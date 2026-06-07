@@ -26,6 +26,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
     private let subscriptionAccessService: SubscriptionAccessServicing
     private let analytics: ProfileAnalyticsTracking?
     private let applogSink: AppLogSinkProtocol
+    private let notificationCenter: NotificationCenter
 
     private var loadingState: LoadingStatus = .idle
     private var isSavingCurrency: Bool = false
@@ -35,6 +36,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
     private var profile: ProfileResponseDTO?
     private var subscription: SubscriptionAccessSnapshot?
     private var selectedCurrencyCode: String?
+    private var subscriptionObservationTask: Task<Void, Never>?
 
     init(
         presenter: ProfilePresentationLogic,
@@ -45,6 +47,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
         authSessionService: AuthSessionServiceProtocol,
         subscriptionAccessService: SubscriptionAccessServicing,
         applogSink: AppLogSinkProtocol,
+        notificationCenter: NotificationCenter = .default,
         analytics: ProfileAnalyticsTracking? = nil
     ) {
         self.presenter = presenter
@@ -56,9 +59,15 @@ actor ProfileInteractor: ProfileBusinessLogic {
         self.subscriptionAccessService = subscriptionAccessService
         self.analytics = analytics
         self.applogSink = applogSink
+        self.notificationCenter = notificationCenter
+    }
+
+    deinit {
+        subscriptionObservationTask?.cancel()
     }
 
     func fetchData() async {
+        startObservingSubscriptionChangesIfNeeded()
         if !hasTrackedScreenOpen {
             analytics?.trackScreenOpen()
             hasTrackedScreenOpen = true
@@ -118,6 +127,39 @@ actor ProfileInteractor: ProfileBusinessLogic {
 }
 
 private extension ProfileInteractor {
+    func startObservingSubscriptionChangesIfNeeded() {
+        guard subscriptionObservationTask == nil else {
+            return
+        }
+
+        let notificationCenter = notificationCenter
+        subscriptionObservationTask = Task { [weak self] in
+            for await notification in notificationCenter.notifications(
+                named: .subscriptionAccessDidChange
+            ) {
+                guard !Task.isCancelled,
+                      let self,
+                      let snapshot = notification.object as? SubscriptionAccessSnapshot else {
+                    continue
+                }
+
+                await self.handleSubscriptionAccessDidChange(snapshot)
+            }
+        }
+    }
+
+    func handleSubscriptionAccessDidChange(
+        _ snapshot: SubscriptionAccessSnapshot
+    ) async {
+        guard loadingState == .loaded,
+              subscription != snapshot else {
+            return
+        }
+
+        subscription = snapshot
+        await presentFetchedData()
+    }
+
     func presentFetchedData() async {
         await presenter.presentFetchedData(
             ProfileFetchData(

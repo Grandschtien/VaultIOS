@@ -303,6 +303,9 @@ private extension SubscriptionAccessService {
         await state.setSnapshot(snapshot, for: context.userID)
         persistSnapshot(snapshot, for: context)
         await scheduleRefreshIfNeeded(for: snapshot)
+        if localSnapshot != snapshot {
+            await notifySubscriptionAccessDidChange(snapshot)
+        }
         return .network(snapshot)
     }
 
@@ -380,6 +383,17 @@ private extension SubscriptionAccessService {
     func clearCachedState() async {
         await state.clear()
         await monitoringState.cancelExpiryRefreshTask()
+    }
+
+    func notifySubscriptionAccessDidChange(
+        _ snapshot: SubscriptionAccessSnapshot
+    ) async {
+        await MainActor.run {
+            notificationCenter.post(
+                name: .subscriptionAccessDidChange,
+                object: snapshot
+            )
+        }
     }
 }
 

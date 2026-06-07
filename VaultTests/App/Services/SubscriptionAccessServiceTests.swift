@@ -32,6 +32,62 @@ final class SubscriptionAccessServiceTests: XCTestCase {
 }
 
 extension SubscriptionAccessServiceTests {
+    func testRefreshCurrentSubscriptionSnapshotPostsNotificationWhenSnapshotChanges() async {
+        let notificationCenter = NotificationCenter()
+        let subscriptionService = SubscriptionAccessContractServiceStub(
+            results: [
+                .success(
+                    makeSnapshot(
+                        tier: "PREMIUM",
+                        aiRequestsRemaining: 273,
+                        statusVersion: 42
+                    )
+                )
+            ],
+            refreshResults: [
+                .success(
+                    makeSnapshot(
+                        tier: "PREMIUM",
+                        aiRequestsRemaining: 272,
+                        statusVersion: 42
+                    )
+                )
+            ]
+        )
+        let sut = SubscriptionAccessService(
+            subscriptionService: subscriptionService,
+            userProfileStorageService: UserProfileStorageServiceSpy(
+                storedProfile: makeStoredProfile(userID: "user-1")
+            ),
+            notificationCenter: notificationCenter
+        )
+
+        _ = await sut.currentSubscriptionSnapshot()
+
+        let expectation = expectation(description: "Subscription access changed")
+        var receivedSnapshot: SubscriptionAccessSnapshot?
+        let token = notificationCenter.addObserver(
+            forName: .subscriptionAccessDidChange,
+            object: nil,
+            queue: .main
+        ) { notification in
+            receivedSnapshot = notification.object as? SubscriptionAccessSnapshot
+            expectation.fulfill()
+        }
+        defer {
+            notificationCenter.removeObserver(token)
+        }
+
+        let refreshedSnapshot = await sut.refreshCurrentSubscriptionSnapshot()
+
+        await fulfillment(of: [expectation], timeout: 1.0)
+
+        XCTAssertEqual(refreshedSnapshot?.aiRequestsRemaining, 272)
+        XCTAssertEqual(receivedSnapshot?.aiRequestsRemaining, 272)
+    }
+}
+
+extension SubscriptionAccessServiceTests {
     func testCurrentTierUsesPersistedLastKnownStateWhenRefreshFailsAfterRelaunch() async {
         let userProfileStorageService = UserProfileStorageServiceSpy(
             storedProfile: makeStoredProfile(userID: "user-1")

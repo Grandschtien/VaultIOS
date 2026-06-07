@@ -55,6 +55,73 @@ final class ProfileInteractorTests: XCTestCase {
 }
 
 extension ProfileInteractorTests {
+    func testSubscriptionAccessDidChangeUpdatesPresentedUsageWithoutRefetchingProfile() async {
+        let notificationCenter = NotificationCenter()
+        let presenter = ProfilePresenterSpy()
+        let router = ProfileRouterSpy()
+        let profileService = ProfileServiceStub(
+            results: [
+                .success(
+                    .init(
+                        id: "user-1",
+                        email: "sarah@example.com",
+                        name: "Sarah Connor",
+                        currency: "USD",
+                        preferredLanguage: "en-US",
+                        tier: "ACTIVE",
+                        tierValidUntil: nil
+                    )
+                )
+            ]
+        )
+        let initialSnapshot = SubscriptionAccessSnapshot(
+            tier: .premium,
+            status: .active,
+            paidAccessUntil: nil,
+            capabilities: [.analytics, .customDateRange, .aiInput],
+            aiRequestsLimit: 300,
+            aiRequestsRemaining: 273,
+            statusVersion: 42
+        )
+        let sut = makeSut(
+            presenter: presenter,
+            router: router,
+            profileService: profileService,
+            subscriptionAccessService: SubscriptionAccessServiceSpy(
+                refreshedSnapshotResult: initialSnapshot
+            ),
+            notificationCenter: notificationCenter
+        )
+
+        await sut.fetchData()
+
+        let updatedSnapshot = SubscriptionAccessSnapshot(
+            tier: .premium,
+            status: .active,
+            paidAccessUntil: nil,
+            capabilities: [.analytics, .customDateRange, .aiInput],
+            aiRequestsLimit: 300,
+            aiRequestsRemaining: 272,
+            statusVersion: 42
+        )
+
+        await MainActor.run {
+            notificationCenter.post(
+                name: .subscriptionAccessDidChange,
+                object: updatedSnapshot
+            )
+        }
+        await Task.yield()
+        await Task.yield()
+
+        XCTAssertEqual(presenter.presentedData.last?.subscription?.aiRequestsRemaining, 272)
+        assertStatus(presenter.presentedData.last?.loadingState ?? .idle, is: .loaded)
+        let serviceCallsCount = await profileService.callsCount()
+        XCTAssertEqual(serviceCallsCount, 1)
+    }
+}
+
+extension ProfileInteractorTests {
     func testFetchDataInitialLoadingUsesCurrencyFromLocalProfileStorage() async {
         let presenter = ProfilePresenterSpy()
         let router = ProfileRouterSpy()
@@ -544,7 +611,8 @@ private extension ProfileInteractorTests {
         profileService: ProfileContractServicing,
         localProfileStorage: UserProfileStorageServiceProtocol = UserProfileStorageServiceSpy(),
         authSessionService: AuthSessionServiceProtocol = AuthSessionServiceSpy(logoutResult: .success(())),
-        subscriptionAccessService: SubscriptionAccessServicing = SubscriptionAccessServiceSpy()
+        subscriptionAccessService: SubscriptionAccessServicing = SubscriptionAccessServiceSpy(),
+        notificationCenter: NotificationCenter = .default
     ) -> ProfileInteractor {
         ProfileInteractor(
             presenter: presenter,
@@ -553,7 +621,9 @@ private extension ProfileInteractorTests {
             currencyRateService: CurrencyRateServiceStub(),
             userProfileStorageService: localProfileStorage,
             authSessionService: authSessionService,
-            subscriptionAccessService: subscriptionAccessService
+            subscriptionAccessService: subscriptionAccessService,
+            applogSink: AppLogSinkProtocolStub(),
+            notificationCenter: notificationCenter
         )
     }
 
@@ -621,6 +691,8 @@ private final class ProfileRouterSpy: ProfileRoutingLogic {
     func presentError(with text: String) {
         presentedErrors.append(text)
     }
+
+    func openActivity(with link: URL) {}
 }
 
 private actor AuthSessionServiceSpy: AuthSessionServiceProtocol {
@@ -810,4 +882,12 @@ private final class UserProfileStorageServiceSpy: UserProfileStorageServiceProto
 
 private enum StubError: Error {
     case any
+}
+
+private struct AppLogSinkProtocolStub: AppLogSinkProtocol {
+    func write(_ entry: AppLogEntry) {}
+
+    func exportLogFile(completion: @escaping (Result<URL, Error>) -> Void) {
+        completion(.failure(StubError.any))
+    }
 }
