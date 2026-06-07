@@ -20,6 +20,7 @@ actor CategoryInteractor: CategoryBusinessLogic {
     private let repository: MainFlowDomainRepositoryProtocol
     private let observer: MainFlowDomainObserverProtocol
     private let analytics: CategoryAnalyticsTracking?
+    private let calendar: Calendar
 
     private var period: MainSummaryPeriod
     private var loadingState: LoadingStatus = .idle
@@ -28,6 +29,8 @@ actor CategoryInteractor: CategoryBusinessLogic {
     private var deletingExpenseIDs: Set<String> = []
     private var isLoadingNextPage: Bool = false
     private var hasMore: Bool = false
+    private var hasCachedDetailForCurrentPeriod: Bool = false
+    private var hasCachedSummaryOnly: Bool = false
     private var hasTrackedScreenOpen: Bool = false
     private var observationTask: Task<Void, Never>?
 
@@ -39,6 +42,7 @@ actor CategoryInteractor: CategoryBusinessLogic {
         router: CategoryRoutingLogic,
         repository: MainFlowDomainRepositoryProtocol,
         observer: MainFlowDomainObserverProtocol,
+        calendar: Calendar = .current,
         analytics: CategoryAnalyticsTracking? = nil
     ) {
         self.categoryID = categoryID
@@ -48,6 +52,7 @@ actor CategoryInteractor: CategoryBusinessLogic {
         self.router = router
         self.repository = repository
         self.observer = observer
+        self.calendar = calendar
         self.analytics = analytics
     }
 
@@ -56,6 +61,12 @@ actor CategoryInteractor: CategoryBusinessLogic {
     }
 
     func fetchData() async {
+        await fetchData(forceRefresh: false)
+    }
+}
+
+private extension CategoryInteractor {
+    func fetchData(forceRefresh: Bool) async {
         if !hasTrackedScreenOpen {
             analytics?.trackScreenOpen()
             hasTrackedScreenOpen = true
@@ -63,13 +74,17 @@ actor CategoryInteractor: CategoryBusinessLogic {
 
         startObservingIfNeeded()
 
-        loadingState = .loading
-        category = nil
-        expenseGroups = []
-        deletingExpenseIDs = []
         isLoadingNextPage = false
-        hasMore = false
+        primeStateFromCache()
 
+        if hasCachedDetailForCurrentPeriod, !forceRefresh {
+            loadingState = .loaded
+            analytics?.trackScreenSuccess()
+            await presentFetchedData()
+            return
+        }
+
+        loadingState = .loading
         await presentFetchedData()
 
         do {
@@ -84,7 +99,10 @@ actor CategoryInteractor: CategoryBusinessLogic {
         } catch {
             syncFromObserver()
 
-            if category == nil && expenseGroups.isEmpty {
+            if hasCachedDetailForCurrentPeriod {
+                loadingState = .loaded
+                analytics?.trackScreenSuccess()
+            } else if hasCachedSummaryOnly || (category == nil && expenseGroups.isEmpty) {
                 loadingState = .failed(.undelinedError(description: error.localizedDescription))
                 analytics?.trackScreenFailure(error)
             } else {
@@ -95,9 +113,6 @@ actor CategoryInteractor: CategoryBusinessLogic {
 
         await presentFetchedData()
     }
-}
-
-private extension CategoryInteractor {
     func startObservingIfNeeded() {
         guard observationTask == nil else {
             return
@@ -117,11 +132,11 @@ private extension CategoryInteractor {
 
     func syncFromObserver() {
         let snapshot = observer.currentCategorySnapshot(id: categoryID)
-        guard snapshot.period == period else {
+        guard isSamePeriod(snapshot.period, period) else {
             return
         }
 
-        apply(snapshot)
+        applyCurrentPeriodSnapshot(snapshot)
     }
 
     func handleSnapshot(_ snapshot: MainFlowCategorySnapshot) async {
@@ -130,15 +145,84 @@ private extension CategoryInteractor {
             return
         }
 
-        guard snapshot.period == period else {
+        guard isSamePeriod(snapshot.period, period) else {
             return
         }
 
-        apply(snapshot)
+        applyCurrentPeriodSnapshot(snapshot)
 
-        if loadingState == .loaded || snapshot.hasContent || !snapshot.deletingExpenseIDs.isEmpty {
+        let shouldPresentSnapshot: Bool
+        switch loadingState {
+        case .idle:
+            shouldPresentSnapshot = false
+        case .loading:
+            shouldPresentSnapshot = snapshot.hasContent || !snapshot.deletingExpenseIDs.isEmpty
+        case .loaded, .failed:
+            shouldPresentSnapshot = true
+        }
+
+        if shouldPresentSnapshot {
             await presentFetchedData()
         }
+    }
+
+    func primeStateFromCache() {
+        if let snapshot = cachedDetailSnapshotForCurrentPeriod() {
+            applyCurrentPeriodSnapshot(snapshot)
+            return
+        }
+
+        if let cachedCategory = cachedCategorySummary() {
+            category = cachedCategory
+            expenseGroups = []
+            deletingExpenseIDs = []
+            hasMore = false
+            hasCachedDetailForCurrentPeriod = false
+            hasCachedSummaryOnly = true
+            return
+        }
+
+        category = nil
+        expenseGroups = []
+        deletingExpenseIDs = []
+        hasMore = false
+        hasCachedDetailForCurrentPeriod = false
+        hasCachedSummaryOnly = false
+    }
+
+    func cachedDetailSnapshotForCurrentPeriod() -> MainFlowCategorySnapshot? {
+        let snapshot = observer.currentCategorySnapshot(id: categoryID)
+        guard isSamePeriod(snapshot.period, period), snapshot.category != nil else {
+            return nil
+        }
+
+        return snapshot
+    }
+
+    func cachedCategorySummary() -> MainCategoryCardModel? {
+        observer.currentCategoriesSnapshot().categories.first { category in
+            category.id == categoryID
+        }
+    }
+
+    func applyCurrentPeriodSnapshot(_ snapshot: MainFlowCategorySnapshot) {
+        hasCachedDetailForCurrentPeriod = snapshot.category != nil
+        if hasCachedDetailForCurrentPeriod {
+            hasCachedSummaryOnly = false
+        }
+        apply(snapshot)
+    }
+
+    func isSamePeriod(
+        _ lhs: MainSummaryPeriod?,
+        _ rhs: MainSummaryPeriod
+    ) -> Bool {
+        guard let lhs else {
+            return false
+        }
+
+        return calendar.isDate(lhs.from, inSameDayAs: rhs.from)
+            && calendar.isDate(lhs.to, inSameDayAs: rhs.to)
     }
 
     func apply(_ snapshot: MainFlowCategorySnapshot) {
@@ -155,6 +239,7 @@ private extension CategoryInteractor {
                 fromDate: period.from,
                 toDate: period.to,
                 loadingState: loadingState,
+                hasResolvedCurrentPeriodContent: hasCachedDetailForCurrentPeriod,
                 category: category,
                 expenseGroups: expenseGroups,
                 deletingExpenseIDs: deletingExpenseIDs,
@@ -179,7 +264,7 @@ private extension CategoryInteractor {
 
 extension CategoryInteractor: CategoryHandler {
     func handleTapRetry() async {
-        await fetchData()
+        await fetchData(forceRefresh: true)
     }
 
     func handleLoadNextPage() async {

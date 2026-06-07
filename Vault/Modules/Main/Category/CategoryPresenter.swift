@@ -68,6 +68,12 @@ private extension CategoryPresenter {
         case .failed:
             return .failed(makeErrorViewModel())
         case .idle, .loading:
+            if data.hasResolvedCurrentPeriodContent {
+                return sections.isEmpty
+                    ? .empty(L10n.mainOverviewEmptyExpenses)
+                    : .loaded(sections)
+            }
+
             return .loading(sections)
         case .loaded:
             return sections.isEmpty
@@ -78,15 +84,7 @@ private extension CategoryPresenter {
 
     func makeSummaryViewModel(from data: CategoryFetchData) -> CategoryViewModel.SummaryViewModel {
         let category = data.category
-        let isLoading: Bool
         let summaryColor = colorProvider.summaryColor(for: category?.color ?? "")
-
-        switch data.loadingState {
-        case .idle, .loading:
-            isLoading = true
-        case .failed, .loaded:
-            isLoading = false
-        }
 
         let amountText: String
         if let category {
@@ -118,33 +116,35 @@ private extension CategoryPresenter {
                 textColor: Asset.Colors.textAndIconSecondary.color,
                 alignment: .left
             ),
-            isLoading: isLoading
+            isLoading: category == nil
         )
     }
 
     func makeSections(from data: CategoryFetchData) -> [CategoryViewModel.SectionViewModel] {
         switch data.loadingState {
         case .idle, .loading:
-            return [
-                .init(
-                    id: "loading",
-                    title: .init(
-                        text: "",
-                        font: Typography.typographyBold12,
-                        textColor: Asset.Colors.textAndIconPlaceseholder.color,
-                        alignment: .left
-                    ),
-                    items: (0..<Constants.loadingRowsCount).map { index in
-                        .init(
-                            id: "loading-\(index)",
-                            isLoading: true
-                        )
-                    }
-                )
-            ]
-        case .failed:
-            return []
-        case .loaded:
+            if !data.hasResolvedCurrentPeriodContent {
+                return [
+                    .init(
+                        id: "loading",
+                        title: .init(
+                            text: "",
+                            font: Typography.typographyBold12,
+                            textColor: Asset.Colors.textAndIconPlaceseholder.color,
+                            alignment: .left
+                        ),
+                        items: (0..<Constants.loadingRowsCount).map { index in
+                            .init(
+                                id: "loading-\(index)",
+                                isLoading: true
+                            )
+                        }
+                    )
+                ]
+            }
+
+            fallthrough
+        case .failed, .loaded:
             let iconText = data.category?.icon ?? "💸"
             let iconBackground = colorProvider.summaryColor(for: data.category?.color ?? "")
 

@@ -46,6 +46,7 @@ final class DeleteTableViewCellWrapper<
 
         deleteView.backgroundColor = Asset.Colors.errorColor.color
         deleteView.layer.cornerRadius = spaceL
+        deleteView.alpha = .zero
 
         deleteIconView.contentMode = .scaleAspectFit
         deleteIconView.tintColor = .white
@@ -219,6 +220,7 @@ extension DeleteTableViewCellWrapper {
         let updateOffsets = {
             self.wrappedViewLeadingConstraint?.update(offset: -boundedOffset)
             self.wrappedViewTrailingConstraint?.update(offset: -boundedOffset)
+            self.deleteView.alpha = boundedOffset > .zero ? 1 : .zero
             self.contentView.setNeedsLayout()
             self.contentView.layoutIfNeeded()
         }

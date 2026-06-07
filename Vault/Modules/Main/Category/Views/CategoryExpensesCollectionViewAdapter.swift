@@ -102,7 +102,10 @@ final class CategoryExpensesCollectionViewAdapter: NSObject, LayoutScaleProvidin
             snapshot.appendItems(itemIDs, toSection: sectionID)
         }
 
-        dataSource?.apply(snapshot, animatingDifferences: true)
+        dataSource?.apply(
+            snapshot,
+            animatingDifferences: shouldAnimateDifferences()
+        )
     }
 }
 
@@ -123,6 +126,7 @@ private extension CategoryExpensesCollectionViewAdapter {
     ) -> ExpenseView.ViewModel {
         .init(
             id: viewModel.id,
+            isLoading: viewModel.isLoading,
             iconText: viewModel.iconText,
             title: viewModel.title,
             subtitle: viewModel.subtitle,
@@ -190,6 +194,14 @@ private extension CategoryExpensesCollectionViewAdapter {
 
         let title = sectionTitles[sectionID]?.text.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return !title.isEmpty
+    }
+
+    func shouldAnimateDifferences() -> Bool {
+        guard let tableView else {
+            return false
+        }
+
+        return tableView.window != nil && !tableView.isHidden
     }
 }
 

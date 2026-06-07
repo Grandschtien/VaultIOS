@@ -41,6 +41,11 @@ final class CategoriesListFactory: Screen {
             )
         )
 
+        presenter.handler = interactor
+        presenter.presentFetchedData(
+            CategoriesListFetchData(loadingState: .loading)
+        )
+
         let viewModelStore = ViewModelStore(
             viewModel: presenter.viewModel,
             options: .applyInitial,
@@ -54,7 +59,6 @@ final class CategoriesListFactory: Screen {
             collectionAdapter: collectionAdapter
         )
 
-        presenter.handler = interactor
         router.viewController = controller
 
         return controller

@@ -69,12 +69,12 @@ extension CategoryView {
             emptyLabel.isHidden = true
             paginationSpinner.stopAnimating()
         case .loading:
-            loadingView.isHidden = false
-            loadingView.showLoading()
             errorView.isHidden = true
-            tableView.isHidden = true
             emptyLabel.isHidden = true
             paginationSpinner.stopAnimating()
+            loadingView.isHidden = false
+            loadingView.showLoading()
+            tableView.isHidden = true
         case .loaded:
             errorView.isHidden = true
             loadingView.hideLoading()

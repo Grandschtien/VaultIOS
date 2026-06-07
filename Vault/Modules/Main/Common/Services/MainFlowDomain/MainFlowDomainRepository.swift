@@ -1071,8 +1071,25 @@ private extension MainFlowDomainRepository {
             return true
         }
 
-        return expense.timeOfAdd >= period.from
-            && expense.timeOfAdd <= period.to
+        let effectivePeriod = effectiveCategoryDetailsPeriod(period)
+
+        return expense.timeOfAdd >= effectivePeriod.from
+            && expense.timeOfAdd <= effectivePeriod.to
+    }
+
+    func effectiveCategoryDetailsPeriod(
+        _ period: MainSummaryPeriod
+    ) -> MainSummaryPeriod {
+        let currentDate = now()
+        guard periodResolver.calendar.isDate(period.to, inSameDayAs: currentDate),
+              period.to < currentDate else {
+            return period
+        }
+
+        return MainSummaryPeriod(
+            from: period.from,
+            to: currentDate
+        )
     }
 
     func updateCategory(

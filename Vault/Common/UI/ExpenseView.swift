@@ -2,6 +2,7 @@
 
 import UIKit
 import SnapKit
+import SkeletonView
 
 final class ExpenseView: UIView, LayoutScaleProviding {
     private(set) var viewModel: ViewModel = .init()
@@ -27,6 +28,13 @@ final class ExpenseView: UIView, LayoutScaleProviding {
     func configure(with viewModel: ViewModel) {
         self.viewModel = viewModel
 
+        if viewModel.isLoading {
+            showSkeleton()
+            return
+        }
+
+        hideSkeleton()
+
         iconLabel.apply(
             .init(
                 text: viewModel.iconText,
@@ -49,6 +57,8 @@ private extension ExpenseView {
 
         cardView.backgroundColor = Asset.Colors.interactiveInputBackground.color
         cardView.layer.cornerRadius = sizeL
+        cardView.isSkeletonable = true
+        cardView.skeletonCornerRadius = Float(sizeL)
 
         iconBackgroundView.layer.cornerRadius = sizeS
     }
@@ -95,11 +105,21 @@ private extension ExpenseView {
         }
     }
 
+    func showSkeleton() {
+        [iconLabel, titleLabel, subtitleLabel, amountLabel].forEach { $0.isHidden = true }
+        cardView.showAnimatedGradientSkeleton()
+    }
+
+    func hideSkeleton() {
+        [iconLabel, titleLabel, subtitleLabel, amountLabel].forEach { $0.isHidden = false }
+        cardView.hideSkeleton()
+    }
 }
 
 extension ExpenseView {
     struct ViewModel: Equatable {
         let id: String
+        let isLoading: Bool
         let iconText: String
         let title: Label.LabelViewModel
         let subtitle: Label.LabelViewModel
@@ -109,6 +129,7 @@ extension ExpenseView {
 
         init(
             id: String = "",
+            isLoading: Bool = false,
             iconText: String = "",
             title: Label.LabelViewModel = .init(),
             subtitle: Label.LabelViewModel = .init(),
@@ -117,6 +138,7 @@ extension ExpenseView {
             tapCommand: Command = .nope
         ) {
             self.id = id
+            self.isLoading = isLoading
             self.iconText = iconText
             self.title = title
             self.subtitle = subtitle

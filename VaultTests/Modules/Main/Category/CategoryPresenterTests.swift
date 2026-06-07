@@ -28,6 +28,36 @@ final class CategoryPresenterTests: XCTestCase {
 }
 
 extension CategoryPresenterTests {
+    func testPresentFetchedDataLoadingWithCachedSummaryBuildsRealSummaryAndSkeletonExpenses() {
+        let fromDate = Date(timeIntervalSince1970: 10)
+
+        sut.presentFetchedData(
+            .init(
+                navigationTitle: "Food",
+                fromDate: fromDate,
+                loadingState: .loading,
+                category: .init(
+                    id: "cat-1",
+                    name: "Food",
+                    icon: "🍴",
+                    color: "light_orange",
+                    amount: 321,
+                    currency: "USD"
+                )
+            )
+        )
+
+        let content = sut.viewModel.content
+        guard case let .loading(sections) = content.state else {
+            return XCTFail("Expected loading state")
+        }
+
+        XCTAssertFalse(content.summary.isLoading)
+        XCTAssertEqual(content.summary.amount.text, "amount-321.0-USD")
+        XCTAssertEqual(sections.count, 1)
+        XCTAssertTrue(sections[0].items.allSatisfy(\.isLoading))
+    }
+
     func testPresentFetchedDataLoadingBuildsSkeletonContent() {
         let fromDate = Date(timeIntervalSince1970: 10)
 

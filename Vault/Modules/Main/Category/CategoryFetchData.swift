@@ -7,6 +7,7 @@ struct CategoryFetchData: Sendable {
     let fromDate: Date
     let toDate: Date
     let loadingState: LoadingStatus
+    let hasResolvedCurrentPeriodContent: Bool
     let category: MainCategoryCardModel?
     let expenseGroups: [MainExpenseGroupModel]
     let deletingExpenseIDs: Set<String>
@@ -18,6 +19,7 @@ struct CategoryFetchData: Sendable {
         fromDate: Date = Date(),
         toDate: Date = Date(),
         loadingState: LoadingStatus = .idle,
+        hasResolvedCurrentPeriodContent: Bool = false,
         category: MainCategoryCardModel? = nil,
         expenseGroups: [MainExpenseGroupModel] = [],
         deletingExpenseIDs: Set<String> = [],
@@ -28,6 +30,7 @@ struct CategoryFetchData: Sendable {
         self.fromDate = fromDate
         self.toDate = toDate
         self.loadingState = loadingState
+        self.hasResolvedCurrentPeriodContent = hasResolvedCurrentPeriodContent
         self.category = category
         self.expenseGroups = expenseGroups
         self.deletingExpenseIDs = deletingExpenseIDs

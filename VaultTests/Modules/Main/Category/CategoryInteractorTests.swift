@@ -50,6 +50,50 @@ final class CategoryInteractorTests: XCTestCase {
 }
 
 extension CategoryInteractorTests {
+    func testFetchDataWithCachedCurrentPeriodDetailUsesCacheWithoutRefresh() async {
+        let initialPeriod = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 10),
+            to: Date(timeIntervalSince1970: 20)
+        )
+        let presenter = CategoryPresenterSpy()
+        let repository = CategoryRepositoryStub(
+            refreshResults: [.failure(StubError.any)],
+            nextPageResults: [],
+            deleteResults: []
+        )
+        await repository.seedSnapshot(
+            period: initialPeriod,
+            payload: .init(
+                category: makeCategory(amount: 10),
+                expenses: [makeExpense(id: "exp-1", time: 100)],
+                hasMore: false
+            )
+        )
+        let sut = makeSut(
+            presenter: presenter,
+            router: CategoryRouterSpy(),
+            repository: repository,
+            observer: repository.observer,
+            initialPeriod: initialPeriod
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+
+        guard let first = presenter.presentedData.first,
+              let last = presenter.presentedData.last else {
+            return XCTFail("Expected presenter updates")
+        }
+
+        assertStatus(first.loadingState, is: .loaded)
+        XCTAssertTrue(first.hasResolvedCurrentPeriodContent)
+        XCTAssertEqual(first.expenseGroups.flatMap(\.expenses).map(\.id), ["exp-1"])
+        assertStatus(last.loadingState, is: .loaded)
+        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).map(\.id), ["exp-1"])
+        let requestedPeriods = await repository.requestedRefreshPeriods()
+        XCTAssertTrue(requestedPeriods.isEmpty)
+    }
+
     func testHandleLoadNextPageAppendsExpenses() async {
         let initialPeriod = MainSummaryPeriod(
             from: Date(timeIntervalSince1970: 10),
@@ -143,6 +187,102 @@ extension CategoryInteractorTests {
 }
 
 extension CategoryInteractorTests {
+    func testFetchDataUsesSnapshotWhenPeriodMatchesByDayIgnoringTime() async {
+        let initialPeriod = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 86_500),
+            to: Date(timeIntervalSince1970: 172_799)
+        )
+        let cachedPeriod = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 100_000),
+            to: Date(timeIntervalSince1970: 150_000)
+        )
+        let presenter = CategoryPresenterSpy()
+        let repository = CategoryRepositoryStub(
+            refreshResults: [.failure(StubError.any)],
+            nextPageResults: [],
+            deleteResults: []
+        )
+        await repository.seedSnapshot(
+            period: cachedPeriod,
+            payload: .init(
+                category: makeCategory(amount: 10),
+                expenses: [makeExpense(id: "exp-1", time: 100)],
+                hasMore: false
+            )
+        )
+        let sut = makeSut(
+            presenter: presenter,
+            router: CategoryRouterSpy(),
+            repository: repository,
+            observer: repository.observer,
+            initialPeriod: initialPeriod
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+
+        guard let first = presenter.presentedData.first,
+              let last = presenter.presentedData.last else {
+            return XCTFail("Expected presenter updates")
+        }
+
+        assertStatus(first.loadingState, is: .loaded)
+        XCTAssertTrue(first.hasResolvedCurrentPeriodContent)
+        XCTAssertEqual(first.expenseGroups.flatMap(\.expenses).map(\.id), ["exp-1"])
+        assertStatus(last.loadingState, is: .loaded)
+        let requestedPeriods = await repository.requestedRefreshPeriods()
+        XCTAssertTrue(requestedPeriods.isEmpty)
+    }
+
+    func testFetchDataUpdatesOpenedCategoryWhenSnapshotChanges() async {
+        let initialPeriod = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 10),
+            to: Date(timeIntervalSince1970: 20)
+        )
+        let presenter = CategoryPresenterSpy()
+        let repository = CategoryRepositoryStub(
+            refreshResults: [
+                .success(
+                    .init(
+                        category: makeCategory(amount: 10),
+                        expenses: [makeExpense(id: "exp-1", time: 200)],
+                        hasMore: false
+                    )
+                )
+            ],
+            nextPageResults: [],
+            deleteResults: []
+        )
+        let sut = makeSut(
+            presenter: presenter,
+            router: CategoryRouterSpy(),
+            repository: repository,
+            observer: repository.observer,
+            initialPeriod: initialPeriod
+        )
+
+        await sut.fetchData()
+        await repository.seedSnapshot(
+            period: initialPeriod,
+            payload: .init(
+                category: makeCategory(amount: 14),
+                expenses: [
+                    makeExpense(id: "exp-2", time: 300),
+                    makeExpense(id: "exp-1", time: 200)
+                ],
+                hasMore: false
+            )
+        )
+        await waitForUpdates()
+
+        guard let last = presenter.presentedData.last else {
+            return XCTFail("Expected presenter update")
+        }
+
+        XCTAssertEqual(last.category?.amount, 14)
+        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).map(\.id), ["exp-2", "exp-1"])
+    }
+
     func testFetchDataIgnoresStaleSnapshotFromDifferentPeriod() async {
         let initialPeriod = MainSummaryPeriod(
             from: Date(timeIntervalSince1970: 100),
@@ -263,22 +403,30 @@ private extension CategoryInteractorTests {
         )
     }
 
-    func makeExpense(id: String, time: TimeInterval) -> MainExpenseModel {
+    func makeExpense(
+        id: String,
+        category: String = "cat-1",
+        time: TimeInterval
+    ) -> MainExpenseModel {
         MainExpenseModel(
             id: id,
             title: "Coffee",
             description: "Morning",
             amount: 4.5,
             currency: "USD",
-            category: "cat-1",
+            category: category,
             timeOfAdd: Date(timeIntervalSince1970: time)
         )
     }
 
-    func makeCategory(amount: Double) -> MainCategoryCardModel {
+    func makeCategory(
+        id: String = "cat-1",
+        name: String = "Food",
+        amount: Double
+    ) -> MainCategoryCardModel {
         MainCategoryCardModel(
-            id: "cat-1",
-            name: "Food",
+            id: id,
+            name: name,
             icon: "🍴",
             color: "light_orange",
             amount: amount,
@@ -437,7 +585,6 @@ private actor CategoryRepositoryStub: MainFlowDomainRepositoryProtocol {
         currentPeriod = period
         apply(payload: payload, replaceExpenses: true)
     }
-
     func apply(payload: CategoryPayload, replaceExpenses: Bool) {
         store.update { state in
             state.categoryDetailsByID[payload.category.id] = payload.category

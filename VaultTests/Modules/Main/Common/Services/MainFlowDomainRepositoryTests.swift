@@ -856,6 +856,78 @@ extension MainFlowDomainRepositoryTests {
 }
 
 extension MainFlowDomainRepositoryTests {
+    func testAddExpenseInsertsIntoCategoryDetailsWhenStoredToDateIsOnCurrentDay() async throws {
+        let store = MainFlowDomainStore()
+        let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        let currentDayNow = Date(timeIntervalSince1970: 30)
+        let period = MainSummaryPeriod(
+            from: Date(timeIntervalSince1970: 10),
+            to: Date(timeIntervalSince1970: 20)
+        )
+        let category = MainCategoryCardModel(
+            id: "cat-1",
+            name: "Food",
+            icon: "🍴",
+            color: "light_orange",
+            amount: 10,
+            currency: "USD"
+        )
+
+        store.update { state in
+            state.categoriesByID[category.id] = category
+            state.categoryDetailsByID[category.id] = category
+            state.categoryOrder = [category.id]
+            state.categoryPeriods[category.id] = period
+            state.categoryExpenseIDs[category.id] = []
+            state.categoryPagination[category.id] = .init(hasMore: false, isLoaded: true)
+        }
+        observer.publishAll(from: store)
+
+        let repository = MainFlowDomainRepository(
+            categoriesService: CategoriesServiceStub(listResult: .success(.init(categories: []))),
+            expensesService: ExpensesServiceStub(
+                listResults: [],
+                createResult: .success(
+                    .init(
+                        expenses: [
+                            .init(
+                                id: "exp-server",
+                                title: "Coffee",
+                                description: "Morning",
+                                amount: 4,
+                                currency: "USD",
+                                category: "cat-1",
+                                timeOfAdd: Date(timeIntervalSince1970: 25)
+                            )
+                        ]
+                    )
+                )
+            ),
+            currencyConversionService: CurrencyConverterStub(),
+            store: store,
+            observer: observer,
+            now: { currentDayNow }
+        )
+
+        try await repository.addExpense(
+            .init(
+                expenses: [
+                    .init(
+                        title: "Coffee",
+                        description: "Morning",
+                        amount: 4,
+                        currency: "USD",
+                        category: "cat-1",
+                        timeOfAdd: Date(timeIntervalSince1970: 25)
+                    )
+                ]
+            )
+        )
+
+        XCTAssertEqual(store.snapshot().categoryExpenseIDs["cat-1"], ["exp-server"])
+        XCTAssertEqual(observer.currentCategorySnapshot(id: "cat-1").expenseGroups.flatMap(\.expenses).map(\.id), ["exp-server"])
+    }
+
     func testAddExpenseDoesNotInsertIntoCategoryDetailsWhenExpenseIsAfterStoredToDate() async throws {
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())

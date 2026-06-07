@@ -9,6 +9,7 @@ final class CategoriesListView: UIView, LayoutScaleProviding {
     private var columns: CGFloat { 2 }
 
     private var viewModel: CategoriesListViewModel = .init()
+    private var lastAppliedCollectionWidth: CGFloat = .zero
     private let collectionAdapter: CategoryCollectionViewAdapter
 
     private let errorView = FullScreenCommonErrorView()
