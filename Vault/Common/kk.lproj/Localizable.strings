@@ -165,6 +165,8 @@
 "subscription_unknown_description" = "Жоспар туралы ақпарат қолжетімсіз";
 "subscription_per_month" = "%@ / ай";
 "subscription_buy" = "Жазылу";
+"subscription_terms_of_use" = "Пайдалану\nШарттары";
+"subscription_privacy_policy" = "Құпиялылық\nСаясаты";
 "subscription_restore_purchase" = "Сатып алуды қалпына келтіру";
 "subscription_loading_failed" = "Жазылымдарды жүктеу мүмкін болмады";
 "subscription_purchase_failed" = "Сатып алуды аяқтау мүмкін болмады";

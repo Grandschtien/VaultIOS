@@ -55,7 +55,9 @@ final class MainPresenter: MainPresentationLogic {
                     await handler?.handleTapPeriodButton()
                 }
             ),
+            pullToRefreshCommand: makePullToRefreshCommand(from: data),
             blockingErrorViewModel: blockingErrorViewModel,
+            isRefreshing: data.isRefreshing,
             isInteractionBlocked: blockingErrorViewModel != nil,
             summarySection: makeSummarySectionViewModel(from: data),
             categoriesSection: makeCategoriesSectionViewModel(from: data),
@@ -96,6 +98,20 @@ private extension MainPresenter {
                 }
             )
         )
+    }
+
+    func makePullToRefreshCommand(from data: MainFetchData) -> Command {
+        guard data.blockingErrorDescription == nil,
+              data.isRefreshing == false,
+              data.summaryState.isLoading == false,
+              data.categoriesState.isLoading == false,
+              data.expensesState.isLoading == false else {
+            return .nope
+        }
+
+        return Command { [weak handler] in
+            await handler?.handlePullToRefresh()
+        }
     }
 
     func makeSummarySectionViewModel(from data: MainFetchData) -> MainSummarySectionView.ViewModel {

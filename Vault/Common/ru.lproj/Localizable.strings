@@ -166,6 +166,8 @@
 "subscription_unknown_description" = "Информация о плане недоступна";
 "subscription_per_month" = "%@ / месяц";
 "subscription_buy" = "Оформить подписку";
+"subscription_terms_of_use" = "Условия\nИспользования";
+"subscription_privacy_policy" = "Политика\nКонфиденциальности";
 "subscription_restore_purchase" = "Восстановить покупку";
 "subscription_loading_failed" = "Не удалось загрузить подписки";
 "subscription_purchase_failed" = "Не удалось завершить покупку";

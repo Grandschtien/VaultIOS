@@ -113,6 +113,136 @@ extension MainInteractorTests {
 //        XCTAssertEqual(expensesCalls, 1)
     }
 
+    func testHandlePullToRefreshPreservesContentAndReloadsData() async {
+        let presenter = MainPresenterSpy()
+        let summaryProvider = MainSummaryProviderStub(
+            results: [
+                .success(.init(totalAmount: 100, currency: "USD", changePercent: 0)),
+                .success(.init(totalAmount: 200, currency: "USD", changePercent: 0))
+            ]
+        )
+        let repository = MainRepositoryStub(
+            categoriesResults: [
+                .success([makeCategory(id: "cat-1", amount: 10)]),
+                .success([makeCategory(id: "cat-1", amount: 20)])
+            ],
+            recentExpensesResults: [
+                .success([makeExpense(id: "exp-1", category: "cat-1", time: 100)]),
+                .success([makeExpense(id: "exp-2", category: "cat-1", time: 200)])
+            ]
+        )
+        let sut = makeSut(
+            presenter: presenter,
+            router: MainRouterSpy(),
+            summaryProvider: summaryProvider,
+            repository: repository,
+            observer: repository.observer
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+
+        let initialUpdatesCount = presenter.presentedData.count
+
+        await sut.handlePullToRefresh()
+        await waitForUpdates()
+
+        guard let refreshingUpdate = presenter.presentedData[initialUpdatesCount...].first(where: { $0.isRefreshing }),
+              let last = presenter.presentedData.last else {
+            return XCTFail("Expected presenter updates for pull to refresh")
+        }
+
+        assertStatus(refreshingUpdate.summaryState, is: .loaded)
+        assertStatus(refreshingUpdate.categoriesState, is: .loaded)
+        assertStatus(refreshingUpdate.expensesState, is: .loaded)
+        XCTAssertEqual(refreshingUpdate.summary?.totalAmount, 100)
+        XCTAssertEqual(refreshingUpdate.categories.first?.amount, 10)
+        XCTAssertEqual(refreshingUpdate.expenseGroups.flatMap(\.expenses).first?.id, "exp-1")
+
+        XCTAssertFalse(last.isRefreshing)
+        XCTAssertEqual(last.summary?.totalAmount, 200)
+        XCTAssertEqual(last.categories.first?.amount, 20)
+        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).first?.id, "exp-2")
+
+        let summaryFetchCalls = await summaryProvider.recordedFetchCallsCount()
+        let categoriesCalls = await repository.refreshCategoriesCalls()
+        let expensesCalls = await repository.refreshRecentExpensesCalls()
+
+        XCTAssertEqual(summaryFetchCalls, 2)
+        XCTAssertEqual(categoriesCalls, 2)
+        XCTAssertEqual(expensesCalls, 2)
+    }
+
+    func testFetchDataCancelsInFlightPullToRefresh() async {
+        let presenter = MainPresenterSpy()
+        let summaryProvider = MainSummaryProviderStub(
+            results: [
+                .success(.init(totalAmount: 100, currency: "USD", changePercent: 0)),
+                .success(.init(totalAmount: 200, currency: "USD", changePercent: 0)),
+                .success(.init(totalAmount: 300, currency: "USD", changePercent: 0))
+            ],
+            delaysInNanoseconds: [
+                0,
+                5_000_000_000,
+                0
+            ]
+        )
+        let repository = MainRepositoryStub(
+            categoriesResults: [
+                .success([makeCategory(id: "cat-1", amount: 10)]),
+                .success([makeCategory(id: "cat-1", amount: 20)]),
+                .success([makeCategory(id: "cat-1", amount: 30)])
+            ],
+            recentExpensesResults: [
+                .success([makeExpense(id: "exp-1", category: "cat-1", time: 100)]),
+                .success([makeExpense(id: "exp-2", category: "cat-1", time: 200)]),
+                .success([makeExpense(id: "exp-3", category: "cat-1", time: 300)])
+            ],
+            categoriesDelaysInNanoseconds: [
+                0,
+                5_000_000_000,
+                0
+            ],
+            recentExpensesDelaysInNanoseconds: [
+                0,
+                5_000_000_000,
+                0
+            ]
+        )
+        let sut = makeSut(
+            presenter: presenter,
+            router: MainRouterSpy(),
+            summaryProvider: summaryProvider,
+            repository: repository,
+            observer: repository.observer
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+
+        await sut.handlePullToRefresh()
+        await waitForUpdates()
+        await sut.fetchData()
+        await waitForUpdates()
+
+        guard let last = presenter.presentedData.last else {
+            return XCTFail("Expected presenter updates")
+        }
+
+        XCTAssertFalse(last.isRefreshing)
+        XCTAssertEqual(last.summary?.totalAmount, 300)
+        XCTAssertEqual(last.categories.first?.amount, 30)
+        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).first?.id, "exp-3")
+
+        let cancelledSummaryCalls = await summaryProvider.cancelledFetchCallsCount()
+        let cancelledCategoriesCalls = await repository.refreshCategoriesCancelledCalls()
+        let cancelledExpensesCalls = await repository.refreshRecentExpensesCancelledCalls()
+
+        XCTAssertGreaterThanOrEqual(cancelledSummaryCalls, 1)
+        XCTAssertGreaterThanOrEqual(cancelledCategoriesCalls, 1)
+        XCTAssertGreaterThanOrEqual(cancelledExpensesCalls, 1)
+    }
+
     func testFetchDataUsesObservedSummaryWhenSummaryRequestFails() async {
         let presenter = MainPresenterSpy()
         let repository = MainRepositoryStub(
@@ -603,20 +733,53 @@ private final class MainRouterSpy: MainRoutingLogic, @unchecked Sendable {
 
 private actor MainSummaryProviderStub: MainSummaryProviding {
     let results: [Result<MainSummaryModel, Error>]
+    let delaysInNanoseconds: [UInt64]
     private var fetchCallsCount: Int = .zero
+    private var cancelledCallsCount: Int = .zero
 
     init(result: Result<MainSummaryModel, Error>) {
         self.results = [result]
+        self.delaysInNanoseconds = []
+    }
+
+    init(results: [Result<MainSummaryModel, Error>]) {
+        self.results = results
+        self.delaysInNanoseconds = []
+    }
+
+    init(
+        results: [Result<MainSummaryModel, Error>],
+        delaysInNanoseconds: [UInt64]
+    ) {
+        self.results = results
+        self.delaysInNanoseconds = delaysInNanoseconds
     }
 
     func fetchSummary() async throws -> MainSummaryModel {
-        let index = min(fetchCallsCount, max(results.count - 1, .zero))
+        let callIndex = fetchCallsCount
+        let index = min(callIndex, max(results.count - 1, .zero))
         fetchCallsCount += 1
+
+        let delayIndex = min(callIndex, max(delaysInNanoseconds.count - 1, .zero))
+        let delay = delaysInNanoseconds.isEmpty ? .zero : delaysInNanoseconds[delayIndex]
+        if delay > 0 {
+            do {
+                try await Task.sleep(nanoseconds: delay)
+            } catch {
+                cancelledCallsCount += 1
+                throw error
+            }
+        }
+
         return try results[index].get()
     }
 
     func recordedFetchCallsCount() -> Int {
         fetchCallsCount
+    }
+
+    func cancelledFetchCallsCount() -> Int {
+        cancelledCallsCount
     }
 }
 
@@ -737,19 +900,27 @@ private actor MainRepositoryStub: MainFlowDomainRepositoryProtocol {
     private let store: MainFlowDomainStoreProtocol
     private let categoriesResults: [Result<[MainCategoryCardModel], Error>]
     private let recentExpensesResults: [Result<[MainExpenseModel], Error>]
+    private let categoriesDelaysInNanoseconds: [UInt64]
+    private let recentExpensesDelaysInNanoseconds: [UInt64]
     private var categoriesCallCount: Int = .zero
     private var recentExpensesCallCount: Int = .zero
+    private var cancelledCategoriesCallCount: Int = .zero
+    private var cancelledRecentExpensesCallCount: Int = .zero
     private var refreshLoadedPeriodDependentModulesCallCount: Int = .zero
 
     init(
         categoriesResults: [Result<[MainCategoryCardModel], Error>],
-        recentExpensesResults: [Result<[MainExpenseModel], Error>]
+        recentExpensesResults: [Result<[MainExpenseModel], Error>],
+        categoriesDelaysInNanoseconds: [UInt64] = [],
+        recentExpensesDelaysInNanoseconds: [UInt64] = []
     ) {
         let store = MainFlowDomainStore()
         self.store = store
         self.observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
         self.categoriesResults = categoriesResults
         self.recentExpensesResults = recentExpensesResults
+        self.categoriesDelaysInNanoseconds = categoriesDelaysInNanoseconds
+        self.recentExpensesDelaysInNanoseconds = recentExpensesDelaysInNanoseconds
     }
 
     func refreshMainFlow() async throws {
@@ -758,9 +929,22 @@ private actor MainRepositoryStub: MainFlowDomainRepositoryProtocol {
     }
 
     func refreshCategories() async throws {
-        let index = min(categoriesCallCount, max(categoriesResults.count - 1, .zero))
-        let categories = try categoriesResults[index].get()
+        let callIndex = categoriesCallCount
+        let index = min(callIndex, max(categoriesResults.count - 1, .zero))
         categoriesCallCount += 1
+
+        let delayIndex = min(callIndex, max(categoriesDelaysInNanoseconds.count - 1, .zero))
+        let delay = categoriesDelaysInNanoseconds.isEmpty ? .zero : categoriesDelaysInNanoseconds[delayIndex]
+        if delay > 0 {
+            do {
+                try await Task.sleep(nanoseconds: delay)
+            } catch {
+                cancelledCategoriesCallCount += 1
+                throw error
+            }
+        }
+
+        let categories = try categoriesResults[index].get()
 
         store.update { state in
             categories.forEach { state.categoriesByID[$0.id] = $0 }
@@ -770,9 +954,22 @@ private actor MainRepositoryStub: MainFlowDomainRepositoryProtocol {
     }
 
     func refreshRecentExpenses() async throws {
-        let index = min(recentExpensesCallCount, max(recentExpensesResults.count - 1, .zero))
-        let expenses = try recentExpensesResults[index].get()
+        let callIndex = recentExpensesCallCount
+        let index = min(callIndex, max(recentExpensesResults.count - 1, .zero))
         recentExpensesCallCount += 1
+
+        let delayIndex = min(callIndex, max(recentExpensesDelaysInNanoseconds.count - 1, .zero))
+        let delay = recentExpensesDelaysInNanoseconds.isEmpty ? .zero : recentExpensesDelaysInNanoseconds[delayIndex]
+        if delay > 0 {
+            do {
+                try await Task.sleep(nanoseconds: delay)
+            } catch {
+                cancelledRecentExpensesCallCount += 1
+                throw error
+            }
+        }
+
+        let expenses = try recentExpensesResults[index].get()
 
         store.update { state in
             expenses.forEach { state.expensesByID[$0.id] = $0 }
@@ -801,6 +998,14 @@ private actor MainRepositoryStub: MainFlowDomainRepositoryProtocol {
 
     func refreshRecentExpensesCalls() -> Int {
         recentExpensesCallCount
+    }
+
+    func refreshCategoriesCancelledCalls() -> Int {
+        cancelledCategoriesCallCount
+    }
+
+    func refreshRecentExpensesCancelledCalls() -> Int {
+        cancelledRecentExpensesCallCount
     }
 
     func refreshLoadedPeriodDependentModulesCalls() -> Int {

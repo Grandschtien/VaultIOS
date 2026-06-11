@@ -167,6 +167,8 @@
 "subscription_unknown_description" = "Plan details are unavailable";
 "subscription_per_month" = "%@ / month";
 "subscription_buy" = "Subscribe";
+"subscription_terms_of_use" = "Terms Of Use";
+"subscription_privacy_policy" = "Privacy Policy";
 "subscription_restore_purchase" = "Restore Purchase";
 "subscription_loading_failed" = "Unable to load subscriptions";
 "subscription_purchase_failed" = "Unable to complete purchase";

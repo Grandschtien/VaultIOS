@@ -11,6 +11,8 @@ protocol SubscriptionHandler: AnyObject, Sendable {
     func handleTapRetry() async
     func handleTapPurchase(planID: String) async
     func handleTapRestorePurchase() async
+    func handleTapTermsOfUse() async
+    func handleTapPrivacyPolicy() async
 }
 
 protocol SubscriptionOutput: AnyObject, Sendable {
@@ -436,5 +438,25 @@ extension SubscriptionInteractor: SubscriptionHandler {
             )
             await router.presentError(with: restoreFailedMessage(from: error))
         }
+    }
+
+    func handleTapTermsOfUse() async {
+        guard purchasingPlanID == nil,
+              !isPurchaseSyncing,
+              !isRestoringPurchase else {
+            return
+        }
+
+        await router.openTermsOfUse()
+    }
+
+    func handleTapPrivacyPolicy() async {
+        guard purchasingPlanID == nil,
+              !isPurchaseSyncing,
+              !isRestoringPurchase else {
+            return
+        }
+
+        await router.openPrivacyPolicy()
     }
 }

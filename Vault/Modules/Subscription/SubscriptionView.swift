@@ -17,7 +17,12 @@ final class SubscriptionView: UIView, LayoutScaleProviding {
     private let subtitleLabel = Label()
     private let currentPlanView = SubscriptionCurrentPlanCardView()
     private let tableView = UITableView(frame: .zero, style: .plain)
+    private let footerStackView = UIStackView()
     private let restoreButton = Button()
+    private let legalLinksContainerView = UIView()
+    private let legalLinksStackView = UIStackView()
+    private let termsOfUseLinkView = SubscriptionFooterLinkView()
+    private let privacyPolicyLinkView = SubscriptionFooterLinkView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -70,6 +75,8 @@ private extension SubscriptionView {
         currentPlanView.configure(with: content.currentPlan)
         tableAdapter.configure(plans: content.plans)
         restoreButton.apply(content.restoreButton)
+        termsOfUseLinkView.configure(with: content.termsOfUseLink)
+        privacyPolicyLinkView.configure(with: content.privacyPolicyLink)
     }
 
     func setupViews() {
@@ -92,7 +99,13 @@ private extension SubscriptionView {
         subtitleLabel.isHidden = true
         currentPlanView.isHidden = true
         tableView.isHidden = true
-        restoreButton.isHidden = true
+        footerStackView.isHidden = true
+        footerStackView.axis = .vertical
+        footerStackView.alignment = .fill
+        footerStackView.spacing = spaceXXS
+        legalLinksStackView.axis = .horizontal
+        legalLinksStackView.alignment = .center
+        legalLinksStackView.spacing = spaceXS
 
         tableAdapter.attach(to: tableView)
         tableView.sectionHeaderTopPadding = .zero
@@ -112,8 +125,13 @@ private extension SubscriptionView {
         addSubview(subtitleLabel)
         addSubview(currentPlanView)
         addSubview(tableView)
-        addSubview(restoreButton)
+        addSubview(footerStackView)
         addSubview(overlayView)
+        footerStackView.addArrangedSubview(restoreButton)
+        footerStackView.addArrangedSubview(legalLinksContainerView)
+        legalLinksContainerView.addSubview(legalLinksStackView)
+        legalLinksStackView.addArrangedSubview(termsOfUseLinkView)
+        legalLinksStackView.addArrangedSubview(privacyPolicyLinkView)
         overlayView.addSubview(overlayCardView)
         overlayCardView.addSubview(overlayStackView)
         overlayStackView.addArrangedSubview(overlayLoadingView)
@@ -154,12 +172,19 @@ private extension SubscriptionView {
         tableView.snp.makeConstraints { make in
             make.top.equalTo(currentPlanView.snp.bottom).offset(spaceS)
             make.horizontalEdges.equalToSuperview().inset(spaceS)
-            make.bottom.equalTo(restoreButton.snp.top).offset(-spaceXS)
+            make.bottom.equalTo(footerStackView.snp.top).offset(-spaceXS)
         }
 
-        restoreButton.snp.makeConstraints { make in
+        footerStackView.snp.makeConstraints { make in
             make.horizontalEdges.equalToSuperview().inset(spaceS)
             make.bottom.equalTo(safeAreaLayoutGuide).inset(spaceS)
+        }
+
+        legalLinksStackView.snp.makeConstraints { make in
+            make.top.bottom.equalToSuperview()
+            make.centerX.equalToSuperview()
+            make.leading.greaterThanOrEqualToSuperview()
+            make.trailing.lessThanOrEqualToSuperview()
         }
 
         overlayView.snp.makeConstraints { make in
@@ -183,7 +208,7 @@ private extension SubscriptionView {
         subtitleLabel.isHidden = isHidden
         currentPlanView.isHidden = isHidden
         tableView.isHidden = isHidden
-        restoreButton.isHidden = isHidden
+        footerStackView.isHidden = isHidden
     }
 
     func setOverlay(
@@ -202,6 +227,58 @@ private extension SubscriptionView {
         } else {
             overlayLoadingView.stopAnimating()
         }
+    }
+}
+
+private final class SubscriptionFooterLinkView: UIControl, LayoutScaleProviding {
+    private(set) var viewModel: SubscriptionViewModel.FooterLink = .init()
+
+    private let titleLabel = Label()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupViews()
+        setupLayout()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func configure(with viewModel: SubscriptionViewModel.FooterLink) {
+        self.viewModel = viewModel
+        titleLabel.apply(viewModel.title)
+        isEnabled = viewModel.isEnabled
+        alpha = viewModel.isEnabled ? 1 : 0.6
+    }
+}
+
+private extension SubscriptionFooterLinkView {
+    func setupViews() {
+        backgroundColor = .clear
+        addTarget(self, action: #selector(handleTap), for: .touchUpInside)
+    }
+
+    func setupLayout() {
+        addSubview(titleLabel)
+
+        titleLabel.snp.makeConstraints { make in
+            make.horizontalEdges.equalToSuperview()
+            make.verticalEdges.equalToSuperview()
+        }
+    }
+
+    @objc
+    func handleTap() {
+        let trackingName = viewModel.trackingName ?? viewModel.title.text
+        let resolvedTrackingName = trackingName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        AppLogBridge.logTap(
+            source: resolvedTrackingName.isEmpty ? String(describing: Self.self) : resolvedTrackingName,
+            payload: ["control_type": "SubscriptionFooterLinkView"]
+        )
+        viewModel.tapCommand.execute()
     }
 }
 

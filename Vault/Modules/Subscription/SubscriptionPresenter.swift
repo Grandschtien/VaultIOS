@@ -60,6 +60,9 @@ private extension SubscriptionPresenter {
         let currentPlan = SubscriptionPlanResolver.currentPlan(from: data.currentTier)
         let currentProductID = SubscriptionPlanResolver.currentProductID(from: data.currentTier)
         let availablePlans = data.plans.filter { $0.id != currentProductID }
+        let isActionInProgress = data.purchasingPlanID != nil
+            || data.isPurchaseSyncing
+            || data.isRestoringPurchase
 
         return SubscriptionViewModel.Content(
             title: .init(
@@ -109,6 +112,22 @@ private extension SubscriptionPresenter {
                 purchasingPlanID: data.purchasingPlanID,
                 isPurchaseSyncing: data.isPurchaseSyncing,
                 isRestoringPurchase: data.isRestoringPurchase
+            ),
+            termsOfUseLink: makeFooterLink(
+                title: L10n.subscriptionTermsOfUse,
+                isEnabled: !isActionInProgress,
+                trackingName: "subscription_terms_of_use",
+                action: { [weak handler] in
+                    await handler?.handleTapTermsOfUse()
+                }
+            ),
+            privacyPolicyLink: makeFooterLink(
+                title: L10n.subscriptionPrivacyPolicy,
+                isEnabled: !isActionInProgress,
+                trackingName: "subscription_privacy_policy",
+                action: { [weak handler] in
+                    await handler?.handleTapPrivacyPolicy()
+                }
             )
         )
     }
@@ -195,6 +214,26 @@ private extension SubscriptionPresenter {
             },
             iconTintColor: Asset.Colors.interactiveElemetsPrimary.color,
             trackingName: "subscription_restore_purchase"
+        )
+    }
+
+    func makeFooterLink(
+        title: String,
+        isEnabled: Bool,
+        trackingName: String,
+        action: @escaping Command.Action
+    ) -> SubscriptionViewModel.FooterLink {
+        .init(
+            title: .init(
+                text: title,
+                font: Typography.typographySemibold16,
+                textColor: Asset.Colors.textAndIconSecondary.color,
+                alignment: .center,
+                numberOfLines: 0
+            ),
+            tapCommand: Command(action: action),
+            isEnabled: isEnabled,
+            trackingName: trackingName
         )
     }
 

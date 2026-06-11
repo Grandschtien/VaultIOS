@@ -5,6 +5,7 @@ import Foundation
 struct MainFetchData: Sendable {
     let navigationTitle: String
     let blockingErrorDescription: String?
+    let isRefreshing: Bool
     let summaryState: LoadingStatus
     let categoriesState: LoadingStatus
     let expensesState: LoadingStatus
@@ -15,6 +16,7 @@ struct MainFetchData: Sendable {
     init(
         navigationTitle: String = L10n.mainOverviewTitle,
         blockingErrorDescription: String? = nil,
+        isRefreshing: Bool = false,
         summaryState: LoadingStatus = .idle,
         categoriesState: LoadingStatus = .idle,
         expensesState: LoadingStatus = .idle,
@@ -24,6 +26,7 @@ struct MainFetchData: Sendable {
     ) {
         self.navigationTitle = navigationTitle
         self.blockingErrorDescription = blockingErrorDescription
+        self.isRefreshing = isRefreshing
         self.summaryState = summaryState
         self.categoriesState = categoriesState
         self.expensesState = expensesState

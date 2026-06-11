@@ -149,6 +149,10 @@ private final class SubscriptionLoggingRouterSpy: SubscriptionRoutingLogic {
     func presentSuccess(with text: String) {
         presentedSuccessMessages.append(text)
     }
+
+    func openTermsOfUse() {}
+
+    func openPrivacyPolicy() {}
 }
 
 private actor SubscriptionLoggingOutputSpy: SubscriptionOutput {

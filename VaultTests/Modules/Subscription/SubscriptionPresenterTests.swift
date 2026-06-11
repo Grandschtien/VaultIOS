@@ -87,6 +87,8 @@ extension SubscriptionPresenterTests {
         XCTAssertEqual(content.plans.map(\.title.text), [L10n.subscriptionPremium])
         XCTAssertEqual(content.plans.map(\.price.text), [L10n.subscriptionPerMonth("$2.99")])
         XCTAssertEqual(content.restoreButton.title, L10n.subscriptionRestorePurchase)
+        XCTAssertEqual(content.termsOfUseLink.title.text, L10n.subscriptionTermsOfUse)
+        XCTAssertEqual(content.privacyPolicyLink.title.text, L10n.subscriptionPrivacyPolicy)
     }
 }
 
@@ -183,6 +185,41 @@ extension SubscriptionPresenterTests {
 }
 
 extension SubscriptionPresenterTests {
+    func testPresentFetchedDataLegalLinkCommandsCallHandler() async {
+        let termsExpectation = expectation(description: "Terms command")
+        let privacyExpectation = expectation(description: "Privacy command")
+        handler.onHandleTermsOfUse = {
+            termsExpectation.fulfill()
+        }
+        handler.onHandlePrivacyPolicy = {
+            privacyExpectation.fulfill()
+        }
+
+        sut.presentFetchedData(
+            .init(
+                loadingState: .loaded,
+                plans: [
+                    .init(
+                        id: SubscriptionCatalog.premium.id,
+                        title: L10n.subscriptionPremium,
+                        price: "$2.99"
+                    )
+                ]
+            )
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        content.termsOfUseLink.tapCommand.execute()
+        content.privacyPolicyLink.tapCommand.execute()
+
+        await fulfillment(of: [termsExpectation, privacyExpectation], timeout: 1.0)
+    }
+}
+
+extension SubscriptionPresenterTests {
     func testPresentFetchedDataFailedBuildsRetryState() async {
         let retryExpectation = expectation(description: "Retry command")
         handler.onHandleRetry = {
@@ -209,6 +246,8 @@ extension SubscriptionPresenterTests {
 private final class SubscriptionHandlerSpy: SubscriptionHandler, @unchecked Sendable {
     var onHandleRetry: (() -> Void)?
     var onHandleRestorePurchase: (() -> Void)?
+    var onHandleTermsOfUse: (() -> Void)?
+    var onHandlePrivacyPolicy: (() -> Void)?
 
     func handleTapClose() async {}
 
@@ -220,5 +259,13 @@ private final class SubscriptionHandlerSpy: SubscriptionHandler, @unchecked Send
 
     func handleTapRestorePurchase() async {
         onHandleRestorePurchase?()
+    }
+
+    func handleTapTermsOfUse() async {
+        onHandleTermsOfUse?()
+    }
+
+    func handleTapPrivacyPolicy() async {
+        onHandlePrivacyPolicy?()
     }
 }

@@ -11,6 +11,7 @@ protocol MainHandler: AnyObject, Sendable {
     func handleTapSeeAllExpenses() async
     func handleTapCategory(id: String, name: String) async
     func handleTapPeriodButton() async
+    func handlePullToRefresh() async
     func handleTapRetryBlockingError() async
     func handleTapRetrySummary() async
     func handleTapRetryCategories() async
@@ -28,6 +29,7 @@ actor MainInteractor: MainBusinessLogic {
     private let observer: MainFlowDomainObserverProtocol
 
     private var blockingErrorDescription: String?
+    private var isRefreshing: Bool = false
     private var summaryState: LoadingStatus = .idle
     private var categoriesState: LoadingStatus = .idle
     private var expensesState: LoadingStatus = .idle
@@ -37,6 +39,7 @@ actor MainInteractor: MainBusinessLogic {
     private var categories: [MainCategoryCardModel] = []
     private var expenseGroups: [MainExpenseGroupModel] = []
     private var observationTask: Task<Void, Never>?
+    private var pullToRefreshTask: Task<Void, Never>?
 
     init(
         presenter: MainPresentationLogic,
@@ -60,9 +63,12 @@ actor MainInteractor: MainBusinessLogic {
 
     deinit {
         observationTask?.cancel()
+        pullToRefreshTask?.cancel()
     }
 
     func fetchData() async {
+        cancelPullToRefresh()
+
         guard await validateLaunchCurrencyRate() else {
             return
         }
@@ -113,6 +119,8 @@ private extension MainInteractor {
     }
 
     func loadMainData() async {
+        cancelPullToRefresh()
+        isRefreshing = false
         summaryState = .loading
         categoriesState = .loading
         expensesState = .loading
@@ -127,16 +135,63 @@ private extension MainInteractor {
         _ = await (summaryTask, categoriesTask, expensesTask)
     }
 
+    func refreshMainData() async {
+        guard canStartPullToRefresh else {
+            return
+        }
+
+        cancelPullToRefresh()
+
+        let task = Task<Void, Never> { [weak self] in
+            await self?.performPullToRefresh()
+        }
+        pullToRefreshTask = task
+    }
+
     func resetLoadedData() {
         summary = nil
         categories = []
         expenseGroups = []
     }
 
+    var canStartPullToRefresh: Bool {
+        blockingErrorDescription == nil
+            && summaryState.isLoading == false
+            && categoriesState.isLoading == false
+            && expensesState.isLoading == false
+    }
+
+    func performPullToRefresh() async {
+        isRefreshing = true
+        await presentFetchedData()
+
+        async let summaryTask: Void = loadSummary()
+        async let categoriesTask: Void = loadCategories()
+        async let expensesTask: Void = loadExpenses()
+
+        _ = await (summaryTask, categoriesTask, expensesTask)
+
+        guard Task.isCancelled == false else {
+            return
+        }
+
+        pullToRefreshTask = nil
+        isRefreshing = false
+        await presentFetchedData()
+    }
+
+    func cancelPullToRefresh() {
+        pullToRefreshTask?.cancel()
+        pullToRefreshTask = nil
+        isRefreshing = false
+    }
+
     func loadSummary() async {
         do {
             summary = try await summaryProvider.fetchSummary()
             summaryState = .loaded
+        } catch is CancellationError {
+            return
         } catch {
             if let overviewSummary = observer.currentOverviewSnapshot().summary {
                 summary = MainSummaryModel(
@@ -150,6 +205,10 @@ private extension MainInteractor {
             }
         }
 
+        guard Task.isCancelled == false else {
+            return
+        }
+
         await presentFetchedData()
     }
 
@@ -158,6 +217,8 @@ private extension MainInteractor {
             try await repository.refreshCategories()
             categories = observer.currentOverviewSnapshot().categories
             categoriesState = .loaded
+        } catch is CancellationError {
+            return
         } catch {
             categories = observer.currentOverviewSnapshot().categories
 
@@ -168,6 +229,10 @@ private extension MainInteractor {
             }
         }
 
+        guard Task.isCancelled == false else {
+            return
+        }
+
         await presentFetchedData()
     }
 
@@ -176,6 +241,8 @@ private extension MainInteractor {
             try await repository.refreshRecentExpenses()
             expenseGroups = observer.currentOverviewSnapshot().expenseGroups
             expensesState = .loaded
+        } catch is CancellationError {
+            return
         } catch {
             expenseGroups = observer.currentOverviewSnapshot().expenseGroups
 
@@ -184,6 +251,10 @@ private extension MainInteractor {
             } else {
                 expensesState = .loaded
             }
+        }
+
+        guard Task.isCancelled == false else {
+            return
         }
 
         await presentFetchedData()
@@ -213,6 +284,7 @@ private extension MainInteractor {
         await presenter.presentFetchedData(
             MainFetchData(
                 blockingErrorDescription: blockingErrorDescription,
+                isRefreshing: isRefreshing,
                 summaryState: summaryState,
                 categoriesState: categoriesState,
                 expensesState: expensesState,
@@ -272,6 +344,10 @@ extension MainInteractor: MainHandler {
         )
     }
 
+    func handlePullToRefresh() async {
+        await refreshMainData()
+    }
+
     func handleTapRetryBlockingError() async {
         guard blockingErrorDescription != nil else {
             return
@@ -289,6 +365,7 @@ extension MainInteractor: MainHandler {
             return
         }
 
+        cancelPullToRefresh()
         summaryState = .loading
         summary = nil
 
@@ -301,6 +378,7 @@ extension MainInteractor: MainHandler {
             return
         }
 
+        cancelPullToRefresh()
         categoriesState = .loading
         categories = []
 
@@ -313,6 +391,7 @@ extension MainInteractor: MainHandler {
             return
         }
 
+        cancelPullToRefresh()
         expensesState = .loading
         expenseGroups = []
 
@@ -339,5 +418,15 @@ extension MainInteractor: SubscriptionOutput {
         if subscription?.hasCustomDateRangeAccess != true {
             summaryPeriodProvider.resetToCurrentMonth()
         }
+    }
+}
+
+private extension LoadingStatus {
+    var isLoading: Bool {
+        if case .loading = self {
+            return true
+        }
+
+        return false
     }
 }

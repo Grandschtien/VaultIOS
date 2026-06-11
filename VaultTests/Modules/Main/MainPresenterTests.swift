@@ -49,6 +49,8 @@ extension MainPresenterTests {
         XCTAssertEqual(sut.viewModel.navigationTitle.text, L10n.mainOverviewTitle)
         XCTAssertEqual(sut.viewModel.summarySection.periodDescription.text, "from-1")
         XCTAssertEqual(sut.viewModel.summarySection.amount.text, L10n.mainOverviewLoading)
+        XCTAssertEqual(sut.viewModel.pullToRefreshCommand, .nope)
+        XCTAssertFalse(sut.viewModel.isRefreshing)
         XCTAssertTrue(sut.viewModel.categoriesSection.isLoading)
         XCTAssertTrue(isExpensesState(sut.viewModel.expensesSection.state, .loading))
     }
@@ -96,6 +98,8 @@ extension MainPresenterTests {
         XCTAssertEqual(sut.viewModel.summarySection.periodDescription.text, "from-1")
         XCTAssertEqual(sut.viewModel.summarySection.amount.text, "amount-2450.8-USD")
         XCTAssertNil(sut.viewModel.summarySection.trend)
+        XCTAssertNotEqual(sut.viewModel.pullToRefreshCommand, .nope)
+        XCTAssertFalse(sut.viewModel.isRefreshing)
 
         XCTAssertEqual(sut.viewModel.categoriesSection.items.count, 1)
         XCTAssertEqual(sut.viewModel.categoriesSection.items[0].title.text, "Food")
@@ -134,6 +138,7 @@ extension MainPresenterTests {
 
         XCTAssertNotNil(sut.viewModel.summarySection.errorViewModel)
         XCTAssertNotNil(sut.viewModel.categoriesSection.errorViewModel)
+        XCTAssertNotEqual(sut.viewModel.pullToRefreshCommand, .nope)
         XCTAssertTrue(isExpensesState(sut.viewModel.expensesSection.state, .error))
         XCTAssertTrue(sut.viewModel.categoriesSection.items.isEmpty)
     }
@@ -153,7 +158,25 @@ extension MainPresenterTests {
         XCTAssertTrue(sut.viewModel.isInteractionBlocked)
         XCTAssertEqual(sut.viewModel.blockingErrorViewModel?.title.text, L10n.mainOverviewError)
         XCTAssertEqual(sut.viewModel.blockingErrorViewModel?.subtitle.text, L10n.mainOverviewError)
+        XCTAssertEqual(sut.viewModel.pullToRefreshCommand, .nope)
         XCTAssertNotEqual(sut.viewModel.blockingErrorViewModel?.retryButton.tapCommand, .nope)
+    }
+}
+
+extension MainPresenterTests {
+    func testPresentFetchedDataRefreshingDisablesPullToRefreshAndKeepsFlag() {
+        sut.presentFetchedData(
+            MainFetchData(
+                isRefreshing: true,
+                summaryState: .loaded,
+                categoriesState: .loaded,
+                expensesState: .loaded,
+                summary: .init(totalAmount: 2450.8, currency: "USD", changePercent: 12)
+            )
+        )
+
+        XCTAssertTrue(sut.viewModel.isRefreshing)
+        XCTAssertEqual(sut.viewModel.pullToRefreshCommand, .nope)
     }
 }
 
@@ -169,6 +192,7 @@ extension MainPresenterTests {
 
         XCTAssertFalse(sut.viewModel.isInteractionBlocked)
         XCTAssertNil(sut.viewModel.blockingErrorViewModel)
+        XCTAssertNotEqual(sut.viewModel.pullToRefreshCommand, .nope)
     }
 }
 

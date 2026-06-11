@@ -39,19 +39,25 @@ extension SubscriptionViewModel {
         let currentPlan: CurrentPlanCard
         let plans: [PlanCard]
         let restoreButton: Button.ButtonViewModel
+        let termsOfUseLink: FooterLink
+        let privacyPolicyLink: FooterLink
 
         init(
             title: Label.LabelViewModel = .init(),
             subtitle: Label.LabelViewModel = .init(),
             currentPlan: CurrentPlanCard = .init(),
             plans: [PlanCard] = [],
-            restoreButton: Button.ButtonViewModel = .init()
+            restoreButton: Button.ButtonViewModel = .init(),
+            termsOfUseLink: FooterLink = .init(),
+            privacyPolicyLink: FooterLink = .init()
         ) {
             self.title = title
             self.subtitle = subtitle
             self.currentPlan = currentPlan
             self.plans = plans
             self.restoreButton = restoreButton
+            self.termsOfUseLink = termsOfUseLink
+            self.privacyPolicyLink = privacyPolicyLink
         }
     }
 
@@ -90,6 +96,25 @@ extension SubscriptionViewModel {
             self.description = description
             self.price = price
             self.button = button
+        }
+    }
+
+    struct FooterLink: Equatable {
+        let title: Label.LabelViewModel
+        let tapCommand: Command
+        let isEnabled: Bool
+        let trackingName: String?
+
+        init(
+            title: Label.LabelViewModel = .init(),
+            tapCommand: Command = .nope,
+            isEnabled: Bool = true,
+            trackingName: String? = nil
+        ) {
+            self.title = title
+            self.tapCommand = tapCommand
+            self.isEnabled = isEnabled
+            self.trackingName = trackingName
         }
     }
 }

@@ -5,6 +5,7 @@ import SnapKit
 
 final class MainView: UIView, LayoutScaleProviding {
     private let scrollView = UIScrollView()
+    private let refreshControl = UIRefreshControl()
     private let contentView = UIView()
     private let stackView = UIStackView()
     private let blockingErrorView = MainBlockingErrorView()
@@ -12,6 +13,7 @@ final class MainView: UIView, LayoutScaleProviding {
     private let summarySectionView = MainSummarySectionView()
     private let categoriesSectionView: MainCategoriesSectionView
     private let expensesSectionView = MainExpensesSectionView()
+    private var pullToRefreshCommand: Command = .nope
 
     init(
         frame: CGRect = .zero,
@@ -31,10 +33,16 @@ final class MainView: UIView, LayoutScaleProviding {
 
 extension MainView {
     func configure(with viewModel: MainViewModel) {
+        pullToRefreshCommand = viewModel.pullToRefreshCommand
         summarySectionView.configure(with: viewModel.summarySection)
         categoriesSectionView.configure(with: viewModel.categoriesSection)
         expensesSectionView.configure(with: viewModel.expensesSection)
         scrollView.isUserInteractionEnabled = !viewModel.isInteractionBlocked
+        refreshControl.isEnabled = viewModel.pullToRefreshCommand != .nope
+
+        if viewModel.isRefreshing == false, refreshControl.isRefreshing {
+            refreshControl.endRefreshing()
+        }
 
         if let blockingErrorViewModel = viewModel.blockingErrorViewModel {
             blockingErrorView.isHidden = false
@@ -49,11 +57,15 @@ private extension MainView {
     func setupViews() {
         backgroundColor = Asset.Colors.backgroundPrimary.color
 
+        scrollView.alwaysBounceVertical = true
         scrollView.showsVerticalScrollIndicator = false
+        scrollView.refreshControl = refreshControl
         blockingErrorView.isHidden = true
 
         stackView.axis = .vertical
         stackView.spacing = spaceM
+
+        refreshControl.addTarget(self, action: #selector(handlePullToRefresh), for: .valueChanged)
     }
 
     func setupLayout() {
@@ -84,5 +96,10 @@ private extension MainView {
             make.leading.trailing.equalToSuperview().inset(spaceS)
             make.bottom.equalToSuperview().inset(spaceS)
         }
+    }
+
+    @objc
+    func handlePullToRefresh() {
+        pullToRefreshCommand.execute()
     }
 }
