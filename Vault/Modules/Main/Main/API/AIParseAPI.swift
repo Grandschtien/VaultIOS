@@ -10,7 +10,7 @@ enum AIParseAPI: ApiTarget, Sendable {
     }
 
     var path: String {
-        "/ai/parse"
+        "/v2/ai/parse"
     }
 
     var method: HTTPMethod {
