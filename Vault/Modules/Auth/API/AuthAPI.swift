@@ -12,6 +12,9 @@ import NetworkClient
 enum AuthAPI: ApiTarget, Sendable {
     case login(LoginRequestDTO)
     case register(RegisterRequestDTO)
+    case registerEmailStart(RegisterRequestDTO)
+    case registerEmailVerify(EmailVerificationRequestDTO)
+    case registerEmailResend(EmailVerificationResendRequestDTO)
     case forgotPassword(ForgotPasswordRequestDTO)
     case resetPassword(ResetPasswordRequestDTO)
     case refresh(AuthTokenRequestDTO)
@@ -27,6 +30,12 @@ enum AuthAPI: ApiTarget, Sendable {
             "/auth/login"
         case .register:
             "/auth/register"
+        case .registerEmailStart:
+            "/auth/register/email/start"
+        case .registerEmailVerify:
+            "/auth/register/email/verify"
+        case .registerEmailResend:
+            "/auth/register/email/resend"
         case .forgotPassword:
             "/auth/password/forgot"
         case .resetPassword:
@@ -55,6 +64,12 @@ enum AuthAPI: ApiTarget, Sendable {
         case let .login(dto):
             .custonJSON(data: dto, encoder: JSONCoder.encoder)
         case let .register(dto):
+            .custonJSON(data: dto, encoder: JSONCoder.encoder)
+        case let .registerEmailStart(dto):
+            .custonJSON(data: dto, encoder: JSONCoder.encoder)
+        case let .registerEmailVerify(dto):
+            .custonJSON(data: dto, encoder: JSONCoder.encoder)
+        case let .registerEmailResend(dto):
             .custonJSON(data: dto, encoder: JSONCoder.encoder)
         case let .forgotPassword(dto):
             .custonJSON(data: dto, encoder: JSONCoder.encoder)

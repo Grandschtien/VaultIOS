@@ -22,15 +22,12 @@ protocol RegistrationHandler: AnyObject, Sendable {
 actor RegistrationInteractor: RegistrationBusinessLogic {
     private let minimumPasswordLength = 8
 
-    private let networkClient: AsyncNetworkClient
+    private let authVerificationService: AuthVerificationContractServicing
     private let presenter: RegistrationPresentationLogic
     private let router: RegistrationRoutingLogic
-    private let tokenStorageService: TokenStorageServiceProtocol
-    private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let registrationStorage: RegistrationStorageProtocol
     private let currencyProvider: RegistrationCurrencyProviding
     private let localeProvider: RegistrationLocaleProviding
-    private let subscriptionInitializer: SubscriptionInitializerLogic
     private let analytics: RegistrationAnalyticsTracking?
 
     private let popularCurrencyCodes: [String] = ["USD", "RUB", "KZT"]
@@ -55,24 +52,18 @@ actor RegistrationInteractor: RegistrationBusinessLogic {
     private var allCurrencies: [RegistrationCurrency] = []
 
     init(
-        networkClient: AsyncNetworkClient,
+        authVerificationService: AuthVerificationContractServicing,
         presenter: RegistrationPresentationLogic,
         router: RegistrationRoutingLogic,
-        tokenStorageService: TokenStorageServiceProtocol,
-        userProfileStorageService: UserProfileStorageServiceProtocol,
         registrationStorage: RegistrationStorageProtocol,
-        subscriptionInitializer: SubscriptionInitializerLogic,
         analytics: RegistrationAnalyticsTracking? = nil,
         currencyProvider: RegistrationCurrencyProviding = RegistrationCurrencyProvider(),
         localeProvider: RegistrationLocaleProviding = RegistrationLocaleProvider()
     ) {
-        self.networkClient = networkClient
+        self.authVerificationService = authVerificationService
         self.presenter = presenter
         self.router = router
-        self.tokenStorageService = tokenStorageService
-        self.userProfileStorageService = userProfileStorageService
         self.registrationStorage = registrationStorage
-        self.subscriptionInitializer = subscriptionInitializer
         self.analytics = analytics
         self.currencyProvider = currencyProvider
         self.localeProvider = localeProvider
@@ -249,38 +240,33 @@ private extension RegistrationInteractor {
             loadingState = .loading
             await presentFetchedData()
 
-            let response = try await networkClient.request(
-                AuthAPI.register(
-                    RegisterRequestDTO(
-                        provider: "password",
-                        email: email.trimmingCharacters(in: .whitespacesAndNewlines),
-                        password: password.trimmingCharacters(in: .whitespacesAndNewlines),
-                        name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                        currency: selectedCurrencyCode ?? "USD",
-                        preferredLanguage: preferredLanguage
-                    )
-                ),
-                responseType: LoginResponseDTO.self
-            )
-
-            tokenStorageService.setToken(
-                AuthTokenDTO(
-                    accessToken: response.accessToken,
-                    refreshToken: response.refreshToken,
-                    tokenType: response.tokenType,
-                    expiresIn: response.expiresIn
+            let response = try await authVerificationService.startEmailRegistration(
+                RegisterRequestDTO(
+                    provider: "password",
+                    email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                    password: password.trimmingCharacters(in: .whitespacesAndNewlines),
+                    name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                    currency: selectedCurrencyCode ?? "USD",
+                    preferredLanguage: preferredLanguage
                 )
-            )
-            userProfileStorageService.saveProfile(
-                UserProfileDefaults(user: response.user)
             )
 
             loadingState = .loaded
-            await subscriptionInitializer.setUserId(response.user.id)
-            await registrationStorage.clear()
             await presentFetchedData()
-            analytics?.trackRegistrationSuccess()
-            await router.openMainFlow()
+            await router.openEmailVerification(
+                context: EmailVerificationContext(
+                    source: .registration,
+                    email: response.email,
+                    expiresIn: response.expiresIn,
+                    resendAvailableIn: response.resendAvailableIn
+                ),
+                registrationStorage: registrationStorage
+            )
+        } catch let error as AuthVerificationContractError {
+            analytics?.trackRegistrationFailure(error)
+            loadingState = .failed(.undelinedError(description: error.localizedDescription))
+            await presentFetchedData()
+            await router.presentError(with: error.localizedDescription)
         } catch {
             analytics?.trackRegistrationFailure(error)
             loadingState = .failed(.undelinedError(description: error.localizedDescription))

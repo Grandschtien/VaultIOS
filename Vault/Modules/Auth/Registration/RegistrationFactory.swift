@@ -8,15 +8,9 @@ import NetworkClient
 final class RegistrationFactory: Screen {
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
-        var networkClient: AsyncNetworkClient
-        @SafeInject
-        var tokenStorageService: TokenStorageServiceProtocol
-        @SafeInject
-        var userProfileStorageService: UserProfileStorageServiceProtocol
+        var authVerificationService: AuthVerificationContractServicing
         @SafeInject
         var toastPresenter: ToastPresenting
-        @SafeInject
-        var subscriptionInitializer: SubscriptionInitializerLogic
         @SafeInject
         var analyticsCoreManager: AnalyticsCoreManaging
         @SafeInject
@@ -34,13 +28,10 @@ final class RegistrationFactory: Screen {
             toastPresenter: toastPresenter
         )
         let interactor = RegistrationInteractor(
-            networkClient: networkClient,
+            authVerificationService: authVerificationService,
             presenter: presenter,
             router: router,
-            tokenStorageService: tokenStorageService,
-            userProfileStorageService: userProfileStorageService,
             registrationStorage: registrationStorage,
-            subscriptionInitializer: subscriptionInitializer,
             analytics: analytics
         )
 

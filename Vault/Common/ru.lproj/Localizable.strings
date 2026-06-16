@@ -8,6 +8,15 @@
 "forgot_password_subtitle" = "Введите email, и мы отправим инструкции по сбросу пароля.";
 "forgot_password_success_message" = "Если аккаунт с таким email существует, инструкции по сбросу пароля уже отправлены.";
 "forgot_password_title" = "Забыли пароль";
+"auth_verification_error_unverified" = "Пожалуйста, подтвердите email, чтобы продолжить.";
+"auth_verification_error_invalid_credentials" = "Неверный email или пароль.";
+"auth_verification_error_invalid_code" = "Введен неверный код. Попробуйте еще раз.";
+"auth_verification_error_resend_too_soon" = "Пожалуйста, подождите перед повторной отправкой кода.";
+"auth_verification_error_email_already_registered" = "Этот email уже зарегистрирован.";
+"auth_verification_error_invalid_request" = "Не удалось обработать запрос. Попробуйте еще раз.";
+"auth_verification_error_email_send_failed" = "Не удалось отправить письмо. Попробуйте еще раз.";
+"auth_verification_error_email_verification_not_configured" = "Подтверждение email временно недоступно.";
+"auth_verification_error_server" = "Что-то пошло не так. Попробуйте еще раз.";
 "get_started" = "Начать";
 "insightful_analytics" = "Понятная аналитика";
 "join_vault_to_start_tracking_effortlessly" = "Присоединяйтесь к Vault и начните легко отслеживать расходы";

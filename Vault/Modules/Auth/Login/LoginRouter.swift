@@ -7,6 +7,7 @@ import Nivelir
 @MainActor
 protocol LoginRoutingLogic: Sendable {
     func openRegistration()
+    func openEmailVerification(context: EmailVerificationContext)
     func openMainFlow()
     func openForgetPasswordScreen()
     func presentError(with text: String)
@@ -29,6 +30,14 @@ final class LoginRouter: LoginRoutingLogic {
             route
                 .top(.stack)
                 .push(RegistrationFactory())
+        })
+    }
+
+    func openEmailVerification(context: EmailVerificationContext) {
+        screenRouter.navigate(to: { route in
+            route
+                .top(.stack)
+                .push(EmailVerificationFactory(context: context))
         })
     }
 

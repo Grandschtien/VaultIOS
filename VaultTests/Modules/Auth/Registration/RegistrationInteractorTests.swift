@@ -1,40 +1,26 @@
 import XCTest
-import Foundation
-import NetworkClient
 @testable import Vault
 
 @MainActor
 final class RegistrationInteractorTests: XCTestCase {
-    func testRegistrationHappyPathSavesTokenAndClearsStorage() async {
-        let networkClient = AsyncNetworkClientSpy()
-        networkClient.nextResult = .success(
-            LoginResponseDTO(
-                accessToken: "access",
-                refreshToken: "refresh",
-                tokenType: "bearer",
-                expiresIn: 3600,
-                user: .init(
-                    id: "1",
-                    email: "name@example.com",
-                    name: "Egor",
-                    currency: "USD",
-                    preferredLanguage: "en-US",
-                    tier: "free"
-                )
+    func testRegistrationHappyPathOpensEmailVerificationAndKeepsDraft() async {
+        let authVerificationService = AuthVerificationContractServiceSpy()
+        authVerificationService.startRegistrationResult = .success(
+            EmailVerificationChallengeResponseDTO(
+                status: "code_sent",
+                email: "name@example.com",
+                expiresIn: 600,
+                resendAvailableIn: 60
             )
         )
 
         let presenter = RegistrationPresenterSpy()
         let router = RegistrationRouterSpy()
-        let tokenStorage = TokenStorageSpy()
-        let profileStorage = UserProfileStorageSpy()
         let storage = RegistrationStorage()
         let sut = makeSut(
-            networkClient: networkClient,
+            authVerificationService: authVerificationService,
             presenter: presenter,
             router: router,
-            tokenStorage: tokenStorage,
-            profileStorage: profileStorage,
             storage: storage
         )
 
@@ -48,34 +34,44 @@ final class RegistrationInteractorTests: XCTestCase {
         await sut.handleSelectCurrency("USD")
         await sut.handleTapPrimaryButton()
 
-        XCTAssertEqual(networkClient.registerRequest?.provider, "password")
-        XCTAssertEqual(networkClient.registerRequest?.email, "name@example.com")
-        XCTAssertEqual(networkClient.registerRequest?.name, "Egor")
-        XCTAssertEqual(networkClient.registerRequest?.currency, "USD")
-        XCTAssertEqual(networkClient.registerRequest?.preferredLanguage, "en-US")
-
         XCTAssertEqual(
-            tokenStorage.savedToken,
-            AuthTokenDTO(
-                accessToken: "access",
-                refreshToken: "refresh",
-                tokenType: "bearer",
-                expiresIn: 3600
-            )
-        )
-        XCTAssertEqual(
-            profileStorage.savedProfile,
-            UserProfileDefaults(
-                userId: "1",
-                email: "name@example.com",
-                name: "Egor",
-                currency: "USD",
-                language: "en-US"
-            )
+            authVerificationService.startRegistrationRequests,
+            [
+                RegisterRequestDTO(
+                    provider: "password",
+                    email: "name@example.com",
+                    password: "12345678",
+                    name: "Egor",
+                    currency: "USD",
+                    preferredLanguage: "en-US"
+                )
+            ]
         )
 
         let draft = await storage.loadDraft()
-        XCTAssertEqual(draft, .init())
+        XCTAssertEqual(
+            draft,
+            RegistrationDraft(
+                email: "name@example.com",
+                password: "12345678",
+                confirmPassword: "12345678",
+                name: "Egor",
+                currencyCode: "USD"
+            )
+        )
+
+        XCTAssertTrue(router.presentedErrors.isEmpty)
+        XCTAssertEqual(
+            router.emailVerificationContexts,
+            [
+                EmailVerificationContext(
+                    source: .registration,
+                    email: "name@example.com",
+                    expiresIn: 600,
+                    resendAvailableIn: 60
+                )
+            ]
+        )
 
         guard let lastPresentedData = presenter.presentedData.last else {
             return XCTFail("Expected presenter to receive data")
@@ -86,25 +82,16 @@ final class RegistrationInteractorTests: XCTestCase {
         } else {
             XCTFail("Expected loading state to be loaded")
         }
-
-        XCTAssertTrue(router.presentedErrors.isEmpty)
-        XCTAssertEqual(router.openedMainFlowCount, 1)
     }
-}
 
-extension RegistrationInteractorTests {
     func testSecondaryButtonMovesBackKeepingEnteredValues() async {
-        let networkClient = AsyncNetworkClientSpy()
         let presenter = RegistrationPresenterSpy()
         let router = RegistrationRouterSpy()
-        let tokenStorage = TokenStorageSpy()
         let storage = RegistrationStorage()
         let sut = makeSut(
-            networkClient: networkClient,
+            authVerificationService: AuthVerificationContractServiceSpy(),
             presenter: presenter,
             router: router,
-            tokenStorage: tokenStorage,
-            profileStorage: UserProfileStorageSpy(),
             storage: storage
         )
 
@@ -134,17 +121,13 @@ extension RegistrationInteractorTests {
         XCTAssertEqual(afterSecondBack.step, .account)
         XCTAssertEqual(afterSecondBack.email, "name@example.com")
     }
-}
 
-extension RegistrationInteractorTests {
     func testPrimaryButtonBlocksStepOneOnInvalidEmail() async {
         let presenter = RegistrationPresenterSpy()
         let sut = makeSut(
-            networkClient: AsyncNetworkClientSpy(),
+            authVerificationService: AuthVerificationContractServiceSpy(),
             presenter: presenter,
             router: RegistrationRouterSpy(),
-            tokenStorage: TokenStorageSpy(),
-            profileStorage: UserProfileStorageSpy(),
             storage: RegistrationStorage()
         )
 
@@ -165,11 +148,9 @@ extension RegistrationInteractorTests {
     func testPrimaryButtonBlocksStepOneOnShortPassword() async {
         let presenter = RegistrationPresenterSpy()
         let sut = makeSut(
-            networkClient: AsyncNetworkClientSpy(),
+            authVerificationService: AuthVerificationContractServiceSpy(),
             presenter: presenter,
             router: RegistrationRouterSpy(),
-            tokenStorage: TokenStorageSpy(),
-            profileStorage: UserProfileStorageSpy(),
             storage: RegistrationStorage()
         )
 
@@ -186,21 +167,16 @@ extension RegistrationInteractorTests {
         XCTAssertEqual(lastData.step, .account)
         XCTAssertEqual(lastData.passwordErrorMessage, L10n.registrationErrorPasswordTooShort)
     }
-}
 
-extension RegistrationInteractorTests {
     func testRegistrationFailurePresentsRouterError() async {
-        let networkClient = AsyncNetworkClientSpy()
-        networkClient.nextResult = .failure(StubError.any)
+        let authVerificationService = AuthVerificationContractServiceSpy()
+        authVerificationService.startRegistrationResult = .failure(StubError.any)
         let presenter = RegistrationPresenterSpy()
         let router = RegistrationRouterSpy()
-        let profileStorage = UserProfileStorageSpy()
         let sut = makeSut(
-            networkClient: networkClient,
+            authVerificationService: authVerificationService,
             presenter: presenter,
             router: router,
-            tokenStorage: TokenStorageSpy(),
-            profileStorage: profileStorage,
             storage: RegistrationStorage()
         )
 
@@ -215,6 +191,8 @@ extension RegistrationInteractorTests {
         await sut.handleTapPrimaryButton()
 
         XCTAssertEqual(router.presentedErrors.count, 1)
+        XCTAssertTrue(router.emailVerificationContexts.isEmpty)
+
         guard let lastData = presenter.presentedData.last else {
             return XCTFail("Expected presenter update")
         }
@@ -224,20 +202,14 @@ extension RegistrationInteractorTests {
         } else {
             XCTFail("Expected failed loading state")
         }
-        XCTAssertEqual(router.openedMainFlowCount, 0)
-        XCTAssertNil(profileStorage.savedProfile)
     }
-}
 
-extension RegistrationInteractorTests {
     func testHandleFlowDidExitClearsStorage() async {
         let storage = RegistrationStorage()
         let sut = makeSut(
-            networkClient: AsyncNetworkClientSpy(),
+            authVerificationService: AuthVerificationContractServiceSpy(),
             presenter: RegistrationPresenterSpy(),
             router: RegistrationRouterSpy(),
-            tokenStorage: TokenStorageSpy(),
-            profileStorage: UserProfileStorageSpy(),
             storage: storage
         )
 
@@ -253,63 +225,75 @@ extension RegistrationInteractorTests {
 
 private extension RegistrationInteractorTests {
     func makeSut(
-        networkClient: AsyncNetworkClient,
+        authVerificationService: AuthVerificationContractServicing,
         presenter: RegistrationPresentationLogic,
         router: RegistrationRoutingLogic,
-        tokenStorage: TokenStorageServiceProtocol,
-        profileStorage: UserProfileStorageServiceProtocol,
         storage: RegistrationStorageProtocol
     ) -> RegistrationInteractor {
         RegistrationInteractor(
-            networkClient: networkClient,
+            authVerificationService: authVerificationService,
             presenter: presenter,
             router: router,
-            tokenStorageService: tokenStorage,
-            userProfileStorageService: profileStorage,
             registrationStorage: storage,
-            subscriptionInitializer: SubscriptionInitializerSpy(),
             currencyProvider: CurrencyProviderStub(),
             localeProvider: LocaleProviderStub()
         )
     }
 
-    enum StubError: Error {
+    enum StubError: LocalizedError {
         case any
+
+        var errorDescription: String? {
+            "stub-error"
+        }
     }
 }
 
-private final class AsyncNetworkClientSpy: AsyncNetworkClient {
-    var nextResult: Result<LoginResponseDTO, Error> = .failure(RegistrationInteractorTests.StubError.any)
-    private(set) var registerRequest: RegisterRequestDTO?
+private final class AuthVerificationContractServiceSpy: AuthVerificationContractServicing, @unchecked Sendable {
+    var startRegistrationResult: Result<EmailVerificationChallengeResponseDTO, Error> = .failure(RegistrationInteractorTests.StubError.any)
+    var verifyResult: Result<LoginResponseDTO, Error> = .failure(RegistrationInteractorTests.StubError.any)
+    var resendResult: Result<EmailVerificationChallengeResponseDTO, Error> = .failure(RegistrationInteractorTests.StubError.any)
+    var loginResult: Result<LoginResponseDTO, Error> = .failure(RegistrationInteractorTests.StubError.any)
 
-    func request<T: Codable, InBodyError: CustomError>(
-        inBodyError: InBodyError.Type,
-        _ target: ApiTarget,
-        responseType: T.Type,
-        decoder: JSONDecoder
-    ) async throws -> T {
-        if let authTarget = target as? AuthAPI,
-           case let .register(dto) = authTarget {
-            registerRequest = dto
-        }
+    private(set) var startRegistrationRequests: [RegisterRequestDTO] = []
 
-        switch nextResult {
+    func startEmailRegistration(_ request: RegisterRequestDTO) async throws -> EmailVerificationChallengeResponseDTO {
+        startRegistrationRequests.append(request)
+
+        switch startRegistrationResult {
         case let .success(response):
-            guard let typedResponse = response as? T else {
-                throw RegistrationInteractorTests.StubError.any
-            }
-
-            return typedResponse
-
+            return response
         case let .failure(error):
             throw error
         }
     }
 
-    func request<InBodyError: CustomError>(
-        inBodyError: InBodyError.Type,
-        _ target: ApiTarget
-    ) async throws {}
+    func verifyEmail(_ request: EmailVerificationRequestDTO) async throws -> LoginResponseDTO {
+        switch verifyResult {
+        case let .success(response):
+            return response
+        case let .failure(error):
+            throw error
+        }
+    }
+
+    func resendEmailVerification(_ request: EmailVerificationResendRequestDTO) async throws -> EmailVerificationChallengeResponseDTO {
+        switch resendResult {
+        case let .success(response):
+            return response
+        case let .failure(error):
+            throw error
+        }
+    }
+
+    func login(_ request: LoginRequestDTO) async throws -> LoginResponseDTO {
+        switch loginResult {
+        case let .success(response):
+            return response
+        case let .failure(error):
+            throw error
+        }
+    }
 }
 
 @MainActor
@@ -324,55 +308,18 @@ private final class RegistrationPresenterSpy: RegistrationPresentationLogic, @un
 @MainActor
 private final class RegistrationRouterSpy: RegistrationRoutingLogic, @unchecked Sendable {
     private(set) var presentedErrors: [String] = []
-    private(set) var openedMainFlowCount: Int = .zero
+    private(set) var emailVerificationContexts: [EmailVerificationContext] = []
 
-    func openMainFlow() {
-        openedMainFlowCount += 1
+    func openEmailVerification(
+        context: EmailVerificationContext,
+        registrationStorage: RegistrationStorageProtocol
+    ) {
+        emailVerificationContexts.append(context)
     }
 
     func presentError(with text: String) {
         presentedErrors.append(text)
     }
-}
-
-private final class TokenStorageSpy: TokenStorageServiceProtocol, @unchecked Sendable {
-    private(set) var savedToken: AuthTokenDTO?
-
-    func setToken(_ token: AuthTokenDTO) {
-        savedToken = token
-    }
-
-    func getToken() -> AuthTokenDTO? {
-        savedToken
-    }
-
-    func removeToken() {
-        savedToken = nil
-    }
-}
-
-private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
-    private(set) var savedProfile: UserProfileDefaults?
-
-    func saveProfile(_ profile: UserProfileDefaults) {
-        savedProfile = profile
-    }
-
-    func loadProfile() -> UserProfileDefaults? {
-        savedProfile
-    }
-
-    func clearProfile() {
-        savedProfile = nil
-    }
-}
-
-private actor SubscriptionInitializerSpy: SubscriptionInitializerLogic {
-    func initialize() async {}
-
-    func setUserId(_ id: String) async {}
-
-    func logout() async {}
 }
 
 private struct CurrencyProviderStub: RegistrationCurrencyProviding {

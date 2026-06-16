@@ -6,7 +6,10 @@ import Nivelir
 
 @MainActor
 protocol RegistrationRoutingLogic: Sendable {
-    func openMainFlow()
+    func openEmailVerification(
+        context: EmailVerificationContext,
+        registrationStorage: RegistrationStorageProtocol
+    )
     func presentError(with text: String)
 }
 
@@ -24,11 +27,19 @@ final class RegistrationRouter: RegistrationRoutingLogic {
         self.toastPresenter = toastPresenter
     }
 
-    func openMainFlow() {
+    func openEmailVerification(
+        context: EmailVerificationContext,
+        registrationStorage: RegistrationStorageProtocol
+    ) {
         screenRouter.navigate(to: { route in
             route
-                .setRoot(to: MainFlowRootFactory())
-                .makeKeyAndVisible()
+                .top(.stack)
+                .push(
+                    EmailVerificationFactory(
+                        context: context,
+                        registrationStorage: registrationStorage
+                    )
+                )
         })
     }
 

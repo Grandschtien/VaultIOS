@@ -20,7 +20,7 @@ actor LoginInteractor: LoginBusinessLogic {
         case emptyEmail
         case emptyPassword
     }
-    private let networkClient: AsyncNetworkClient
+    private let authVerificationService: AuthVerificationContractServicing
     private let presenter: LoginPresentationLogic
     private let router: LoginRoutingLogic
     private let tokenStorageService: TokenStorageServiceProtocol
@@ -32,7 +32,7 @@ actor LoginInteractor: LoginBusinessLogic {
     private var password: String = ""
 
     init(
-        networkClient: AsyncNetworkClient,
+        authVerificationService: AuthVerificationContractServicing,
         presenter: LoginPresentationLogic,
         router: LoginRoutingLogic,
         tokenStorageService: TokenStorageServiceProtocol,
@@ -40,7 +40,7 @@ actor LoginInteractor: LoginBusinessLogic {
         userProfileStorageService: UserProfileStorageServiceProtocol,
         analytics: LoginAnalyticsTracking? = nil
     ) {
-        self.networkClient = networkClient
+        self.authVerificationService = authVerificationService
         self.presenter = presenter
         self.router = router
         self.tokenStorageService = tokenStorageService
@@ -92,15 +92,12 @@ extension LoginInteractor: LoginHandler {
 
         do {
             await presentFetchedData(.loading)
-            let result = try await networkClient.request(
-                AuthAPI.login(
-                    LoginRequestDTO(
-                        provider: .password,
-                        email: normalizedEmail,
-                        password: normalizedPassword
-                    )
-                ),
-                responseType: LoginResponseDTO.self
+            let result = try await authVerificationService.login(
+                LoginRequestDTO(
+                    provider: .password,
+                    email: normalizedEmail,
+                    password: normalizedPassword
+                )
             )
 
             tokenStorageService.setToken(
@@ -119,6 +116,23 @@ extension LoginInteractor: LoginHandler {
             await presentFetchedData(.loaded)
             analytics?.trackLoginSuccess()
             await router.openMainFlow()
+        } catch let error as AuthVerificationContractError {
+            if case let .unverified(challenge) = error {
+                await presentFetchedData(.idle)
+                await router.openEmailVerification(
+                    context: EmailVerificationContext(
+                        source: .login,
+                        email: challenge.email,
+                        expiresIn: challenge.expiresIn,
+                        resendAvailableIn: challenge.resendAvailableIn
+                    )
+                )
+                return
+            }
+
+            analytics?.trackLoginFailure(error)
+            await presentFetchedData(.failed(.undelinedError(description: error.localizedDescription)))
+            await router.presentError(with: error.localizedDescription)
         } catch {
             analytics?.trackLoginFailure(error)
             await presentFetchedData(.failed(.undelinedError(description: error.localizedDescription)))

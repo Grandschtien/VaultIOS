@@ -1,51 +1,53 @@
-// Created by Egor Shkarin 14.03.2026
-
-import UIKit
-import Nivelir
 import Foundation
-import NetworkClient
+import Nivelir
+import UIKit
 
-final class LoginFactory: Screen {
+final class EmailVerificationFactory: Screen {
+    private let context: EmailVerificationContext
+    private let registrationStorage: RegistrationStorageProtocol?
+
+    init(
+        context: EmailVerificationContext,
+        registrationStorage: RegistrationStorageProtocol? = nil
+    ) {
+        self.context = context
+        self.registrationStorage = registrationStorage
+    }
+
     func build(navigator: ScreenNavigator) -> UIViewController {
+        @SafeInject
+        var authVerificationService: AuthVerificationContractServicing
         @SafeInject
         var tokenStorageService: TokenStorageServiceProtocol
         @SafeInject
         var userProfileStorageService: UserProfileStorageServiceProtocol
         @SafeInject
-        var authVerificationService: AuthVerificationContractServicing
-        @SafeInject
         var toastPresenter: ToastPresenting
         @SafeInject
         var subscriptionInitializer: SubscriptionInitializerLogic
-        @SafeInject
-        var analyticsCoreManager: AnalyticsCoreManaging
-        @SafeInject
-        var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
 
-        let viewModel = LoginViewModel()
-        let presenter = LoginPresenter(viewModel: viewModel)
-        let router = LoginRouter(screenRouter: navigator, toastPresenter: toastPresenter)
-        let analytics = LoginAnalyticsTracker(
-            analyticsCoreManager: analyticsCoreManager,
-            failurePayloadResolver: analyticsFailurePayloadResolver
+        let viewModel = EmailVerificationViewModel()
+        let presenter = EmailVerificationPresenter(viewModel: viewModel)
+        let router = EmailVerificationRouter(
+            screenRouter: navigator,
+            toastPresenter: toastPresenter
         )
-        let interactor = LoginInteractor(
+        let interactor = EmailVerificationInteractor(
             authVerificationService: authVerificationService,
             presenter: presenter,
             router: router,
             tokenStorageService: tokenStorageService,
-            subscriptionInitializerLogic: subscriptionInitializer,
             userProfileStorageService: userProfileStorageService,
-            analytics: analytics
+            subscriptionInitializer: subscriptionInitializer,
+            context: context,
+            registrationStorage: registrationStorage
         )
-
         let viewModelStore = ViewModelStore(
             viewModel: presenter.viewModel,
             options: .applyInitial,
             publisher: presenter.$viewModel
         )
-
-        let controller = LoginViewController(
+        let controller = EmailVerificationViewController(
             interactor: interactor,
             viewModelStore: viewModelStore
         )
