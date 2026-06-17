@@ -20,6 +20,22 @@ final class MainContractsAPITests: XCTestCase {
 }
 
 extension MainContractsAPITests {
+    func testCategoriesUpdateBuildsExpectedConfiguration() {
+        let target = CategoriesAPI.update(
+            id: "cat-1",
+            .init(name: "Food", icon: "🍔", color: "light_green")
+        )
+
+        XCTAssertEqual(target.path, "/categories/cat-1")
+        XCTAssertEqual(target.method.rawValue, "PATCH")
+
+        guard case .custonJSON = target.requestType else {
+            return XCTFail("Expected custom JSON request type")
+        }
+    }
+}
+
+extension MainContractsAPITests {
     func testCategoriesListWithRangeBuildsExpectedQuery() {
 //        let from = Date(timeIntervalSince1970: 1_772_265_600)
 //        let to = Date(timeIntervalSince1970: 1_774_943_999)

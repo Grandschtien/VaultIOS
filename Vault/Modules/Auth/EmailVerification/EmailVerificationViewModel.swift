@@ -1,8 +1,6 @@
 import UIKit
 
 struct EmailVerificationViewModel: Equatable {
-    let logo: UIImage
-    let brandTitle: Label.LabelViewModel
     let title: Label.LabelViewModel
     let subtitle: Label.LabelViewModel
     let codeInput: EmailVerificationCodeInputView.ViewModel
@@ -12,8 +10,6 @@ struct EmailVerificationViewModel: Equatable {
     let resendAction: ResendActionViewModel
 
     init(
-        logo: UIImage = Asset.Icons.loginIcon.image,
-        brandTitle: Label.LabelViewModel = .init(),
         title: Label.LabelViewModel = .init(),
         subtitle: Label.LabelViewModel = .init(),
         codeInput: EmailVerificationCodeInputView.ViewModel = .init(),
@@ -22,8 +18,6 @@ struct EmailVerificationViewModel: Equatable {
         resendPrompt: Label.LabelViewModel = .init(),
         resendAction: ResendActionViewModel = .init()
     ) {
-        self.logo = logo
-        self.brandTitle = brandTitle
         self.title = title
         self.subtitle = subtitle
         self.codeInput = codeInput

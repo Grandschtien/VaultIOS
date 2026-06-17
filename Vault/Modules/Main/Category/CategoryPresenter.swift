@@ -39,6 +39,7 @@ final class CategoryPresenter: CategoryPresentationLogic {
                 textColor: Asset.Colors.textAndIconPrimary.color,
                 alignment: .left
             ),
+            editButton: makeEditButton(from: data),
             content: makeContent(from: data),
             loadNextPageCommand: Command { [weak handler] in
                 await handler?.handleLoadNextPage()
@@ -48,6 +49,21 @@ final class CategoryPresenter: CategoryPresentationLogic {
 }
 
 private extension CategoryPresenter {
+    func makeEditButton(from data: CategoryFetchData) -> NavigationBarActionView.ViewModel? {
+        guard data.canEditCategory else {
+            return nil
+        }
+
+        return .init(
+            content: .edit,
+            tintColor: Asset.Colors.interactiveElemetsPrimary.color,
+            tapCommand: Command { [weak handler] in
+                await handler?.handleTapEditCategory()
+            },
+            trackingName: "edit_category"
+        )
+    }
+
     func makeContent(from data: CategoryFetchData) -> CategoryViewModel.ContentViewModel {
         let sections = makeSections(from: data)
         let state = makeContentState(from: data, sections: sections)

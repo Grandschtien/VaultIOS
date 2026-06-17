@@ -3,6 +3,67 @@ import XCTest
 
 @MainActor
 final class CategoryInteractorTests: XCTestCase {
+    func testHandleTapEditCategoryRoutesToEditorWithCurrentCategoryID() async {
+        let repository = CategoryRepositoryStub(
+            refreshResults: [.failure(StubError.any)],
+            nextPageResults: [],
+            deleteResults: []
+        )
+        let router = CategoryRouterSpy()
+        let sut = makeSut(
+            presenter: CategoryPresenterSpy(),
+            router: router,
+            repository: repository,
+            observer: repository.observer
+        )
+
+        await sut.handleTapEditCategory()
+
+        XCTAssertEqual(router.openedEditCategoryIDs, ["cat-1"])
+    }
+
+    func testHandleTapEditCategoryIsUnavailableForOtherAndUnmapped() async {
+        let otherRepository = CategoryRepositoryStub(
+            refreshResults: [.failure(StubError.any)],
+            nextPageResults: [],
+            deleteResults: []
+        )
+        let otherPresenter = CategoryPresenterSpy()
+        let otherRouter = CategoryRouterSpy()
+        let otherSut = makeSut(
+            presenter: otherPresenter,
+            router: otherRouter,
+            repository: otherRepository,
+            observer: otherRepository.observer,
+            categoryName: L10n.other
+        )
+
+        await otherSut.fetchData()
+        await otherSut.handleTapEditCategory()
+        await waitForUpdates()
+
+        XCTAssertEqual(otherPresenter.presentedData.last?.canEditCategory, false)
+        XCTAssertTrue(otherRouter.openedEditCategoryIDs.isEmpty)
+
+        let unmappedRepository = CategoryRepositoryStub(
+            refreshResults: [.failure(StubError.any)],
+            nextPageResults: [],
+            deleteResults: []
+        )
+        let unmappedRouter = CategoryRouterSpy()
+        let unmappedSut = makeSut(
+            presenter: CategoryPresenterSpy(),
+            router: unmappedRouter,
+            repository: unmappedRepository,
+            observer: unmappedRepository.observer,
+            categoryName: "Unmapped"
+        )
+
+        await unmappedSut.handleTapEditCategory()
+
+        XCTAssertTrue(unmappedRouter.openedEditCategoryIDs.isEmpty)
+    }
+
     func testFetchDataBuildsLoadedState() async {
         let initialPeriod = MainSummaryPeriod(
             from: Date(timeIntervalSince1970: 10),
@@ -387,6 +448,7 @@ private extension CategoryInteractorTests {
         router: CategoryRoutingLogic,
         repository: MainFlowDomainRepositoryProtocol,
         observer: MainFlowDomainObserverProtocol,
+        categoryName: String? = "Food",
         initialPeriod: MainSummaryPeriod = .init(
             from: Date(timeIntervalSince1970: 1),
             to: Date(timeIntervalSince1970: 2)
@@ -394,7 +456,7 @@ private extension CategoryInteractorTests {
     ) -> CategoryInteractor {
         CategoryInteractor(
             categoryID: "cat-1",
-            categoryName: "Food",
+            categoryName: categoryName,
             initialPeriod: initialPeriod,
             presenter: presenter,
             router: router,
@@ -476,9 +538,14 @@ private final class CategoryPresenterSpy: CategoryPresentationLogic, @unchecked 
 private final class CategoryRouterSpy: CategoryRoutingLogic, @unchecked Sendable {
     private(set) var presentedErrors: [String] = []
     private(set) var closeCallsCount = 0
+    private(set) var openedEditCategoryIDs: [String] = []
 
     func presentError(with text: String) {
         presentedErrors.append(text)
+    }
+
+    func openCategoryEdit(id: String) {
+        openedEditCategoryIDs.append(id)
     }
 
     func close() {

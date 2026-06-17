@@ -8,6 +8,7 @@ protocol CategoryEditorHandler: AnyObject, Sendable {
     func handleChangeCategoryName(_ text: String) async
     func handleTapEmojiPreset(_ emoji: String) async
     func handleTapCustomEmojiButton() async
+    func handleDidSelectEmoji(_ emoji: String) async
     func handleTapColorPreset(_ hex: String) async
     func handleTapCustomColorButton() async
     func handleTapPrimaryButton() async
@@ -39,6 +40,7 @@ actor CategoryEditorInteractor: CategoryEditorBusinessLogic {
     private var isDeleteLoading = false
     private var shouldShowNameError = false
     private var hasTrackedScreenOpen = false
+    private var customEmojiFocusID: UUID?
 
     init(
         mode: CategoryEditorMode,
@@ -103,6 +105,7 @@ private extension CategoryEditorInteractor {
                 mode: mode,
                 loadingState: loadingState,
                 draft: draft,
+                customEmojiFocusID: customEmojiFocusID,
                 prefilledCustomEmoji: prefilledCustomEmoji(),
                 prefilledCustomColorHex: prefilledCustomColorHex(),
                 isPrimaryEnabled: isPrimaryEnabled(),
@@ -229,6 +232,45 @@ private extension CategoryEditorInteractor {
             output: self
         )
     }
+
+    func deleteCategoryConfirmationContext() -> CommonConfirmationContext {
+        CommonConfirmationContext(
+            title: L10n.categoryEditorDeleteButton,
+            subtitle: L10n.categoryEditorDeleteConfirmationTitle,
+            confirmButtonTitle: L10n.categoryEditorDeleteButton,
+            confirmButtonStyle: .destructive,
+            cancelButtonTitle: L10n.commonCancel,
+            cancelButtonStyle: .primary,
+            confirmCommand: Command { [weak self] in
+                await self?.performDeleteCategory()
+            }
+        )
+    }
+
+    func performDeleteCategory() async {
+        guard case let .edit(id) = mode,
+              loadingState == .loaded,
+              canDeleteCategory(),
+              !isPrimaryLoading,
+              !isDeleteLoading
+        else {
+            return
+        }
+
+        isDeleteLoading = true
+        await presentFetchedData()
+
+        do {
+            try await repository.deleteCategory(id: id)
+            isDeleteLoading = false
+            await presentFetchedData()
+            await router.close()
+        } catch {
+            isDeleteLoading = false
+            await presentFetchedData()
+            await router.presentError(with: L10n.mainOverviewError)
+        }
+    }
 }
 
 extension CategoryEditorInteractor: CategoryEditorHandler {
@@ -250,6 +292,7 @@ extension CategoryEditorInteractor: CategoryEditorHandler {
             emoji: emoji,
             colorHex: draft.colorHex
         )
+        customEmojiFocusID = nil
         await presentFetchedData()
     }
 
@@ -258,10 +301,18 @@ extension CategoryEditorInteractor: CategoryEditorHandler {
             return
         }
 
-        await router.openEmojiPicker(
-            selectedEmoji: draft.emoji,
-            output: self
+        customEmojiFocusID = UUID()
+        await presentFetchedData()
+    }
+
+    func handleDidSelectEmoji(_ emoji: String) async {
+        draft = CategoryEditorDraft(
+            name: draft.name,
+            emoji: emoji,
+            colorHex: draft.colorHex
         )
+        customEmojiFocusID = nil
+        await presentFetchedData()
     }
 
     func handleTapColorPreset(_ hex: String) async {
@@ -324,7 +375,7 @@ extension CategoryEditorInteractor: CategoryEditorHandler {
     }
 
     func handleTapDeleteButton() async {
-        guard case let .edit(id) = mode,
+        guard case .edit = mode,
               loadingState == .loaded,
               canDeleteCategory(),
               !isPrimaryLoading,
@@ -332,20 +383,7 @@ extension CategoryEditorInteractor: CategoryEditorHandler {
         else {
             return
         }
-
-        isDeleteLoading = true
-        await presentFetchedData()
-
-        do {
-            try await repository.deleteCategory(id: id)
-            isDeleteLoading = false
-            await presentFetchedData()
-            await router.close()
-        } catch {
-            isDeleteLoading = false
-            await presentFetchedData()
-            await router.presentError(with: L10n.mainOverviewError)
-        }
+        await router.openConfirmation(context: deleteCategoryConfirmationContext())
     }
 
     func handleTapBackButton() async {
@@ -358,17 +396,6 @@ extension CategoryEditorInteractor: CategoryEditorHandler {
 
     func handleTapRetryButton() async {
         await fetchData()
-    }
-}
-
-extension CategoryEditorInteractor: CategoryEmojiPickerOutput {
-    func handleDidSelectEmoji(_ emoji: String) async {
-        draft = CategoryEditorDraft(
-            name: draft.name,
-            emoji: emoji,
-            colorHex: draft.colorHex
-        )
-        await presentFetchedData()
     }
 }
 

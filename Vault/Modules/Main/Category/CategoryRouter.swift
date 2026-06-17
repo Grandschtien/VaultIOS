@@ -7,25 +7,42 @@ import Nivelir
 @MainActor
 protocol CategoryRoutingLogic: Sendable {
     func presentError(with text: String)
+    func openCategoryEdit(id: String)
     func close()
 }
 
 final class CategoryRouter: CategoryRoutingLogic {
     private let screenRouter: ScreenNavigator
+    private let context: MainFlowContext
     private let toastPresenter: ToastPresenting
 
     weak var viewController: UIViewController?
 
     init(
         screenRouter: ScreenNavigator,
+        context: MainFlowContext,
         toastPresenter: ToastPresenting
     ) {
         self.screenRouter = screenRouter
+        self.context = context
         self.toastPresenter = toastPresenter
     }
 
     func presentError(with text: String) {
         toastPresenter.present(state: .error, title: text)
+    }
+
+    func openCategoryEdit(id: String) {
+        screenRouter.navigate(to: { route in
+            route
+                .top(.stack)
+                .push(
+                    CategoryEditorFactory(
+                        mode: .edit(id: id),
+                        context: context
+                    )
+                )
+        })
     }
 
     func close() {

@@ -104,11 +104,14 @@
 "category_editor_add_button" = "Санат қосу";
 "category_editor_save_button" = "Өзгерістерді сақтау";
 "category_editor_delete_button" = "Санатты жою";
+"category_editor_delete_confirmation_title" = "Бұл санатты шынымен жойғыңыз келе ме? Осы санаттағы барлық шығындар Басқа санатына ауыстырылады.";
 "category_editor_name_title" = "Санат атауы";
 "category_editor_name_placeholder" = "Тағам және мейрамханалар";
 "category_editor_emoji_title" = "Эмодзиді таңдаңыз";
 "category_editor_color_title" = "Санат түсі";
 "category_emoji_picker_title" = "Эмодзиді таңдаңыз";
+"category_emoji_picker_keyboard_title" = "Кез келген эмодзи";
+"category_emoji_picker_keyboard_placeholder" = "Эмодзи пернетақтасын ашу үшін басыңыз";
 "category_emoji_picker_search_placeholder" = "Эмодзиді іздеу...";
 "category_emoji_picker_empty" = "Эмодзи табылмады";
 "expense_entry_chooser_enter_with_ai" = "AI арқылы енгізу";

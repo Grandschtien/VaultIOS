@@ -22,15 +22,9 @@ final class EmailVerificationPresenter: EmailVerificationPresentationLogic {
         let hasError = data.errorMessage != nil
 
         viewModel = EmailVerificationViewModel(
-            brandTitle: .init(
-                text: L10n.vault,
-                font: Typography.typographyBold36,
-                textColor: Asset.Colors.interactiveElemetsPrimary.color,
-                alignment: .center
-            ),
             title: .init(
                 text: L10n.emailVerificationTitle,
-                font: Typography.typographyBold26,
+                font: Typography.typographyBold24,
                 textColor: Asset.Colors.textAndIconPrimary.color,
                 alignment: .center,
                 numberOfLines: .zero,

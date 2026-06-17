@@ -28,6 +28,32 @@ final class CategoryPresenterTests: XCTestCase {
 }
 
 extension CategoryPresenterTests {
+    func testPresentFetchedDataBuildsEditButtonWhenCategoryCanBeEdited() {
+        sut.presentFetchedData(
+            .init(
+                navigationTitle: "Food",
+                loadingState: .loaded,
+                canEditCategory: true
+            )
+        )
+
+        XCTAssertEqual(sut.viewModel.editButton?.content, .edit)
+    }
+
+    func testPresentFetchedDataHidesEditButtonWhenCategoryCannotBeEdited() {
+        sut.presentFetchedData(
+            .init(
+                navigationTitle: "Other",
+                loadingState: .loaded,
+                canEditCategory: false
+            )
+        )
+
+        XCTAssertNil(sut.viewModel.editButton)
+    }
+}
+
+extension CategoryPresenterTests {
     func testPresentFetchedDataLoadingWithCachedSummaryBuildsRealSummaryAndSkeletonExpenses() {
         let fromDate = Date(timeIntervalSince1970: 10)
 

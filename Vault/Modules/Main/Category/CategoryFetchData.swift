@@ -11,6 +11,7 @@ struct CategoryFetchData: Sendable {
     let category: MainCategoryCardModel?
     let expenseGroups: [MainExpenseGroupModel]
     let deletingExpenseIDs: Set<String>
+    let canEditCategory: Bool
     let isLoadingNextPage: Bool
     let hasMore: Bool
 
@@ -23,6 +24,7 @@ struct CategoryFetchData: Sendable {
         category: MainCategoryCardModel? = nil,
         expenseGroups: [MainExpenseGroupModel] = [],
         deletingExpenseIDs: Set<String> = [],
+        canEditCategory: Bool = false,
         isLoadingNextPage: Bool = false,
         hasMore: Bool = false
     ) {
@@ -34,6 +36,7 @@ struct CategoryFetchData: Sendable {
         self.category = category
         self.expenseGroups = expenseGroups
         self.deletingExpenseIDs = deletingExpenseIDs
+        self.canEditCategory = canEditCategory
         self.isLoadingNextPage = isLoadingNextPage
         self.hasMore = hasMore
     }

@@ -8,6 +8,7 @@ final class CategoryViewController: UIViewController, HasContentView {
     private let interactor: CategoryBusinessLogic
     private let viewModelStore: ViewModelStore<CategoryViewModel>
     private let collectionAdapter: CategoryExpensesCollectionViewAdapter
+    private let editBarButtonView = NavigationBarActionView()
 
     init(
         interactor: CategoryBusinessLogic,
@@ -46,6 +47,12 @@ private extension CategoryViewController {
     func render(with viewModel: CategoryViewModel) {
         title = viewModel.navigationTitle.text
         contentView.configure(with: viewModel)
-        navigationItem.rightBarButtonItem = nil
+
+        if let editButtonViewModel = viewModel.editButton {
+            editBarButtonView.configure(with: editButtonViewModel)
+            navigationItem.rightBarButtonItem = UIBarButtonItem(customView: editBarButtonView)
+        } else {
+            navigationItem.rightBarButtonItem = nil
+        }
     }
 }

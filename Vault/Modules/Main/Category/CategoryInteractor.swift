@@ -10,6 +10,7 @@ protocol CategoryHandler: AnyObject, Sendable {
     func handleTapRetry() async
     func handleLoadNextPage() async
     func handleDeleteExpense(id: String) async
+    func handleTapEditCategory() async
 }
 
 actor CategoryInteractor: CategoryBusinessLogic {
@@ -243,6 +244,7 @@ private extension CategoryInteractor {
                 category: category,
                 expenseGroups: expenseGroups,
                 deletingExpenseIDs: deletingExpenseIDs,
+                canEditCategory: canEditCategory(),
                 isLoadingNextPage: isLoadingNextPage,
                 hasMore: hasMore
             )
@@ -259,6 +261,18 @@ private extension CategoryInteractor {
         }
 
         return L10n.mainOverviewCategories
+    }
+
+    func canEditCategory() -> Bool {
+        let resolvedName = category?.name ?? categoryName ?? ""
+        let normalizedName = resolvedName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !normalizedName.isEmpty else {
+            return false
+        }
+
+        return normalizedName.compare(L10n.other, options: [.caseInsensitive]) != .orderedSame
+            && normalizedName.compare("Unmapped", options: [.caseInsensitive]) != .orderedSame
     }
 }
 
@@ -302,5 +316,13 @@ extension CategoryInteractor: CategoryHandler {
             await presentFetchedData()
             await router.presentError(with: L10n.mainOverviewError)
         }
+    }
+
+    func handleTapEditCategory() async {
+        guard canEditCategory() else {
+            return
+        }
+
+        await router.openCategoryEdit(id: categoryID)
     }
 }

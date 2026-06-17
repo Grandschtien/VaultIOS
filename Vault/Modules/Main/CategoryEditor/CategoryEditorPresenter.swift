@@ -98,6 +98,10 @@ private extension CategoryEditorPresenter {
                         alignment: .left
                     ),
                     emojiItems: makeEmojiItems(from: data),
+                    customEmojiFocusID: data.customEmojiFocusID,
+                    onCustomEmojiSelected: CommandOf { [weak handler] emoji in
+                        await handler?.handleDidSelectEmoji(emoji)
+                    },
                     colorTitle: .init(
                         text: L10n.categoryEditorColorTitle,
                         font: Typography.typographySemibold14,

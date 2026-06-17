@@ -104,11 +104,14 @@
 "category_editor_add_button" = "Добавить категорию";
 "category_editor_save_button" = "Сохранить изменения";
 "category_editor_delete_button" = "Удалить категорию";
+"category_editor_delete_confirmation_title" = "Вы уверены, что хотите удалить эту категорию? Все расходы из этой категории будут перенесены в Другое.";
 "category_editor_name_title" = "Название категории";
 "category_editor_name_placeholder" = "Еда и рестораны";
 "category_editor_emoji_title" = "Выберите эмодзи";
 "category_editor_color_title" = "Цвет категории";
 "category_emoji_picker_title" = "Выберите эмодзи";
+"category_emoji_picker_keyboard_title" = "Любой эмодзи";
+"category_emoji_picker_keyboard_placeholder" = "Нажмите, чтобы открыть клавиатуру эмодзи";
 "category_emoji_picker_search_placeholder" = "Поиск эмодзи...";
 "category_emoji_picker_empty" = "Эмодзи не найдены";
 "expense_entry_chooser_enter_with_ai" = "Ввести с AI";

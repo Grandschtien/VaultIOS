@@ -4,7 +4,7 @@ import Nivelir
 @MainActor
 protocol CategoryEditorRoutingLogic: Sendable {
     func close()
-    func openEmojiPicker(selectedEmoji: String, output: CategoryEmojiPickerOutput)
+    func openConfirmation(context: CommonConfirmationContext)
     func openColorPicker(selectedHex: String)
     func openSubscription(
         currentTier: SubscriptionTier,
@@ -48,22 +48,15 @@ final class CategoryEditorRouter: NSObject, CategoryEditorRoutingLogic {
         }
     }
 
-    func openEmojiPicker(
-        selectedEmoji: String,
-        output: CategoryEmojiPickerOutput
-    ) {
-        guard let viewController else {
-            return
-        }
+    func openConfirmation(context: CommonConfirmationContext) {
+        let container = viewController?.navigationController ?? viewController
+        let confirmationScreen = CommonConfirmationFactory(
+            context: confirmationContext(from: context)
+        )
+        .withBottomSheet(.init(detents: [.content]))
 
-        screenRouter.navigate(from: viewController) { route in
-            route
-                .present(
-                    CategoryEmojiPickerFactory(
-                        selectedEmoji: selectedEmoji,
-                        output: output
-                    )
-                )
+        screenRouter.navigate(from: container) { route in
+            route.present(confirmationScreen)
         }
     }
 
@@ -100,6 +93,40 @@ final class CategoryEditorRouter: NSObject, CategoryEditorRoutingLogic {
 
     func presentError(with text: String) {
         toastPresenter.present(state: .error, title: text)
+    }
+}
+
+private extension CategoryEditorRouter {
+    func confirmationContext(
+        from context: CommonConfirmationContext
+    ) -> CommonConfirmationContext {
+        CommonConfirmationContext(
+            title: context.title,
+            subtitle: context.subtitle,
+            confirmButtonTitle: context.confirmButtonTitle,
+            confirmButtonStyle: context.confirmButtonStyle,
+            cancelButtonTitle: context.cancelButtonTitle,
+            cancelButtonStyle: context.cancelButtonStyle,
+            confirmCommand: Command { [weak self] in
+                self?.dismissPresentedConfirmationIfNeeded()
+                await context.confirmCommand.executeAsync()
+            },
+            cancelAction: context.cancelAction,
+            closeAction: context.closeAction
+        )
+    }
+
+    func dismissPresentedConfirmationIfNeeded() {
+        let presentedViewController = viewController?.navigationController?.presentedViewController
+            ?? viewController?.presentedViewController
+
+        guard let container = presentedViewController?.navigationController ?? presentedViewController else {
+            return
+        }
+
+        screenRouter.navigate(from: container) { route in
+            route.dimiss()
+        }
     }
 }
 

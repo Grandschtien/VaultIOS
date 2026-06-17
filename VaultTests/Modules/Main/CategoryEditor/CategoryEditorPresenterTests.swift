@@ -124,4 +124,27 @@ final class CategoryEditorPresenterTests: XCTestCase {
         )
         XCTAssertEqual(content.colorItems.last?.borderWidth, 2)
     }
+
+    func testPresentFetchedDataPassesCustomEmojiFocusIDToContent() {
+        let focusID = UUID()
+
+        sut.presentFetchedData(
+            .init(
+                mode: .create,
+                loadingState: .loaded,
+                draft: .init(
+                    name: "Food",
+                    emoji: "🍔",
+                    colorHex: "#A0E7E5"
+                ),
+                customEmojiFocusID: focusID
+            )
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        XCTAssertEqual(content.customEmojiFocusID, focusID)
+    }
 }

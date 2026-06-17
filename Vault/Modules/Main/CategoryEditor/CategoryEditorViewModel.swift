@@ -31,6 +31,8 @@ extension CategoryEditorViewModel {
         let nameField: TextField.ViewModel
         let emojiTitle: Label.LabelViewModel
         let emojiItems: [CategoryEditorOptionView.ViewModel]
+        let customEmojiFocusID: UUID?
+        let onCustomEmojiSelected: CommandOf<String>
         let colorTitle: Label.LabelViewModel
         let colorItems: [CategoryEditorOptionView.ViewModel]
 
@@ -39,6 +41,8 @@ extension CategoryEditorViewModel {
             nameField: TextField.ViewModel = .init(),
             emojiTitle: Label.LabelViewModel = .init(),
             emojiItems: [CategoryEditorOptionView.ViewModel] = [],
+            customEmojiFocusID: UUID? = nil,
+            onCustomEmojiSelected: CommandOf<String> = .init(action: nil),
             colorTitle: Label.LabelViewModel = .init(),
             colorItems: [CategoryEditorOptionView.ViewModel] = []
         ) {
@@ -46,6 +50,8 @@ extension CategoryEditorViewModel {
             self.nameField = nameField
             self.emojiTitle = emojiTitle
             self.emojiItems = emojiItems
+            self.customEmojiFocusID = customEmojiFocusID
+            self.onCustomEmojiSelected = onCustomEmojiSelected
             self.colorTitle = colorTitle
             self.colorItems = colorItems
         }

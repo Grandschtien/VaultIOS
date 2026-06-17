@@ -226,7 +226,7 @@ extension CategoryEditorInteractorTests {
         XCTAssertEqual(router.closeCallsCount, 1)
     }
 
-    func testHandleTapDeleteButtonDeletesCategoryAndCloses() async {
+    func testHandleTapDeleteButtonOpensConfirmationAndDeletesCategoryAfterConfirm() async {
         let presenter = CategoryEditorPresenterSpy()
         let router = CategoryEditorRouterSpy()
         let repository = CategoryEditorRepositorySpy()
@@ -253,6 +253,19 @@ extension CategoryEditorInteractorTests {
         await sut.fetchData()
         await sut.handleTapDeleteButton()
 
+        XCTAssertEqual(router.lastConfirmationContext?.title, L10n.categoryEditorDeleteButton)
+        XCTAssertEqual(
+            router.lastConfirmationContext?.subtitle,
+            L10n.categoryEditorDeleteConfirmationTitle
+        )
+        XCTAssertEqual(
+            router.lastConfirmationContext?.confirmButtonStyle,
+            .destructive
+        )
+        XCTAssertNil(repository.deletedCategoryID)
+
+        await router.lastConfirmationContext?.confirmCommand.executeAsync()
+
         let deletedCategoryID = repository.deletedCategoryID
         XCTAssertEqual(deletedCategoryID, "food")
         XCTAssertEqual(router.closeCallsCount, 1)
@@ -260,7 +273,7 @@ extension CategoryEditorInteractorTests {
 }
 
 extension CategoryEditorInteractorTests {
-    func testHandleTapCustomEmojiButtonOpensPickerAndSelectedEmojiUpdatesDraft() async {
+    func testHandleTapCustomEmojiButtonRequestsKeyboardFocusAndSelectedEmojiUpdatesDraft() async {
         let presenter = CategoryEditorPresenterSpy()
         let router = CategoryEditorRouterSpy()
         let sut = makeSUT(
@@ -271,9 +284,11 @@ extension CategoryEditorInteractorTests {
 
         await sut.fetchData()
         await sut.handleTapCustomEmojiButton()
+        let focusID = presenter.presentedData.last?.customEmojiFocusID
         await sut.handleDidSelectEmoji("🎁")
 
-        XCTAssertEqual(router.openEmojiPickerCalls.last, presetProvider.defaultEmoji)
+        XCTAssertNotNil(focusID)
+        XCTAssertNil(presenter.presentedData.last?.customEmojiFocusID)
         XCTAssertEqual(presenter.presentedData.last?.draft.emoji, "🎁")
     }
 
@@ -381,7 +396,7 @@ private final class CategoryEditorPresenterSpy: CategoryEditorPresentationLogic 
 @MainActor
 private final class CategoryEditorRouterSpy: CategoryEditorRoutingLogic {
     private(set) var closeCallsCount = 0
-    private(set) var openEmojiPickerCalls: [String] = []
+    private(set) var lastConfirmationContext: CommonConfirmationContext?
     private(set) var openColorPickerCalls: [String] = []
     private(set) var openedSubscriptionTiers: [String] = []
     private(set) var presentedErrors: [String] = []
@@ -390,8 +405,8 @@ private final class CategoryEditorRouterSpy: CategoryEditorRoutingLogic {
         closeCallsCount += 1
     }
 
-    func openEmojiPicker(selectedEmoji: String, output: CategoryEmojiPickerOutput) {
-        openEmojiPickerCalls.append(selectedEmoji)
+    func openConfirmation(context: CommonConfirmationContext) {
+        lastConfirmationContext = context
     }
 
     func openColorPicker(selectedHex: String) {

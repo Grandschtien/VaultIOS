@@ -26,8 +26,10 @@ enum CategoriesAPI: ApiTarget, Sendable {
 
     var method: HTTPMethod {
         switch self {
-        case .create, .update:
+        case .create:
             .post
+        case .update:
+            .patch
         case .list, .get:
             .get
         case .delete:

@@ -8,8 +8,6 @@ final class EmailVerificationView: UIView, LayoutScaleProviding {
     private let scrollView = UIScrollView()
     private let contentView = UIView()
 
-    private let logoImageView = UIImageView()
-    private let brandTitleLabel = Label()
     private let titleLabel = Label()
     private let subtitleLabel = Label()
     private let codeInputView = EmailVerificationCodeInputView()
@@ -34,14 +32,6 @@ final class EmailVerificationView: UIView, LayoutScaleProviding {
     func configure(with viewModel: EmailVerificationViewModel) {
         let previousViewModel = self.viewModel
         self.viewModel = viewModel
-
-        if previousViewModel.logo != viewModel.logo {
-            logoImageView.image = viewModel.logo
-        }
-
-        if previousViewModel.brandTitle != viewModel.brandTitle {
-            brandTitleLabel.apply(viewModel.brandTitle)
-        }
 
         if previousViewModel.title != viewModel.title {
             titleLabel.apply(viewModel.title)
@@ -88,8 +78,6 @@ private extension EmailVerificationView {
         scrollView.keyboardDismissMode = .interactive
         scrollView.alwaysBounceVertical = true
 
-        logoImageView.contentMode = .scaleAspectFit
-
         errorLabel.isHidden = true
 
         resendButton.titleLabel?.font = Typography.typographyBold16
@@ -109,8 +97,6 @@ private extension EmailVerificationView {
         scrollView.addSubview(contentView)
 
         [
-            logoImageView,
-            brandTitleLabel,
             titleLabel,
             subtitleLabel,
             codeInputView,
@@ -138,19 +124,8 @@ private extension EmailVerificationView {
             $0.width.equalTo(scrollView.frameLayoutGuide)
         }
 
-        logoImageView.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(spaceXL)
-            $0.centerX.equalToSuperview()
-            $0.size.equalTo(sizeXL)
-        }
-
-        brandTitleLabel.snp.makeConstraints {
-            $0.top.equalTo(logoImageView.snp.bottom).offset(spaceM)
-            $0.leading.trailing.equalToSuperview().inset(spaceS)
-        }
-
         titleLabel.snp.makeConstraints {
-            $0.top.equalTo(brandTitleLabel.snp.bottom).offset(spaceS)
+            $0.top.equalTo(safeAreaLayoutGuide.snp.top).offset(spaceM)
             $0.leading.trailing.equalToSuperview().inset(spaceS)
         }
 

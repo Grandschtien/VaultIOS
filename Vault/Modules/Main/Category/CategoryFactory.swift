@@ -36,6 +36,7 @@ final class CategoryFactory: Screen {
         )
         let router = CategoryRouter(
             screenRouter: navigator,
+            context: context,
             toastPresenter: toastPresenter
         )
         let interactor = CategoryInteractor(

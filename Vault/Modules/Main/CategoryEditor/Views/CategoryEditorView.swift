@@ -3,7 +3,12 @@ import SnapKit
 
 final class CategoryEditorView: UIView, LayoutScaleProviding {
     private var viewModel: CategoryEditorViewModel = .init()
+    private var lastCustomEmojiFocusID: UUID?
 
+    private lazy var dismissKeyboardTapGestureRecognizer = UITapGestureRecognizer(
+        target: self,
+        action: #selector(handleTapBackground)
+    )
     private let headerView = CategoryEditorHeaderView()
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
@@ -18,6 +23,7 @@ final class CategoryEditorView: UIView, LayoutScaleProviding {
     private let actionStack = UIStackView()
     private let primaryButton = Button()
     private let deleteButton = Button()
+    private let customEmojiTextField = EmojiKeyboardTextField()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -45,11 +51,13 @@ final class CategoryEditorView: UIView, LayoutScaleProviding {
 
         switch viewModel.state {
         case .loading:
+            dismissCustomEmojiKeyboard()
             scrollView.isHidden = true
             errorView.isHidden = true
             loadingView.isHidden = false
             loadingView.startAnimating()
         case let .error(errorViewModel):
+            dismissCustomEmojiKeyboard()
             scrollView.isHidden = true
             errorView.isHidden = false
             loadingView.isHidden = true
@@ -66,6 +74,7 @@ final class CategoryEditorView: UIView, LayoutScaleProviding {
             emojiGridView.configure(with: content.emojiItems)
             colorTitleLabel.apply(content.colorTitle)
             colorGridView.configure(with: content.colorItems)
+            requestCustomEmojiKeyboardIfNeeded(focusID: content.customEmojiFocusID)
         }
     }
 }
@@ -73,6 +82,9 @@ final class CategoryEditorView: UIView, LayoutScaleProviding {
 private extension CategoryEditorView {
     func setupViews() {
         backgroundColor = Asset.Colors.backgroundPrimary.color
+        dismissKeyboardTapGestureRecognizer.cancelsTouchesInView = false
+        dismissKeyboardTapGestureRecognizer.delegate = self
+        addGestureRecognizer(dismissKeyboardTapGestureRecognizer)
 
         scrollView.showsVerticalScrollIndicator = false
         contentStack.axis = .vertical
@@ -84,6 +96,16 @@ private extension CategoryEditorView {
         deleteButton.isHidden = true
         actionStack.axis = .vertical
         actionStack.spacing = spaceXS
+
+        customEmojiTextField.delegate = self
+        customEmojiTextField.tintColor = .clear
+        customEmojiTextField.textColor = .clear
+        customEmojiTextField.backgroundColor = .clear
+        customEmojiTextField.autocorrectionType = .no
+        customEmojiTextField.spellCheckingType = .no
+        customEmojiTextField.smartInsertDeleteType = .no
+        customEmojiTextField.smartQuotesType = .no
+        customEmojiTextField.smartDashesType = .no
     }
 
     func setupLayout() {
@@ -92,6 +114,7 @@ private extension CategoryEditorView {
         addSubview(errorView)
         addSubview(loadingView)
         addSubview(actionStack)
+        addSubview(customEmojiTextField)
 
         scrollView.addSubview(contentStack)
 
@@ -136,6 +159,93 @@ private extension CategoryEditorView {
 
         loadingView.snp.makeConstraints { make in
             make.center.equalTo(errorView)
+        }
+
+        customEmojiTextField.snp.makeConstraints { make in
+            make.top.leading.equalToSuperview()
+            make.width.height.equalTo(0)
+        }
+    }
+
+    func requestCustomEmojiKeyboardIfNeeded(focusID: UUID?) {
+        guard let focusID,
+              focusID != lastCustomEmojiFocusID
+        else {
+            return
+        }
+
+        lastCustomEmojiFocusID = focusID
+        customEmojiTextField.text = nil
+        customEmojiTextField.becomeFirstResponder()
+    }
+
+    func dismissCustomEmojiKeyboard() {
+        customEmojiTextField.resignFirstResponder()
+    }
+
+    @objc
+    func handleTapBackground() {
+        endEditing(true)
+    }
+}
+
+extension CategoryEditorView: UITextFieldDelegate {
+    func textField(
+        _ textField: UITextField,
+        shouldChangeCharactersIn range: NSRange,
+        replacementString string: String
+    ) -> Bool {
+        guard case let .loaded(content) = viewModel.state,
+              let emoji = string.firstEmojiCluster else {
+            return false
+        }
+
+        customEmojiTextField.text = nil
+        customEmojiTextField.resignFirstResponder()
+        content.onCustomEmojiSelected.execute(emoji)
+
+        return false
+    }
+}
+
+extension CategoryEditorView: UIGestureRecognizerDelegate {
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldReceive touch: UITouch
+    ) -> Bool {
+        guard let touchedView = touch.view else {
+            return true
+        }
+
+        return !touchedView.hasSuperview(of: UIControl.self)
+            && !touchedView.hasSuperview(of: UITextView.self)
+            && !touchedView.hasSuperview(of: UITableViewCell.self)
+            && !touchedView.hasSuperview(of: UICollectionViewCell.self)
+    }
+}
+
+private extension UIView {
+    func hasSuperview<T: UIView>(of type: T.Type) -> Bool {
+        sequence(first: self, next: { $0.superview }).contains { $0 is T }
+    }
+}
+
+private final class EmojiKeyboardTextField: UITextField {
+    override var textInputMode: UITextInputMode? {
+        UITextInputMode.activeInputModes.first { $0.primaryLanguage == "emoji" } ?? super.textInputMode
+    }
+}
+
+private extension String {
+    var firstEmojiCluster: String? {
+        first(where: \.isEmojiCluster).map(String.init)
+    }
+}
+
+private extension Character {
+    var isEmojiCluster: Bool {
+        unicodeScalars.contains { scalar in
+            scalar.properties.isEmojiPresentation || scalar.properties.isEmoji
         }
     }
 }

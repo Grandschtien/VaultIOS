@@ -34,6 +34,8 @@ final class NavigationBarActionView: UIView, LayoutScaleProviding, ImageProvidin
         switch viewModel.content {
         case .plus:
             button.setImage(plusImage(pointSize: sizeS, weight: .semibold), for: .normal)
+        case .edit:
+            button.setImage(squareAndPencilImage, for: .normal)
         case let .text(title):
             button.setTitle(title, for: .normal)
         }
@@ -68,6 +70,7 @@ extension NavigationBarActionView {
     struct ViewModel: Equatable {
         enum Content: Equatable {
             case plus
+            case edit
             case text(String)
         }
 
@@ -103,6 +106,8 @@ private extension NavigationBarActionView {
         switch viewModel.content {
         case .plus:
             return "plus"
+        case .edit:
+            return "edit"
         case .text(let title):
             let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
             return trimmedTitle.isEmpty ? String(describing: Self.self) : trimmedTitle
