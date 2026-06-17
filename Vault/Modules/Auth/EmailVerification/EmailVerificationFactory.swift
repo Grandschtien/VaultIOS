@@ -52,7 +52,6 @@ final class EmailVerificationFactory: Screen {
             viewModelStore: viewModelStore
         )
 
-        router.viewController = controller
         presenter.handler = interactor
 
         return controller

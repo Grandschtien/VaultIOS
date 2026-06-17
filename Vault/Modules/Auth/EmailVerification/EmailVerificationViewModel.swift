@@ -1,7 +1,6 @@
 import UIKit
 
 struct EmailVerificationViewModel: Equatable {
-    let backButton: BackButtonViewModel
     let title: Label.LabelViewModel
     let subtitle: Label.LabelViewModel
     let codeInput: EmailVerificationCodeInputView.ViewModel
@@ -11,7 +10,6 @@ struct EmailVerificationViewModel: Equatable {
     let resendAction: ResendActionViewModel
 
     init(
-        backButton: BackButtonViewModel = .init(),
         title: Label.LabelViewModel = .init(),
         subtitle: Label.LabelViewModel = .init(),
         codeInput: EmailVerificationCodeInputView.ViewModel = .init(),
@@ -20,7 +18,6 @@ struct EmailVerificationViewModel: Equatable {
         resendPrompt: Label.LabelViewModel = .init(),
         resendAction: ResendActionViewModel = .init()
     ) {
-        self.backButton = backButton
         self.title = title
         self.subtitle = subtitle
         self.codeInput = codeInput
@@ -32,19 +29,6 @@ struct EmailVerificationViewModel: Equatable {
 }
 
 extension EmailVerificationViewModel {
-    struct BackButtonViewModel: Equatable {
-        let isEnabled: Bool
-        let tapCommand: Command
-
-        init(
-            isEnabled: Bool = true,
-            tapCommand: Command = .nope
-        ) {
-            self.isEnabled = isEnabled
-            self.tapCommand = tapCommand
-        }
-    }
-
     struct ResendActionViewModel: Equatable {
         let title: String
         let countdownLabel: Label.LabelViewModel?

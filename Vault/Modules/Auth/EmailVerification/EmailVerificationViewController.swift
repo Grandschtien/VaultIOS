@@ -38,7 +38,10 @@ final class EmailVerificationViewController: UIViewController, HasContentView {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(true, animated: animated)
+
+        navigationController?.setNavigationBarHidden(false, animated: false)
+        navigationItem.title = nil
+        navigationItem.largeTitleDisplayMode = .never
     }
 
     override func viewDidDisappear(_ animated: Bool) {

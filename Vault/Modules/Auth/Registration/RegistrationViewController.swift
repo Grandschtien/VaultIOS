@@ -28,6 +28,7 @@ final class RegistrationViewController: UIViewController, HasContentView {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        navigationItem.backButtonDisplayMode = .minimal
 
         viewModelStore.onViewModelChange = { [weak self] viewModel in
             self?.render(with: viewModel)

@@ -6,7 +6,6 @@ protocol EmailVerificationBusinessLogic: Sendable {
 }
 
 protocol EmailVerificationHandler: AnyObject, Sendable {
-    func handleTapBackButton() async
     func handleCodeDidChange(_ code: String) async
     func handleTapVerify() async
     func handleTapResend() async
@@ -134,14 +133,6 @@ private extension EmailVerificationInteractor {
 }
 
 extension EmailVerificationInteractor: EmailVerificationHandler {
-    func handleTapBackButton() async {
-        guard loadingState != .loading else {
-            return
-        }
-
-        await router.close()
-    }
-
     func handleCodeDidChange(_ code: String) async {
         self.code = sanitizedCode(code)
         errorMessage = nil

@@ -8,7 +8,6 @@ final class EmailVerificationView: UIView, LayoutScaleProviding {
     private let scrollView = UIScrollView()
     private let contentView = UIView()
 
-    private let backButton = UIButton(type: .system)
     private let titleLabel = Label()
     private let subtitleLabel = Label()
     private let codeInputView = EmailVerificationCodeInputView()
@@ -33,11 +32,6 @@ final class EmailVerificationView: UIView, LayoutScaleProviding {
     func configure(with viewModel: EmailVerificationViewModel) {
         let previousViewModel = self.viewModel
         self.viewModel = viewModel
-
-        if previousViewModel.backButton != viewModel.backButton {
-            backButton.isEnabled = viewModel.backButton.isEnabled
-            backButton.alpha = viewModel.backButton.isEnabled ? 1 : 0.4
-        }
 
         if previousViewModel.title != viewModel.title {
             titleLabel.apply(viewModel.title)
@@ -84,10 +78,6 @@ private extension EmailVerificationView {
         scrollView.keyboardDismissMode = .interactive
         scrollView.alwaysBounceVertical = true
 
-        backButton.tintColor = Asset.Colors.interactiveElemetsPrimary.color
-        backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        backButton.addTarget(self, action: #selector(handleTapBack), for: .touchUpInside)
-
         errorLabel.isHidden = true
 
         resendButton.titleLabel?.font = Typography.typographyBold16
@@ -107,7 +97,6 @@ private extension EmailVerificationView {
         scrollView.addSubview(contentView)
 
         [
-            backButton,
             titleLabel,
             subtitleLabel,
             codeInputView,
@@ -135,15 +124,9 @@ private extension EmailVerificationView {
             $0.width.equalTo(scrollView.frameLayoutGuide)
         }
 
-        backButton.snp.makeConstraints {
-            $0.top.equalTo(safeAreaLayoutGuide.snp.top).offset(spaceM)
-            $0.leading.equalToSuperview().offset(spaceS)
-            $0.size.equalTo(sizeM)
-        }
-
         titleLabel.snp.makeConstraints {
             $0.top.equalTo(safeAreaLayoutGuide.snp.top).offset(spaceM)
-            $0.leading.trailing.equalToSuperview().inset(spaceXL)
+            $0.leading.trailing.equalToSuperview().inset(spaceS)
         }
 
         subtitleLabel.snp.makeConstraints {
@@ -194,15 +177,6 @@ private extension EmailVerificationView {
 }
 
 private extension EmailVerificationView {
-    @objc
-    func handleTapBack() {
-        guard viewModel.backButton.isEnabled else {
-            return
-        }
-
-        executeAfterDismissingKeyboard(viewModel.backButton.tapCommand)
-    }
-
     @objc
     func handleTapResend() {
         guard viewModel.resendAction.isEnabled else {

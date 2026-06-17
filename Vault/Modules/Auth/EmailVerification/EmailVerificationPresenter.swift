@@ -22,12 +22,6 @@ final class EmailVerificationPresenter: EmailVerificationPresentationLogic {
         let hasError = data.errorMessage != nil
 
         viewModel = EmailVerificationViewModel(
-            backButton: .init(
-                isEnabled: !isLoading,
-                tapCommand: Command { [weak handler] in
-                    await handler?.handleTapBackButton()
-                }
-            ),
             title: .init(
                 text: L10n.emailVerificationTitle,
                 font: Typography.typographyBold24,
