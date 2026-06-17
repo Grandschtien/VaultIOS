@@ -24,7 +24,7 @@ extension EmailVerificationPresenterTests {
             )
         )
 
-        XCTAssertEqual(sut.viewModel.brandTitle.text, L10n.vault)
+        XCTAssertTrue(sut.viewModel.backButton.isEnabled)
         XCTAssertEqual(sut.viewModel.title.text, L10n.emailVerificationTitle)
         XCTAssertEqual(sut.viewModel.subtitle.text, L10n.emailVerificationSubtitle)
         XCTAssertEqual(sut.viewModel.verifyButton.title, L10n.emailVerificationVerify)
@@ -41,6 +41,7 @@ extension EmailVerificationPresenterTests {
             )
         )
 
+        XCTAssertFalse(sut.viewModel.backButton.isEnabled)
         XCTAssertFalse(sut.viewModel.verifyButton.isEnabled)
         XCTAssertTrue(sut.viewModel.verifyButton.isLoading)
         XCTAssertFalse(sut.viewModel.resendAction.isEnabled)

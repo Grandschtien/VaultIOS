@@ -21,6 +21,15 @@ final class EmailVerificationInteractorTests: XCTestCase {
         XCTAssertEqual(presenter.presentedData.last?.resendAvailableIn, 60)
     }
 
+    func testHandleTapBackButtonClosesScreen() async {
+        let router = EmailVerificationRouterSpy()
+        let sut = makeSut(router: router)
+
+        await sut.handleTapBackButton()
+
+        XCTAssertEqual(router.closeCallsCount, 1)
+    }
+
     func testHandleTapVerifyWithPartialCodeShowsValidationError() async {
         let presenter = EmailVerificationPresenterSpy()
         let sut = makeSut(presenter: presenter)
@@ -260,8 +269,13 @@ private final class EmailVerificationPresenterSpy: EmailVerificationPresentation
 
 @MainActor
 private final class EmailVerificationRouterSpy: EmailVerificationRoutingLogic, @unchecked Sendable {
+    private(set) var closeCallsCount = 0
     private(set) var openMainFlowCallsCount = 0
     private(set) var presentedErrors: [String] = []
+
+    func close() {
+        closeCallsCount += 1
+    }
 
     func openMainFlow() {
         openMainFlowCallsCount += 1

@@ -1,8 +1,10 @@
 import Foundation
 import Nivelir
+import UIKit
 
 @MainActor
 protocol EmailVerificationRoutingLogic: Sendable {
+    func close()
     func openMainFlow()
     func presentError(with text: String)
 }
@@ -10,6 +12,7 @@ protocol EmailVerificationRoutingLogic: Sendable {
 final class EmailVerificationRouter: EmailVerificationRoutingLogic {
     private let screenRouter: ScreenNavigator
     private let toastPresenter: ToastPresenting
+    weak var viewController: UIViewController?
 
     init(
         screenRouter: ScreenNavigator,
@@ -17,6 +20,20 @@ final class EmailVerificationRouter: EmailVerificationRoutingLogic {
     ) {
         self.screenRouter = screenRouter
         self.toastPresenter = toastPresenter
+    }
+
+    func close() {
+        if let navigationController = viewController?.navigationController,
+           navigationController.viewControllers.count > 1 {
+            screenRouter.navigate(from: navigationController) { route in
+                route.pop()
+            }
+            return
+        }
+
+        screenRouter.navigate(from: viewController) { route in
+            route.dimiss()
+        }
     }
 
     func openMainFlow() {
