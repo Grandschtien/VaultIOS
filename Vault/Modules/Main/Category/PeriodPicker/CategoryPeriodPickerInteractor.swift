@@ -43,7 +43,7 @@ actor CategoryPeriodPickerInteractor: CategoryPeriodPickerBusinessLogic {
         let resolver = MainPeriodRangeResolver(calendar: calendar)
         let initialPickerState = resolver.pickerState(
             for: .init(from: fromDate, to: toDate),
-            activeField: .to,
+            activeField: .from,
             now: now()
         )
 

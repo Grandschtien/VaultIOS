@@ -3,6 +3,12 @@ import Nivelir
 import Foundation
 
 final class ForgotPasswordFactory: Screen {
+    private let context: ForgotPasswordContext
+
+    init(context: ForgotPasswordContext = .init()) {
+        self.context = context
+    }
+
     func build(navigator: ScreenNavigator) -> UIViewController {
         @SafeInject
         var toastPresenter: ToastPresenting
@@ -27,6 +33,7 @@ final class ForgotPasswordFactory: Screen {
             passwordRestorationService: passwordRestorationService,
             presenter: presenter,
             router: router,
+            context: context,
             analytics: analytics
         )
         let viewModelStore = ViewModelStore(

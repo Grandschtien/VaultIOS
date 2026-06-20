@@ -9,7 +9,7 @@ protocol LoginRoutingLogic: Sendable {
     func openRegistration()
     func openEmailVerification(context: EmailVerificationContext)
     func openMainFlow()
-    func openForgetPasswordScreen()
+    func openForgetPasswordScreen(context: ForgotPasswordContext)
     func presentError(with text: String)
 }
 
@@ -49,8 +49,8 @@ final class LoginRouter: LoginRoutingLogic {
         })
     }
 
-    func openForgetPasswordScreen() {
-        let forgotPasswordScreen = ForgotPasswordFactory()
+    func openForgetPasswordScreen(context: ForgotPasswordContext) {
+        let forgotPasswordScreen = ForgotPasswordFactory(context: context)
             .withBottomSheet(.init(detents: [.content]))
 
         screenRouter.navigate(to: { route in

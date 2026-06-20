@@ -17,18 +17,20 @@ actor ForgotPasswordInteractor: ForgotPasswordBusinessLogic {
     private let analytics: ForgotPasswordAnalyticsTracking?
 
     private var loadingState: LoadingStatus = .idle
-    private var email = ""
+    private var email: String
     private var emailErrorMessage: String?
 
     init(
         passwordRestorationService: PasswordRestorationContractServicing,
         presenter: ForgotPasswordPresentationLogic,
         router: ForgotPasswordRoutingLogic,
+        context: ForgotPasswordContext = .init(),
         analytics: ForgotPasswordAnalyticsTracking? = nil
     ) {
         self.passwordRestorationService = passwordRestorationService
         self.presenter = presenter
         self.router = router
+        email = context.email
         self.analytics = analytics
     }
 

@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class CategoryPeriodPickerInteractorTests: XCTestCase {
-    func testFetchDataShowsInitialRangeWithActiveToField() async {
+    func testFetchDataShowsInitialRangeWithActiveFromField() async {
         let presenter = CategoryPeriodPickerPresenterSpy()
         let router = CategoryPeriodPickerRouterSpy()
         let output = CategoryPeriodPickerOutputSpy()
@@ -24,8 +24,8 @@ final class CategoryPeriodPickerInteractorTests: XCTestCase {
 
         XCTAssertEqual(presenter.presentedData.last?.fromDate, currentMonthStart)
         XCTAssertEqual(presenter.presentedData.last?.toDate, now)
-        XCTAssertEqual(presenter.presentedData.last?.activeField, .to)
-        XCTAssertEqual(presenter.presentedData.last?.selectedCalendarDate, now)
+        XCTAssertEqual(presenter.presentedData.last?.activeField, .from)
+        XCTAssertEqual(presenter.presentedData.last?.selectedCalendarDate, currentMonthStart)
         XCTAssertEqual(presenter.presentedData.last?.visibleMonthDate, currentMonthStart)
         XCTAssertEqual(presenter.presentedData.last?.maximumDate, now)
         XCTAssertEqual(presenter.presentedData.last?.isApplyEnabled, true)

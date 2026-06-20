@@ -10,6 +10,17 @@ final class ForgotPasswordInteractorTests: XCTestCase {
         XCTAssertEqual(presenter.presentedData.last?.email, "")
     }
 
+    func testFetchDataWithContextPresentsPrefilledEmail() async {
+        let presenter = ForgotPasswordPresenterSpy()
+        await makeSut(
+            presenter: presenter,
+            context: ForgotPasswordContext(email: "name@example.com")
+        ).fetchData()
+
+        XCTAssertEqual(presenter.presentedData.last?.loadingState, .idle)
+        XCTAssertEqual(presenter.presentedData.last?.email, "name@example.com")
+    }
+
     func testHandleTapSendWithEmptyEmailShowsValidationError() async {
         let presenter = ForgotPasswordPresenterSpy()
         let router = ForgotPasswordRouterSpy()
@@ -83,12 +94,14 @@ private extension ForgotPasswordInteractorTests {
     func makeSut(
         passwordRestorationService: PasswordRestorationContractServicing? = nil,
         presenter: ForgotPasswordPresentationLogic? = nil,
-        router: ForgotPasswordRoutingLogic? = nil
+        router: ForgotPasswordRoutingLogic? = nil,
+        context: ForgotPasswordContext = .init()
     ) -> ForgotPasswordInteractor {
         ForgotPasswordInteractor(
             passwordRestorationService: passwordRestorationService ?? PasswordRestorationContractServiceSpy(),
             presenter: presenter ?? ForgotPasswordPresenterSpy(),
-            router: router ?? ForgotPasswordRouterSpy()
+            router: router ?? ForgotPasswordRouterSpy(),
+            context: context
         )
     }
 }

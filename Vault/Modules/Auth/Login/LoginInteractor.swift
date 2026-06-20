@@ -145,6 +145,8 @@ extension LoginInteractor: LoginHandler {
     }
 
     func handleForgotDidTap() async {
-        await router.openForgetPasswordScreen()
+        await router.openForgetPasswordScreen(
+            context: ForgotPasswordContext(email: email)
+        )
     }
 }

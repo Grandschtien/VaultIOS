@@ -194,6 +194,25 @@ final class LoginInteractorTests: XCTestCase {
 
         XCTAssertNil(profileStorage.savedProfile)
     }
+
+    func testHandleForgotDidTapOpensForgotPasswordWithCurrentEmail() async {
+        let router = LoginRouterSpy()
+        let sut = makeSut(
+            authVerificationService: AuthVerificationContractServiceSpy(),
+            presenter: LoginPresenterSpy(),
+            router: router,
+            tokenStorage: TokenStorageSpy(),
+            profileStorage: UserProfileStorageSpy()
+        )
+
+        await sut.handleEmailDidChange("name@example.com")
+        await sut.handleForgotDidTap()
+
+        XCTAssertEqual(
+            router.forgotPasswordContexts,
+            [ForgotPasswordContext(email: "name@example.com")]
+        )
+    }
 }
 
 private extension LoginInteractorTests {
@@ -284,6 +303,7 @@ private final class LoginRouterSpy: LoginRoutingLogic, @unchecked Sendable {
     private(set) var openedMainFlowCount: Int = .zero
     private(set) var presentedErrors: [String] = []
     private(set) var emailVerificationContexts: [EmailVerificationContext] = []
+    private(set) var forgotPasswordContexts: [ForgotPasswordContext] = []
 
     func openRegistration() {}
 
@@ -295,7 +315,9 @@ private final class LoginRouterSpy: LoginRoutingLogic, @unchecked Sendable {
         openedMainFlowCount += 1
     }
 
-    func openForgetPasswordScreen() {}
+    func openForgetPasswordScreen(context: ForgotPasswordContext) {
+        forgotPasswordContexts.append(context)
+    }
 
     func presentError(with text: String) {
         presentedErrors.append(text)
