@@ -5,7 +5,6 @@ struct EmailVerificationViewModel: Equatable {
     let subtitle: Label.LabelViewModel
     let codeInput: EmailVerificationCodeInputView.ViewModel
     let errorLabel: Label.LabelViewModel?
-    let verifyButton: Button.ButtonViewModel
     let resendPrompt: Label.LabelViewModel
     let resendAction: ResendActionViewModel
 
@@ -14,7 +13,6 @@ struct EmailVerificationViewModel: Equatable {
         subtitle: Label.LabelViewModel = .init(),
         codeInput: EmailVerificationCodeInputView.ViewModel = .init(),
         errorLabel: Label.LabelViewModel? = nil,
-        verifyButton: Button.ButtonViewModel = .init(),
         resendPrompt: Label.LabelViewModel = .init(),
         resendAction: ResendActionViewModel = .init()
     ) {
@@ -22,7 +20,6 @@ struct EmailVerificationViewModel: Equatable {
         self.subtitle = subtitle
         self.codeInput = codeInput
         self.errorLabel = errorLabel
-        self.verifyButton = verifyButton
         self.resendPrompt = resendPrompt
         self.resendAction = resendAction
     }

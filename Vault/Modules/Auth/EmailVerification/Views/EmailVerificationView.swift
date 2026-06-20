@@ -12,7 +12,6 @@ final class EmailVerificationView: UIView, LayoutScaleProviding {
     private let subtitleLabel = Label()
     private let codeInputView = EmailVerificationCodeInputView()
     private let errorLabel = Label()
-    private let verifyButton = Button()
     private let resendPromptLabel = Label()
     private let resendActionStackView = UIStackView()
     private let resendButton = UIButton(type: .system)
@@ -43,10 +42,6 @@ final class EmailVerificationView: UIView, LayoutScaleProviding {
 
         if previousViewModel.codeInput != viewModel.codeInput {
             codeInputView.apply(viewModel.codeInput)
-        }
-
-        if previousViewModel.verifyButton != viewModel.verifyButton {
-            verifyButton.apply(viewModel.verifyButton)
         }
 
         if previousViewModel.resendPrompt != viewModel.resendPrompt {
@@ -101,7 +96,6 @@ private extension EmailVerificationView {
             subtitleLabel,
             codeInputView,
             errorLabel,
-            verifyButton,
             resendPromptLabel,
             resendActionStackView
         ].forEach {
@@ -144,13 +138,8 @@ private extension EmailVerificationView {
             $0.leading.trailing.equalToSuperview().inset(spaceS)
         }
 
-        verifyButton.snp.makeConstraints {
-            $0.top.equalTo(errorLabel.snp.bottom).offset(spaceL)
-            $0.leading.trailing.equalToSuperview().inset(spaceS)
-        }
-
         resendPromptLabel.snp.makeConstraints {
-            $0.top.equalTo(verifyButton.snp.bottom).offset(spaceL)
+            $0.top.equalTo(errorLabel.snp.bottom).offset(spaceL)
             $0.leading.trailing.equalToSuperview().inset(spaceS)
         }
 

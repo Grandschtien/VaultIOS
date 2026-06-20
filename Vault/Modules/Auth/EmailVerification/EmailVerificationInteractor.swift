@@ -137,6 +137,12 @@ extension EmailVerificationInteractor: EmailVerificationHandler {
         self.code = sanitizedCode(code)
         errorMessage = nil
         await presentFetchedData()
+
+        guard self.code.count == 6 else {
+            return
+        }
+
+        await handleTapVerify()
     }
 
     func handleTapVerify() async {

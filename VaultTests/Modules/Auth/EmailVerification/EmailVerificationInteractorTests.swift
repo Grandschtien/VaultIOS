@@ -21,17 +21,17 @@ final class EmailVerificationInteractorTests: XCTestCase {
         XCTAssertEqual(presenter.presentedData.last?.resendAvailableIn, 60)
     }
 
-    func testHandleTapVerifyWithPartialCodeShowsValidationError() async {
+    func testHandleCodeDidChangeWithPartialCodeDoesNotShowValidationError() async {
         let presenter = EmailVerificationPresenterSpy()
         let sut = makeSut(presenter: presenter)
 
         await sut.handleCodeDidChange("123")
-        await sut.handleTapVerify()
 
-        XCTAssertEqual(presenter.presentedData.last?.errorMessage, L10n.commonFillField)
+        XCTAssertEqual(presenter.presentedData.last?.code, "123")
+        XCTAssertNil(presenter.presentedData.last?.errorMessage)
     }
 
-    func testHandleTapVerifyWithInvalidCodeShowsInlineError() async {
+    func testHandleCodeDidChangeWithFullCodeAutoVerifiesAndShowsInlineError() async {
         let presenter = EmailVerificationPresenterSpy()
         let service = AuthVerificationContractServiceSpy()
         service.verifyResult = .failure(.invalidCode)
@@ -41,12 +41,11 @@ final class EmailVerificationInteractorTests: XCTestCase {
         )
 
         await sut.handleCodeDidChange("123456")
-        await sut.handleTapVerify()
 
         XCTAssertEqual(presenter.presentedData.last?.errorMessage, L10n.emailVerificationInvalidCode)
     }
 
-    func testHandleTapVerifySuccessSavesSessionClearsRegistrationStorageAndOpensMainFlow() async {
+    func testHandleCodeDidChangeWithFullCodeSuccessSavesSessionClearsRegistrationStorageAndOpensMainFlow() async {
         let service = AuthVerificationContractServiceSpy()
         service.verifyResult = .success(
             LoginResponseDTO(
@@ -95,7 +94,6 @@ final class EmailVerificationInteractorTests: XCTestCase {
         )
 
         await sut.handleCodeDidChange("123456")
-        await sut.handleTapVerify()
 
         XCTAssertEqual(router.openMainFlowCallsCount, 1)
         XCTAssertEqual(
@@ -144,7 +142,6 @@ final class EmailVerificationInteractorTests: XCTestCase {
         )
 
         await sut.handleCodeDidChange("123")
-        await sut.handleTapVerify()
         await sut.handleTapResend()
 
         XCTAssertEqual(presenter.presentedData.last?.code, "")
@@ -178,6 +175,7 @@ final class EmailVerificationInteractorTests: XCTestCase {
 }
 
 private extension EmailVerificationInteractorTests {
+    @MainActor
     func makeSut(
         service: AuthVerificationContractServicing = AuthVerificationContractServiceSpy(),
         presenter: EmailVerificationPresentationLogic = EmailVerificationPresenterSpy(),

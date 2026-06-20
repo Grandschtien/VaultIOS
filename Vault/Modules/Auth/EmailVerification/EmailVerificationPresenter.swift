@@ -56,19 +56,6 @@ final class EmailVerificationPresenter: EmailVerificationPresentationLogic {
                     lineBreakMode: .byWordWrapping
                 )
             },
-            verifyButton: .init(
-                title: L10n.emailVerificationVerify,
-                titleColor: Asset.Colors.textAndIconPrimaryInverted.color,
-                backgroundColor: Asset.Colors.interactiveElemetsPrimary.color,
-                font: Typography.typographyBold18,
-                isEnabled: !isLoading,
-                isLoading: isLoading,
-                tapCommand: Command { [weak handler] in
-                    await handler?.handleTapVerify()
-                },
-                height: 64,
-                cornerRadius: 32
-            ),
             resendPrompt: .init(
                 text: L10n.emailVerificationResendPrompt,
                 font: Typography.typographyMedium20,

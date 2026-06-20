@@ -26,13 +26,12 @@ extension EmailVerificationPresenterTests {
 
         XCTAssertEqual(sut.viewModel.title.text, L10n.emailVerificationTitle)
         XCTAssertEqual(sut.viewModel.subtitle.text, L10n.emailVerificationSubtitle)
-        XCTAssertEqual(sut.viewModel.verifyButton.title, L10n.emailVerificationVerify)
         XCTAssertEqual(sut.viewModel.resendPrompt.text, L10n.emailVerificationResendPrompt)
         XCTAssertEqual(sut.viewModel.resendAction.title, L10n.emailVerificationResend.uppercased())
         XCTAssertNil(sut.viewModel.resendAction.countdownLabel)
     }
 
-    func testPresentFetchedDataLoadingDisablesVerifyAndResend() {
+    func testPresentFetchedDataLoadingDisablesCodeInputAndResend() {
         sut.presentFetchedData(
             EmailVerificationFetchData(
                 loadingState: .loading,
@@ -40,8 +39,7 @@ extension EmailVerificationPresenterTests {
             )
         )
 
-        XCTAssertFalse(sut.viewModel.verifyButton.isEnabled)
-        XCTAssertTrue(sut.viewModel.verifyButton.isLoading)
+        XCTAssertFalse(sut.viewModel.codeInput.isEnabled)
         XCTAssertFalse(sut.viewModel.resendAction.isEnabled)
     }
 
