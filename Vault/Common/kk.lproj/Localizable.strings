@@ -8,6 +8,12 @@
 "forgot_password_subtitle" = "Электрондық поштаңызды енгізіңіз, біз құпиясөзді қалпына келтіру нұсқаулығын жібереміз.";
 "forgot_password_success_message" = "Егер бұл электрондық пошта үшін тіркелгі бар болса, құпиясөзді қалпына келтіру нұсқаулығы жіберілді.";
 "forgot_password_title" = "Құпиясөзді ұмыттыңыз ба";
+"email_verification_title" = "Жеке басыңызды растаңыз";
+"email_verification_subtitle" = "Электрондық пошта мекенжайыңызға 6 таңбалы растау коды жіберілді.";
+"email_verification_verify" = "Растау";
+"email_verification_resend_prompt" = "Код келмеді ме?";
+"email_verification_resend" = "Кодты қайта жіберу";
+"email_verification_invalid_code" = "Енгізілген код қате. Қайта көріңіз.";
 "auth_verification_error_unverified" = "Жалғастыру үшін электрондық поштаңызды растаңыз.";
 "auth_verification_error_invalid_credentials" = "Электрондық пошта немесе құпиясөз қате.";
 "auth_verification_error_invalid_code" = "Енгізілген код қате. Қайта көріңіз.";

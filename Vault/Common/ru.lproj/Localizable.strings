@@ -8,6 +8,12 @@
 "forgot_password_subtitle" = "Введите email, и мы отправим инструкции по сбросу пароля.";
 "forgot_password_success_message" = "Если аккаунт с таким email существует, инструкции по сбросу пароля уже отправлены.";
 "forgot_password_title" = "Забыли пароль";
+"email_verification_title" = "Подтвердите личность";
+"email_verification_subtitle" = "Мы отправили 6-значный код подтверждения на вашу электронную почту.";
+"email_verification_verify" = "Подтвердить";
+"email_verification_resend_prompt" = "Не получили код?";
+"email_verification_resend" = "Отправить код снова";
+"email_verification_invalid_code" = "Введен неверный код. Попробуйте еще раз.";
 "auth_verification_error_unverified" = "Пожалуйста, подтвердите email, чтобы продолжить.";
 "auth_verification_error_invalid_credentials" = "Неверный email или пароль.";
 "auth_verification_error_invalid_code" = "Введен неверный код. Попробуйте еще раз.";
