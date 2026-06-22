@@ -43,16 +43,26 @@ final class MainFlowRootFactory: Screen {
             summaryPeriodProvider: summaryPeriodProvider
         )
 
-        return MainFlowRootViewController(
-            screenNavigator: navigator,
+        let widgetSubscriptionOutput = VaultWidgetSubscriptionOutputAdapter(
+            widgetSnapshotSyncService: widgetSnapshotSyncService
+        )
+        let router = MainFlowRootRouter(screenNavigator: navigator)
+        let interactor = MainFlowRootInteractor(
             context: context,
             pendingRouteStore: pendingRouteStore,
             widgetEntryDestinationResolver: widgetEntryDestinationResolver,
             subscriptionAccessService: subscriptionAccessService,
-            widgetSubscriptionOutput: VaultWidgetSubscriptionOutputAdapter(
-                widgetSnapshotSyncService: widgetSnapshotSyncService
-            ),
-            router: MainFlowRootRouter(screenNavigator: navigator)
+            widgetSubscriptionOutput: widgetSubscriptionOutput,
+            router: router
         )
+        let controller = MainFlowRootViewController(
+            screenNavigator: navigator,
+            context: context,
+            interactor: interactor
+        )
+
+        router.viewController = controller
+
+        return controller
     }
 }

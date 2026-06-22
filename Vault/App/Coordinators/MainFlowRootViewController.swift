@@ -15,11 +15,7 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
 
     private let screenNavigator: ScreenNavigator
     private let context: MainFlowContext
-    private let pendingRouteStore: PendingVaultRouteStoring
-    private let widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving
-    private let subscriptionAccessService: SubscriptionAccessServicing
-    private let widgetSubscriptionOutput: SubscriptionOutput
-    private let router: MainFlowRootRoutingLogic
+    private let interactor: MainFlowRootBusinessLogic
     private let tabBarView = MainTabBarView()
     private var logoutObserver: NSObjectProtocol?
     private var pendingRouteObserver: NSObjectProtocol?
@@ -30,19 +26,11 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
     init(
         screenNavigator: ScreenNavigator,
         context: MainFlowContext,
-        pendingRouteStore: PendingVaultRouteStoring,
-        widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving,
-        subscriptionAccessService: SubscriptionAccessServicing,
-        widgetSubscriptionOutput: SubscriptionOutput,
-        router: MainFlowRootRoutingLogic
+        interactor: MainFlowRootBusinessLogic
     ) {
         self.screenNavigator = screenNavigator
         self.context = context
-        self.pendingRouteStore = pendingRouteStore
-        self.widgetEntryDestinationResolver = widgetEntryDestinationResolver
-        self.subscriptionAccessService = subscriptionAccessService
-        self.widgetSubscriptionOutput = widgetSubscriptionOutput
-        self.router = router
+        self.interactor = interactor
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -237,113 +225,17 @@ private extension MainFlowRootViewController {
     }
 
     func handlePendingRouteIfNeeded() {
-        guard view.window != nil,
-              let route = pendingRouteStore.consume() else {
-            return
-        }
-
-        switch route {
-        case .home:
-            routeToHome()
-        case .aiEntry:
-            openAIEntryFromWidget()
-        case .subscription:
-            openSubscriptionFromWidget()
-        }
-    }
-
-    func routeToHome() {
-        let resetHomeRoot = { [weak self] in
-            guard let self else {
-                return
-            }
-
-            self.selectedIndex = Constants.homeTabIndex
-            (self.selectedViewController as? UINavigationController)?
-                .popToRootViewController(animated: false)
-        }
-
-        guard presentedViewController != nil else {
-            resetHomeRoot()
-            return
-        }
-
-        dismiss(animated: true) {
-            resetHomeRoot()
-        }
-    }
-
-    func openAIEntryFromWidget() {
         Task { [weak self] in
             guard let self else {
                 return
             }
 
-            let destination = await self.widgetEntryDestinationResolver.resolveDestination()
-            await MainActor.run {
-                self.presentWidgetEntry(destination)
-            }
+            await self.interactor.handlePendingRouteIfNeeded(
+                isViewVisible: self.view.window != nil
+            )
         }
     }
 
-    func openSubscriptionFromWidget() {
-        Task { [weak self] in
-            guard let self else {
-                return
-            }
-
-            let currentTier = await self.subscriptionAccessService.currentTier()
-            await MainActor.run {
-                self.router.openSubscription(
-                    from: self,
-                    currentTier: currentTier,
-                    output: self.widgetSubscriptionOutput
-                )
-            }
-        }
-    }
-
-    func presentWidgetEntry(_ destination: VaultWidgetEntryDestination) {
-        let presentEntry = { [weak self] in
-            guard let self else {
-                return
-            }
-
-            self.screenNavigator.navigate(from: self) { route in
-                switch destination {
-                case .aiEntry:
-                    route.present(
-                        ExpenseAIEntryFactory(context: self.context)
-                            .withBottomSheet(
-                                .init(
-                                    detents: [.content],
-                                    prefferedGrabberForMaximumDetentValue: .default
-                                )
-                            )
-                    )
-                case .manualEntry:
-                    route.present(
-                        ExpenseManualEntryFactory(context: self.context)
-                            .withBottomSheet(
-                                .init(
-                                    detents: [.content],
-                                    prefferedGrabberForMaximumDetentValue: .default
-                                )
-                            )
-                    )
-                }
-            }
-        }
-
-        guard presentedViewController == nil else {
-            dismiss(animated: true) {
-                presentEntry()
-            }
-            return
-        }
-
-        presentEntry()
-    }
     @objc
     func handleTapProfileButton() {
         screenNavigator.navigate(to: { route in
