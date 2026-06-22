@@ -17,6 +17,7 @@
 		60B849502FADADB500412ACA /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 60B8494F2FADADB500412ACA /* FirebaseAnalytics */; };
 		60B849522FADADB500412ACA /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 60B849512FADADB500412ACA /* FirebaseCore */; };
 		60B849542FADADB500412ACA /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 60B849532FADADB500412ACA /* FirebaseCrashlytics */; };
+		70A1000126C5B10000A10001 /* VaultWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 70A1000426C5B10000A10001 /* VaultWidgetExtension.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,12 +28,34 @@
 			remoteGlobalIDString = 609A28482F2F7B86007145D5;
 			remoteInfo = Vault;
 		};
+		70A1000226C5B10000A10001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 609A28412F2F7B86007145D5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 70A1000A26C5B10000A10001;
+			remoteInfo = VaultWidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		70A1000326C5B10000A10001 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				70A1000126C5B10000A10001 /* VaultWidgetExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		609A28492F2F7B86007145D5 /* Vault.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vault.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		61B0A100307E8B0100A10001 /* VaultTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VaultTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		62C4AF8731A2345600A10001 /* Vault/Configuration/AppSecrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Vault/Configuration/AppSecrets.xcconfig; sourceTree = "<group>"; };
+		70A1000426C5B10000A10001 /* VaultWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VaultWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -44,6 +67,13 @@
 				Info.plist,
 			);
 			target = 609A28482F2F7B86007145D5 /* Vault */;
+		};
+		70A1000626C5B10000A10001 /* Exceptions for "VaultWidgetExtension" folder in "VaultWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 70A1000A26C5B10000A10001 /* VaultWidgetExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -59,6 +89,19 @@
 		61B0A10B307E8B0200A10001 /* VaultTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = VaultTests;
+			sourceTree = "<group>";
+		};
+		70A1000726C5B10000A10001 /* VaultWidgetShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = VaultWidgetShared;
+			sourceTree = "<group>";
+		};
+		70A1000826C5B10000A10001 /* VaultWidgetExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				70A1000626C5B10000A10001 /* Exceptions for "VaultWidgetExtension" folder in "VaultWidgetExtension" target */,
+			);
+			path = VaultWidgetExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -88,6 +131,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		70A1000926C5B10000A10001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -96,6 +146,8 @@
 			children = (
 				609A284B2F2F7B86007145D5 /* Vault */,
 				61B0A10B307E8B0200A10001 /* VaultTests */,
+				70A1000726C5B10000A10001 /* VaultWidgetShared */,
+				70A1000826C5B10000A10001 /* VaultWidgetExtension */,
 				609A284A2F2F7B86007145D5 /* Products */,
 				60B849AE2FAF7C4400412ACA /* Recovered References */,
 			);
@@ -106,6 +158,7 @@
 			children = (
 				609A28492F2F7B86007145D5 /* Vault.app */,
 				61B0A100307E8B0100A10001 /* VaultTests.xctest */,
+				70A1000426C5B10000A10001 /* VaultWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -129,14 +182,17 @@
 				609A28452F2F7B86007145D5 /* Sources */,
 				609A28462F2F7B86007145D5 /* Frameworks */,
 				609A28472F2F7B86007145D5 /* Resources */,
+				70A1000326C5B10000A10001 /* Embed App Extensions */,
 				60B849552FADAE1800412ACA /* ShellScript */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				70A1000E26C5B10000A10001 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				609A284B2F2F7B86007145D5 /* Vault */,
+				70A1000726C5B10000A10001 /* VaultWidgetShared */,
 			);
 			name = Vault;
 			packageProductDependencies = (
@@ -178,6 +234,30 @@
 			productReference = 61B0A100307E8B0100A10001 /* VaultTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		70A1000A26C5B10000A10001 /* VaultWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 70A1000B26C5B10000A10001 /* Build configuration list for PBXNativeTarget "VaultWidgetExtension" */;
+			buildPhases = (
+				70A1001126C5B10000A10001 /* SwiftGen */,
+				70A1000C26C5B10000A10001 /* Sources */,
+				70A1000926C5B10000A10001 /* Frameworks */,
+				70A1000D26C5B10000A10001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				70A1000726C5B10000A10001 /* VaultWidgetShared */,
+				70A1000826C5B10000A10001 /* VaultWidgetExtension */,
+			);
+			name = VaultWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = VaultWidgetExtension;
+			productReference = 70A1000426C5B10000A10001 /* VaultWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -194,6 +274,9 @@
 					61B0A102307E8B0100A10001 = {
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = 609A28482F2F7B86007145D5;
+					};
+					70A1000A26C5B10000A10001 = {
+						CreatedOnToolsVersion = 26.2;
 					};
 				};
 			};
@@ -224,6 +307,7 @@
 			targets = (
 				609A28482F2F7B86007145D5 /* Vault */,
 				61B0A102307E8B0100A10001 /* VaultTests */,
+				70A1000A26C5B10000A10001 /* VaultWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -237,6 +321,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		61B0A104307E8B0100A10001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		70A1000D26C5B10000A10001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -289,6 +380,25 @@
 			shellPath = /bin/sh;
 			shellScript = "if command -v swiftgen > /dev/null 2>&1; then\n  swiftgen config run --config \"${SRCROOT}/swiftgen.yml\"\nelse\n  echo \"SwiftGen is not installed. Install it from https://github.com/SwiftGen/SwiftGen\"\nfi\n";
 		};
+		70A1001126C5B10000A10001 /* SwiftGen */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/swiftgen.widget.yml",
+				"$(SRCROOT)/VaultWidgetExtension/Assets.xcassets",
+				"$(SRCROOT)/VaultWidgetExtension/en.lproj/Localizable.strings",
+			);
+			name = SwiftGen;
+			outputPaths = (
+				"$(SRCROOT)/VaultWidgetExtension/Assets.generated.swift",
+				"$(SRCROOT)/VaultWidgetExtension/Strings.generated.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if command -v swiftgen > /dev/null 2>&1; then\n  swiftgen config run --config \"${SRCROOT}/swiftgen.widget.yml\"\n  swiftgen run xcassets --templateName swift5 --param enumName=VaultWidgetAssetCatalog --output \"${SRCROOT}/VaultWidgetExtension/Assets.generated.swift\" \"${SRCROOT}/VaultWidgetExtension/Assets.xcassets\"\nelse\n  echo \"SwiftGen is not installed. Install it from https://github.com/SwiftGen/SwiftGen\"\nfi\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -306,6 +416,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		70A1000C26C5B10000A10001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -313,6 +430,11 @@
 			isa = PBXTargetDependency;
 			target = 609A28482F2F7B86007145D5 /* Vault */;
 			targetProxy = 61B0A109307E8B0100A10001 /* PBXContainerItemProxy */;
+		};
+		70A1000E26C5B10000A10001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 70A1000A26C5B10000A10001 /* VaultWidgetExtension */;
+			targetProxy = 70A1000226C5B10000A10001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -579,6 +701,80 @@
 			};
 			name = Release;
 		};
+		70A1000F26C5B10000A10001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = NO;
+				CODE_SIGN_ENTITLEMENTS = VaultWidgetExtension/VaultWidgetExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 19;
+				DEVELOPMENT_TEAM = PLUM5QCSG5;
+				EXTRACT_APP_INTENTS_METADATA = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VaultWidgetExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.egor.shkarin.Vault.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		70A1001026C5B10000A10001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = NO;
+				CODE_SIGN_ENTITLEMENTS = VaultWidgetExtension/VaultWidgetExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 19;
+				DEVELOPMENT_TEAM = PLUM5QCSG5;
+				EXTRACT_APP_INTENTS_METADATA = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VaultWidgetExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.egor.shkarin.Vault.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -605,6 +801,15 @@
 			buildConfigurations = (
 				61B0A107307E8B0100A10001 /* Debug */,
 				61B0A108307E8B0100A10001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		70A1000B26C5B10000A10001 /* Build configuration list for PBXNativeTarget "VaultWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				70A1000F26C5B10000A10001 /* Debug */,
+				70A1001026C5B10000A10001 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

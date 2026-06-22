@@ -27,6 +27,7 @@ actor MainInteractor: MainBusinessLogic {
     private let subscriptionAccessService: SubscriptionAccessServicing
     private let repository: MainFlowDomainRepositoryProtocol
     private let observer: MainFlowDomainObserverProtocol
+    private let widgetSnapshotSyncService: VaultWidgetSnapshotSyncing?
 
     private var blockingErrorDescription: String?
     private var isRefreshing: Bool = false
@@ -49,7 +50,8 @@ actor MainInteractor: MainBusinessLogic {
         summaryPeriodProvider: MainSummaryPeriodServicing,
         subscriptionAccessService: SubscriptionAccessServicing,
         repository: MainFlowDomainRepositoryProtocol,
-        observer: MainFlowDomainObserverProtocol
+        observer: MainFlowDomainObserverProtocol,
+        widgetSnapshotSyncService: VaultWidgetSnapshotSyncing? = nil
     ) {
         self.presenter = presenter
         self.router = router
@@ -59,6 +61,7 @@ actor MainInteractor: MainBusinessLogic {
         self.subscriptionAccessService = subscriptionAccessService
         self.repository = repository
         self.observer = observer
+        self.widgetSnapshotSyncService = widgetSnapshotSyncService
     }
 
     deinit {
@@ -190,6 +193,7 @@ private extension MainInteractor {
         do {
             summary = try await summaryProvider.fetchSummary()
             summaryState = .loaded
+            scheduleWidgetSnapshotSync()
         } catch is CancellationError {
             return
         } catch {
@@ -293,6 +297,16 @@ private extension MainInteractor {
                 expenseGroups: expenseGroups
             )
         )
+    }
+
+    func scheduleWidgetSnapshotSync() {
+        guard let widgetSnapshotSyncService else {
+            return
+        }
+
+        Task {
+            await widgetSnapshotSyncService.syncSnapshot()
+        }
     }
 }
 

@@ -12,6 +12,12 @@ final class MainFlowRootFactory: Screen {
         var summaryService: MainSummaryContractServicing
         @SafeInject
         var currencyConversionService: UserCurrencyConverting
+        @SafeInject
+        var pendingRouteStore: PendingVaultRouteStoring
+        @SafeInject
+        var widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
+        @SafeInject
+        var widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving
 
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(
@@ -25,7 +31,8 @@ final class MainFlowRootFactory: Screen {
             summaryPeriodProvider: summaryPeriodProvider,
             currencyConversionService: currencyConversionService,
             store: store,
-            observer: observer
+            observer: observer,
+            widgetSnapshotSyncService: widgetSnapshotSyncService
         )
         let context = MainFlowContext(
             store: store,
@@ -36,7 +43,9 @@ final class MainFlowRootFactory: Screen {
 
         return MainFlowRootViewController(
             screenNavigator: navigator,
-            context: context
+            context: context,
+            pendingRouteStore: pendingRouteStore,
+            widgetEntryDestinationResolver: widgetEntryDestinationResolver
         )
     }
 }

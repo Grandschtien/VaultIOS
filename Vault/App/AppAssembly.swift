@@ -64,6 +64,37 @@ private extension AppAssembly {
         }
         .inObjectScope(.transient)
 
+        container.register(VaultRouteParsing.self) { _ in
+            VaultRouteParser()
+        }
+        .inObjectScope(.transient)
+
+        container.register(PendingVaultRouteStoring.self) { _ in
+            PendingVaultRouteStore()
+        }
+        .inObjectScope(.container)
+
+        container.register(VaultWidgetSnapshotStoring.self) { _ in
+            VaultWidgetSnapshotStorage()
+        }
+        .inObjectScope(.transient)
+
+        container.register(VaultWidgetTimelineReloading.self) { _ in
+            VaultWidgetTimelineReloader()
+        }
+        .inObjectScope(.transient)
+
+        container.register(VaultWidgetEntryDestinationResolving.self) { resolver in
+            guard let subscriptionAccessService = resolver.resolve(SubscriptionAccessServicing.self) else {
+                fatalError("Failed to resolve SubscriptionAccessService for VaultWidgetEntryDestinationResolver")
+            }
+
+            return VaultWidgetEntryDestinationResolver(
+                subscriptionAccessService: subscriptionAccessService
+            )
+        }
+        .inObjectScope(.transient)
+
         container.register(AsyncNetworkClient.self, name: DependencyName.refreshNetworkClient) { resolver in
             guard let appLogService = resolver.resolve(AppLogServiceProtocol.self) else {
                 fatalError("Failed to resolve AppLogService for refresh AsyncNetworkClient")
@@ -136,6 +167,21 @@ private extension AppAssembly {
             }
 
             return MainSummaryContractService(networkClient: networkClient)
+        }
+        .inObjectScope(.transient)
+
+        container.register(VaultWidgetSnapshotSyncing.self) { resolver in
+            guard let summaryService = resolver.resolve(MainSummaryContractServicing.self),
+                  let storage = resolver.resolve(VaultWidgetSnapshotStoring.self),
+                  let timelineReloader = resolver.resolve(VaultWidgetTimelineReloading.self) else {
+                fatalError("Failed to resolve dependencies for VaultWidgetSnapshotSyncService")
+            }
+
+            return VaultWidgetSnapshotSyncService(
+                summaryService: summaryService,
+                storage: storage,
+                timelineReloader: timelineReloader
+            )
         }
         .inObjectScope(.transient)
 

@@ -20,6 +20,8 @@ final class MainFactory: Screen {
         var userProfileStorageService: UserProfileStorageServiceProtocol
         @SafeInject
         var subscriptionAccessService: SubscriptionAccessServicing
+        @SafeInject
+        var widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
 
         let currencyRateProvider = MainCurrencyRateProvider(
             currencyRateService: currencyRateService,
@@ -52,7 +54,8 @@ final class MainFactory: Screen {
             summaryPeriodProvider: context.summaryPeriodProvider,
             subscriptionAccessService: subscriptionAccessService,
             repository: context.repository,
-            observer: context.observer
+            observer: context.observer,
+            widgetSnapshotSyncService: widgetSnapshotSyncService
         )
 
         let viewModelStore = ViewModelStore(

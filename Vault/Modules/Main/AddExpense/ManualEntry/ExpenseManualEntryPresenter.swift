@@ -132,19 +132,17 @@ private extension ExpenseManualEntryPresenter {
     }
 
     func amountCurrencyText(for currencyCode: String) -> String {
-        let normalizedCurrencyCode = currencyCode
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .uppercased()
+        let normalizedCurrencyCode = VaultWidgetValueFormatter.normalizedCurrencyCode(
+            currencyCode
+        )
         guard !normalizedCurrencyCode.isEmpty else {
             return "USD"
         }
 
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = normalizedCurrencyCode
-        formatter.locale = Locale.current
-
-        return formatter.currencySymbol ?? normalizedCurrencyCode
+        return VaultWidgetValueFormatter.currencySymbol(
+            for: normalizedCurrencyCode,
+            fallback: normalizedCurrencyCode
+        )
     }
 
     func makeCategoryFieldViewModel(

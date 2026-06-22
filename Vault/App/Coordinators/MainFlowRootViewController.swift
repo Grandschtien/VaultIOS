@@ -15,18 +15,25 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
 
     private let screenNavigator: ScreenNavigator
     private let context: MainFlowContext
+    private let pendingRouteStore: PendingVaultRouteStoring
+    private let widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving
     private let tabBarView = MainTabBarView()
     private var logoutObserver: NSObjectProtocol?
+    private var pendingRouteObserver: NSObjectProtocol?
     private var currencyDidChangeObserver: NSObjectProtocol?
     private var profileButtonSize: CGFloat { sizeL }
     private var profileIconSize: CGFloat { sizeS }
 
     init(
         screenNavigator: ScreenNavigator,
-        context: MainFlowContext
+        context: MainFlowContext,
+        pendingRouteStore: PendingVaultRouteStoring,
+        widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving
     ) {
         self.screenNavigator = screenNavigator
         self.context = context
+        self.pendingRouteStore = pendingRouteStore
+        self.widgetEntryDestinationResolver = widgetEntryDestinationResolver
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -39,6 +46,7 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
         super.viewDidLoad()
         delegate = self
         observeLogoutEvents()
+        observePendingRouteEvents()
         observeCurrencyChangeEvents()
 
         setupTabs()
@@ -55,9 +63,18 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
         selectedIndex = Constants.homeTabIndex
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        handlePendingRouteIfNeeded()
+    }
+
     deinit {
         if let logoutObserver {
             NotificationCenter.default.removeObserver(logoutObserver)
+        }
+
+        if let pendingRouteObserver {
+            NotificationCenter.default.removeObserver(pendingRouteObserver)
         }
 
         if let currencyDidChangeObserver {
@@ -114,6 +131,16 @@ private extension MainFlowRootViewController {
             Task {
                 await self.context.repository.clearSession()
             }
+        }
+    }
+
+    func observePendingRouteEvents() {
+        pendingRouteObserver = NotificationCenter.default.addObserver(
+            forName: .pendingVaultRouteDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handlePendingRouteIfNeeded()
         }
     }
 
@@ -198,6 +225,96 @@ private extension MainFlowRootViewController {
         button.addTarget(self, action: #selector(handleTapProfileButton), for: .touchUpInside)
 
         return button
+    }
+
+    func handlePendingRouteIfNeeded() {
+        guard view.window != nil,
+              let route = pendingRouteStore.consume() else {
+            return
+        }
+
+        switch route {
+        case .home:
+            routeToHome()
+        case .aiEntry:
+            openAIEntryFromWidget()
+        }
+    }
+
+    func routeToHome() {
+        let resetHomeRoot = { [weak self] in
+            guard let self else {
+                return
+            }
+
+            self.selectedIndex = Constants.homeTabIndex
+            (self.selectedViewController as? UINavigationController)?
+                .popToRootViewController(animated: false)
+        }
+
+        guard presentedViewController != nil else {
+            resetHomeRoot()
+            return
+        }
+
+        dismiss(animated: true) {
+            resetHomeRoot()
+        }
+    }
+
+    func openAIEntryFromWidget() {
+        Task { [weak self] in
+            guard let self else {
+                return
+            }
+
+            let destination = await self.widgetEntryDestinationResolver.resolveDestination()
+            await MainActor.run {
+                self.presentWidgetEntry(destination)
+            }
+        }
+    }
+
+    func presentWidgetEntry(_ destination: VaultWidgetEntryDestination) {
+        let presentEntry = { [weak self] in
+            guard let self else {
+                return
+            }
+
+            self.screenNavigator.navigate(from: self) { route in
+                switch destination {
+                case .aiEntry:
+                    route.present(
+                        ExpenseAIEntryFactory(context: self.context)
+                            .withBottomSheet(
+                                .init(
+                                    detents: [.content],
+                                    prefferedGrabberForMaximumDetentValue: .default
+                                )
+                            )
+                    )
+                case .manualEntry:
+                    route.present(
+                        ExpenseManualEntryFactory(context: self.context)
+                            .withBottomSheet(
+                                .init(
+                                    detents: [.content],
+                                    prefferedGrabberForMaximumDetentValue: .default
+                                )
+                            )
+                    )
+                }
+            }
+        }
+
+        guard presentedViewController == nil else {
+            dismiss(animated: true) {
+                presentEntry()
+            }
+            return
+        }
+
+        presentEntry()
     }
 
     @objc

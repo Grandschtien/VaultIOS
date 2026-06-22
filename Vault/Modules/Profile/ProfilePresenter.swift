@@ -276,19 +276,16 @@ private extension ProfilePresenter {
     }
 
     func currencyTitle(from code: String) -> String {
-        let normalized = code
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .uppercased()
+        let normalized = VaultWidgetValueFormatter.normalizedCurrencyCode(code)
 
         guard !normalized.isEmpty else {
             return "-"
         }
 
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = normalized
-        formatter.locale = Locale.current
-        let symbol = formatter.currencySymbol ?? normalized
+        let symbol = VaultWidgetValueFormatter.currencySymbol(
+            for: normalized,
+            fallback: normalized
+        )
 
         return "\(normalized) (\(symbol))"
     }

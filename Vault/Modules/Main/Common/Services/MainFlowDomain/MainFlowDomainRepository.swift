@@ -78,6 +78,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
     private let currencyConversionService: UserCurrencyConverting
     private let store: MainFlowDomainStoreProtocol
     private let observer: MainFlowDomainObserverProtocol
+    private let widgetSnapshotSyncService: VaultWidgetSnapshotSyncing?
     private let now: @Sendable () -> Date
     private let periodResolver: MainPeriodRangeResolver
 
@@ -89,6 +90,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         currencyConversionService: UserCurrencyConverting,
         store: MainFlowDomainStoreProtocol,
         observer: MainFlowDomainObserverProtocol,
+        widgetSnapshotSyncService: VaultWidgetSnapshotSyncing? = nil,
         calendar: Calendar = .current,
         now: @escaping @Sendable () -> Date = Date.init
     ) {
@@ -99,6 +101,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         self.currencyConversionService = currencyConversionService
         self.store = store
         self.observer = observer
+        self.widgetSnapshotSyncService = widgetSnapshotSyncService
         self.now = now
         periodResolver = MainPeriodRangeResolver(calendar: calendar)
     }
@@ -292,6 +295,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         }()
 
         _ = await (summaryTask, categoriesTask, recentExpensesTask)
+        scheduleWidgetSnapshotSync()
 
         if shouldRefreshExpensesList {
             try? await refreshExpensesFirstPage()
@@ -405,6 +409,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
             observer.publishAll(from: store)
 
             try? await refreshCategories()
+            scheduleWidgetSnapshotSync()
         } catch {
             store.replaceState(previousState)
             observer.publishAll(from: store)
@@ -569,6 +574,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
     func clearSession() async {
         store.clear()
         observer.finishAll()
+        widgetSnapshotSyncService?.clearSnapshot()
     }
 }
 
@@ -581,6 +587,7 @@ private extension MainFlowDomainRepository {
     func reconcileAfterExpenseMutation(affectedCategoryIDs: Set<String>) async throws {
         try await refreshCategories()
         try await refreshRecentExpenses()
+        scheduleWidgetSnapshotSync()
 
         let state = store.snapshot()
         if state.expensesListPagination.isLoaded {
@@ -949,6 +956,16 @@ private extension MainFlowDomainRepository {
             amount: response.total,
             currency: currency.isEmpty ? Constants.usdCurrencyCode : currency
         )
+    }
+
+    func scheduleWidgetSnapshotSync() {
+        guard let widgetSnapshotSyncService else {
+            return
+        }
+
+        Task {
+            await widgetSnapshotSyncService.syncSnapshot()
+        }
     }
 
     func makeOverviewSummaryModel(from response: SummaryResponseDTO) -> MainSummaryModel {

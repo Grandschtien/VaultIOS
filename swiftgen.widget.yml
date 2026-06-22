@@ -1,0 +1,9 @@
+input_dir: .
+output_dir: .
+
+strings:
+  inputs:
+    - VaultWidgetExtension/en.lproj/Localizable.strings
+  outputs:
+    - templateName: flat-swift5
+      output: VaultWidgetExtension/Strings.generated.swift
