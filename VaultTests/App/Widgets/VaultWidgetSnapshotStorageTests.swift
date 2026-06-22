@@ -29,6 +29,7 @@ final class VaultWidgetSnapshotStorageTests: XCTestCase {
 extension VaultWidgetSnapshotStorageTests {
     func testSaveAndLoadSnapshot() {
         let snapshot = VaultWidgetSnapshot(
+            entitlementState: .subscribed,
             todayAmount: 45.2,
             todayCurrency: "USD",
             monthAmount: 450.2,
@@ -44,6 +45,7 @@ extension VaultWidgetSnapshotStorageTests {
     func testClearSnapshotRemovesStoredValue() {
         sut.saveSnapshot(
             VaultWidgetSnapshot(
+                entitlementState: .regular,
                 todayAmount: 1,
                 todayCurrency: "USD",
                 monthAmount: 2,
@@ -55,5 +57,42 @@ extension VaultWidgetSnapshotStorageTests {
         sut.clearSnapshot()
 
         XCTAssertNil(sut.loadSnapshot())
+    }
+
+    func testLoadSnapshotMigratesLegacyPayload() throws {
+        struct LegacyVaultWidgetSnapshot: Codable {
+            let todayAmount: Double
+            let todayCurrency: String
+            let monthAmount: Double
+            let monthCurrency: String
+            let updatedAt: Date
+        }
+
+        let updatedAt = Date(timeIntervalSince1970: 321)
+        let data = try JSONEncoder().encode(
+            LegacyVaultWidgetSnapshot(
+                todayAmount: 12,
+                todayCurrency: "USD",
+                monthAmount: 34,
+                monthCurrency: "EUR",
+                updatedAt: updatedAt
+            )
+        )
+        userDefaults.set(
+            data,
+            forKey: VaultWidgetSharedConfiguration.snapshotStorageKey
+        )
+
+        XCTAssertEqual(
+            sut.loadSnapshot(),
+            VaultWidgetSnapshot(
+                entitlementState: .subscribed,
+                todayAmount: 12,
+                todayCurrency: "USD",
+                monthAmount: 34,
+                monthCurrency: "EUR",
+                updatedAt: updatedAt
+            )
+        )
     }
 }

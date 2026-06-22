@@ -25,6 +25,8 @@ final class EmailVerificationFactory: Screen {
         var toastPresenter: ToastPresenting
         @SafeInject
         var subscriptionInitializer: SubscriptionInitializerLogic
+        @SafeInject
+        var widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
 
         let viewModel = EmailVerificationViewModel()
         let presenter = EmailVerificationPresenter(viewModel: viewModel)
@@ -39,6 +41,7 @@ final class EmailVerificationFactory: Screen {
             tokenStorageService: tokenStorageService,
             userProfileStorageService: userProfileStorageService,
             subscriptionInitializer: subscriptionInitializer,
+            widgetSnapshotSyncService: widgetSnapshotSyncService,
             context: context,
             registrationStorage: registrationStorage
         )

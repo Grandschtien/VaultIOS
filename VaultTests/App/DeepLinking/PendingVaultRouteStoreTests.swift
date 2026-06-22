@@ -29,4 +29,11 @@ extension PendingVaultRouteStoreTests {
 
         XCTAssertEqual(sut.consume(), .aiEntry)
     }
+
+    func testConsumeReturnsSubscriptionRouteOnce() {
+        sut.store(.subscription)
+
+        XCTAssertEqual(sut.consume(), .subscription)
+        XCTAssertNil(sut.consume())
+    }
 }

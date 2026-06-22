@@ -4,3 +4,5 @@
 "vault_widget_spent_today" = "Today";
 "vault_widget_total_spent" = "Total";
 "vault_widget_ai_entry" = "AI entry";
+"vault_widget_log_in" = "Log in";
+"vault_widget_subscribe" = "Subscribe";

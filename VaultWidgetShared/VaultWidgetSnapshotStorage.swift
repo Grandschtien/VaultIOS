@@ -12,6 +12,14 @@ enum VaultWidgetSharedConfiguration {
 }
 
 final class VaultWidgetSnapshotStorage: VaultWidgetSnapshotStoring, @unchecked Sendable {
+    private struct LegacyVaultWidgetSnapshot: Codable {
+        let todayAmount: Double
+        let todayCurrency: String
+        let monthAmount: Double
+        let monthCurrency: String
+        let updatedAt: Date
+    }
+
     private let userDefaults: UserDefaults
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
@@ -35,7 +43,22 @@ final class VaultWidgetSnapshotStorage: VaultWidgetSnapshotStoring, @unchecked S
             return nil
         }
 
-        return try? decoder.decode(VaultWidgetSnapshot.self, from: data)
+        if let snapshot = try? decoder.decode(VaultWidgetSnapshot.self, from: data) {
+            return snapshot
+        }
+
+        guard let legacySnapshot = try? decoder.decode(LegacyVaultWidgetSnapshot.self, from: data) else {
+            return nil
+        }
+
+        return VaultWidgetSnapshot(
+            entitlementState: .subscribed,
+            todayAmount: legacySnapshot.todayAmount,
+            todayCurrency: legacySnapshot.todayCurrency,
+            monthAmount: legacySnapshot.monthAmount,
+            monthCurrency: legacySnapshot.monthCurrency,
+            updatedAt: legacySnapshot.updatedAt
+        )
     }
 
     func saveSnapshot(_ snapshot: VaultWidgetSnapshot) {

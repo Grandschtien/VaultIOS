@@ -26,6 +26,7 @@ actor LoginInteractor: LoginBusinessLogic {
     private let tokenStorageService: TokenStorageServiceProtocol
     private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let subscriptionInitializerLogic: SubscriptionInitializerLogic
+    private let widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
     private let analytics: LoginAnalyticsTracking?
     
     private var email: String = ""
@@ -38,6 +39,7 @@ actor LoginInteractor: LoginBusinessLogic {
         tokenStorageService: TokenStorageServiceProtocol,
         subscriptionInitializerLogic: SubscriptionInitializerLogic,
         userProfileStorageService: UserProfileStorageServiceProtocol,
+        widgetSnapshotSyncService: VaultWidgetSnapshotSyncing,
         analytics: LoginAnalyticsTracking? = nil
     ) {
         self.authVerificationService = authVerificationService
@@ -46,6 +48,7 @@ actor LoginInteractor: LoginBusinessLogic {
         self.tokenStorageService = tokenStorageService
         self.userProfileStorageService = userProfileStorageService
         self.subscriptionInitializerLogic = subscriptionInitializerLogic
+        self.widgetSnapshotSyncService = widgetSnapshotSyncService
         self.analytics = analytics
     }
 
@@ -113,6 +116,7 @@ extension LoginInteractor: LoginHandler {
             )
 
             await subscriptionInitializerLogic.setUserId(result.user.id)
+            await widgetSnapshotSyncService.syncSnapshot()
             await presentFetchedData(.loaded)
             analytics?.trackLoginSuccess()
             await router.openMainFlow()

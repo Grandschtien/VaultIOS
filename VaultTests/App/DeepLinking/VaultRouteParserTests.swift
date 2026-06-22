@@ -24,6 +24,10 @@ extension VaultRouteParserTests {
         XCTAssertEqual(sut.parse(url: VaultRoute.aiEntry.url), .aiEntry)
     }
 
+    func testParseSubscriptionRoute() {
+        XCTAssertEqual(sut.parse(url: VaultRoute.subscription.url), .subscription)
+    }
+
     func testParseUnknownRouteReturnsNil() {
         XCTAssertNil(sut.parse(url: URL(string: "vault://profile")!))
         XCTAssertNil(sut.parse(url: URL(string: "https://vault.com/home")!))

@@ -54,6 +54,12 @@ private struct VaultAIEntryWidgetProvider: TimelineProvider {
 
 private struct VaultWidgetMetrics: LayoutScaleProviding {}
 
+private enum VaultAIEntrySmallState {
+    case signedOut
+    case subscribe
+    case content
+}
+
 struct VaultAIEntryWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(
@@ -90,10 +96,32 @@ private struct VaultAIEntryWidgetEntryView: View {
                 VaultAIEntrySmallView(entry: entry)
             }
         }
-        .widgetURL(VaultRoute.home.url)
+        .widgetURL(widgetURL)
         .containerBackground(for: .widget) {
             Color.clear
         }
+    }
+
+    private var widgetURL: URL {
+        switch family {
+        case .systemSmall:
+            switch smallState {
+            case .signedOut, .content:
+                VaultRoute.home.url
+            case .subscribe:
+                VaultRoute.subscription.url
+            }
+        default:
+            VaultRoute.home.url
+        }
+    }
+
+    private var smallState: VaultAIEntrySmallState {
+        guard let snapshot = entry.snapshot else {
+            return .signedOut
+        }
+
+        return snapshot.entitlementState == .regular ? .subscribe : .content
     }
 }
 
@@ -102,47 +130,68 @@ private struct VaultAIEntrySmallView: View {
     let entry: VaultAIEntryWidgetEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: metrics.spaceXXS) {
-            HStack(spacing: metrics.spaceXS) {
-                Image(systemName: "wallet.pass")
-                    .font(.appTypography(Typography.typographySemibold16))
-                    .foregroundStyle(VaultWidgetAssetCatalog.widgetAccentPrimary.swiftUIColor)
-
-                Text(L10n.vaultWidgetBrand)
-                    .font(.appTypography(Typography.typographyBold16))
-                    .foregroundStyle(VaultWidgetAssetCatalog.widgetTextTertiary.swiftUIColor)
-                    .textCase(.uppercase)
-                    .tracking(1.2)
-            }
-
+        switch state {
+        case .signedOut:
+            VaultWidgetCenteredCTAView(
+                title: L10n.vaultWidgetLogIn,
+                destination: VaultRoute.home.url
+            )
+        case .subscribe:
+            VaultWidgetCenteredCTAView(
+                title: L10n.vaultWidgetSubscribe,
+                destination: VaultRoute.subscription.url
+            )
+        case .content:
             VStack(alignment: .leading, spacing: metrics.spaceXXS) {
-                Text(L10n.vaultWidgetSpentToday)
-                    .font(.appTypography(Typography.typographyMedium14))
-                    .foregroundStyle(VaultWidgetAssetCatalog.widgetTextSecondary.swiftUIColor)
+                HStack(spacing: metrics.spaceXS) {
+                    Image(systemName: "wallet.pass")
+                        .font(.appTypography(Typography.typographySemibold16))
+                        .foregroundStyle(VaultWidgetAssetCatalog.widgetAccentPrimary.swiftUIColor)
 
-                Text(VaultWidgetValueFormatter.string(
-                    amount: entry.snapshot?.todayAmount,
-                    currency: entry.snapshot?.todayCurrency
-                ))
-                    .font(.appTypography(Typography.typographyBold16))
-                    .foregroundStyle(VaultWidgetAssetCatalog.widgetTextPrimary.swiftUIColor)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-            }
+                    Text(L10n.vaultWidgetBrand)
+                        .font(.appTypography(Typography.typographyBold16))
+                        .foregroundStyle(VaultWidgetAssetCatalog.widgetTextTertiary.swiftUIColor)
+                        .textCase(.uppercase)
+                        .tracking(1.2)
+                }
 
-            HStack(alignment: .bottom) {
-                VaultWidgetDecorativeBars()
+                VStack(alignment: .leading, spacing: metrics.spaceXXS) {
+                    Text(L10n.vaultWidgetSpentToday)
+                        .font(.appTypography(Typography.typographyMedium14))
+                        .foregroundStyle(VaultWidgetAssetCatalog.widgetTextSecondary.swiftUIColor)
 
-                Spacer()
+                    Text(VaultWidgetValueFormatter.string(
+                        amount: entry.snapshot?.todayAmount,
+                        currency: entry.snapshot?.todayCurrency
+                    ))
+                        .font(.appTypography(Typography.typographyBold16))
+                        .foregroundStyle(VaultWidgetAssetCatalog.widgetTextPrimary.swiftUIColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
 
-                Link(destination: VaultRoute.aiEntry.url) {
-                    VaultWidgetPlusButton()
+                HStack(alignment: .bottom) {
+                    VaultWidgetDecorativeBars()
+
+                    Spacer()
+
+                    Link(destination: VaultRoute.aiEntry.url) {
+                        VaultWidgetPlusButton()
+                    }
                 }
             }
+            .padding(.top, metrics.spaceXXS)
+            .padding(.horizontal, metrics.spaceS)
+            .padding(.bottom, metrics.spaceXXS)
         }
-        .padding(.top, metrics.spaceXXS)
-        .padding(.horizontal, metrics.spaceS)
-        .padding(.bottom, metrics.spaceXXS)
+    }
+
+    private var state: VaultAIEntrySmallState {
+        guard let snapshot = entry.snapshot else {
+            return .signedOut
+        }
+
+        return snapshot.entitlementState == .regular ? .subscribe : .content
     }
 }
 
@@ -151,40 +200,73 @@ private struct VaultAIEntryMediumView: View {
     let entry: VaultAIEntryWidgetEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: metrics.spaceXXS) {
-            Text(L10n.vaultWidgetTotalSpent)
-                .font(.appTypography(Typography.typographyBold16))
-                .foregroundStyle(VaultWidgetAssetCatalog.widgetTextTertiary.swiftUIColor)
-                .tracking(1.2)
+        if entry.snapshot == nil {
+            VaultWidgetCenteredCTAView(
+                title: L10n.vaultWidgetLogIn,
+                destination: VaultRoute.home.url
+            )
+        } else {
+            VStack(alignment: .leading, spacing: metrics.spaceXXS) {
+                Text(L10n.vaultWidgetTotalSpent)
+                    .font(.appTypography(Typography.typographyBold16))
+                    .foregroundStyle(VaultWidgetAssetCatalog.widgetTextTertiary.swiftUIColor)
+                    .tracking(1.2)
 
-            Text(VaultWidgetValueFormatter.string(
-                amount: entry.snapshot?.monthAmount,
-                currency: entry.snapshot?.monthCurrency
-            ))
-                .font(.appTypography(Typography.typographyBold24))
-                .foregroundStyle(VaultWidgetAssetCatalog.widgetTextPrimary.swiftUIColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                Text(VaultWidgetValueFormatter.string(
+                    amount: entry.snapshot?.monthAmount,
+                    currency: entry.snapshot?.monthCurrency
+                ))
+                    .font(.appTypography(Typography.typographyBold24))
+                    .foregroundStyle(VaultWidgetAssetCatalog.widgetTextPrimary.swiftUIColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
 
-            HStack(spacing: metrics.spaceS) {
-                Image(systemName: "fork.knife")
-                Image(systemName: "car")
-                Image(systemName: "gamecontroller")
-            }
-            .font(.appTypography(Typography.typographyMedium18))
-            .foregroundStyle(VaultWidgetAssetCatalog.widgetTextSubtle.swiftUIColor)
-            .frame(maxWidth: .infinity, alignment: .trailing)
+                HStack(spacing: metrics.spaceS) {
+                    Image(systemName: "fork.knife")
+                    Image(systemName: "car")
+                    Image(systemName: "gamecontroller")
+                }
+                .font(.appTypography(Typography.typographyMedium18))
+                .foregroundStyle(VaultWidgetAssetCatalog.widgetTextSubtle.swiftUIColor)
+                .frame(maxWidth: .infinity, alignment: .trailing)
 
-            HStack(alignment: .center, spacing: metrics.spaceXS) {
-                Spacer()
-                Link(destination: VaultRoute.aiEntry.url) {
-                    VaultWidgetPlusButton()
+                HStack(alignment: .center, spacing: metrics.spaceXS) {
+                    Spacer()
+                    Link(destination: VaultRoute.aiEntry.url) {
+                        VaultWidgetPlusButton()
+                    }
                 }
             }
+            .padding(.top, metrics.spaceS)
+            .padding(.horizontal, metrics.spaceS)
+            .padding(.bottom, metrics.spaceS)
         }
-        .padding(.top, metrics.spaceS)
+    }
+}
+
+private struct VaultWidgetCenteredCTAView: View {
+    private let metrics = VaultWidgetMetrics()
+    let title: String
+    let destination: URL
+
+    var body: some View {
+        VStack {
+            Spacer()
+
+            Link(destination: destination) {
+                Text(title)
+                    .font(.appTypography(Typography.typographyBold16))
+                    .foregroundStyle(VaultWidgetAssetCatalog.widgetForegroundInverted.swiftUIColor)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, metrics.spaceS)
+                    .background(VaultWidgetAssetCatalog.widgetAccentPrimary.swiftUIColor)
+                    .clipShape(Capsule())
+            }
+
+            Spacer()
+        }
         .padding(.horizontal, metrics.spaceS)
-        .padding(.bottom, metrics.spaceS)
+        .padding(.vertical, metrics.spaceS)
     }
 }
 

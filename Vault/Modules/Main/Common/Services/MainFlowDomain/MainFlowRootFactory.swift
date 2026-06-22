@@ -18,6 +18,8 @@ final class MainFlowRootFactory: Screen {
         var widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
         @SafeInject
         var widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving
+        @SafeInject
+        var subscriptionAccessService: SubscriptionAccessServicing
 
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(
@@ -45,7 +47,12 @@ final class MainFlowRootFactory: Screen {
             screenNavigator: navigator,
             context: context,
             pendingRouteStore: pendingRouteStore,
-            widgetEntryDestinationResolver: widgetEntryDestinationResolver
+            widgetEntryDestinationResolver: widgetEntryDestinationResolver,
+            subscriptionAccessService: subscriptionAccessService,
+            widgetSubscriptionOutput: VaultWidgetSubscriptionOutputAdapter(
+                widgetSnapshotSyncService: widgetSnapshotSyncService
+            ),
+            router: MainFlowRootRouter(screenNavigator: navigator)
         )
     }
 }

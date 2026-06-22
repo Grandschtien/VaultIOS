@@ -229,7 +229,8 @@ private extension LoginInteractorTests {
             router: router,
             tokenStorageService: tokenStorage,
             subscriptionInitializerLogic: SubscriptionInitializerSpy(),
-            userProfileStorageService: profileStorage
+            userProfileStorageService: profileStorage,
+            widgetSnapshotSyncService: WidgetSnapshotSyncSpy()
         )
     }
 
@@ -240,6 +241,12 @@ private extension LoginInteractorTests {
             "stub-error"
         }
     }
+}
+
+private final class WidgetSnapshotSyncSpy: VaultWidgetSnapshotSyncing, @unchecked Sendable {
+    func syncSnapshot() async {}
+
+    func clearSnapshot() {}
 }
 
 private final class AuthVerificationContractServiceSpy: AuthVerificationContractServicing, @unchecked Sendable {

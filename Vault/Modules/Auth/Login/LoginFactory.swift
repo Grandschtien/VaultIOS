@@ -18,6 +18,8 @@ final class LoginFactory: Screen {
         @SafeInject
         var subscriptionInitializer: SubscriptionInitializerLogic
         @SafeInject
+        var widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
+        @SafeInject
         var analyticsCoreManager: AnalyticsCoreManaging
         @SafeInject
         var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
@@ -36,6 +38,7 @@ final class LoginFactory: Screen {
             tokenStorageService: tokenStorageService,
             subscriptionInitializerLogic: subscriptionInitializer,
             userProfileStorageService: userProfileStorageService,
+            widgetSnapshotSyncService: widgetSnapshotSyncService,
             analytics: analytics
         )
 

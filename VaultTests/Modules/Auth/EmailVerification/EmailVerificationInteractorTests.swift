@@ -198,6 +198,7 @@ private extension EmailVerificationInteractorTests {
             tokenStorageService: tokenStorage,
             userProfileStorageService: profileStorage,
             subscriptionInitializer: subscriptionInitializer,
+            widgetSnapshotSyncService: WidgetSnapshotSyncSpy(),
             context: context,
             registrationStorage: registrationStorage
         )
@@ -245,6 +246,12 @@ private final class AuthVerificationContractServiceSpy: AuthVerificationContract
             throw error
         }
     }
+}
+
+private final class WidgetSnapshotSyncSpy: VaultWidgetSnapshotSyncing, @unchecked Sendable {
+    func syncSnapshot() async {}
+
+    func clearSnapshot() {}
 }
 
 @MainActor

@@ -17,6 +17,9 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
     private let context: MainFlowContext
     private let pendingRouteStore: PendingVaultRouteStoring
     private let widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving
+    private let subscriptionAccessService: SubscriptionAccessServicing
+    private let widgetSubscriptionOutput: SubscriptionOutput
+    private let router: MainFlowRootRoutingLogic
     private let tabBarView = MainTabBarView()
     private var logoutObserver: NSObjectProtocol?
     private var pendingRouteObserver: NSObjectProtocol?
@@ -28,12 +31,18 @@ final class MainFlowRootViewController: UITabBarController, Screen, LayoutScaleP
         screenNavigator: ScreenNavigator,
         context: MainFlowContext,
         pendingRouteStore: PendingVaultRouteStoring,
-        widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving
+        widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving,
+        subscriptionAccessService: SubscriptionAccessServicing,
+        widgetSubscriptionOutput: SubscriptionOutput,
+        router: MainFlowRootRoutingLogic
     ) {
         self.screenNavigator = screenNavigator
         self.context = context
         self.pendingRouteStore = pendingRouteStore
         self.widgetEntryDestinationResolver = widgetEntryDestinationResolver
+        self.subscriptionAccessService = subscriptionAccessService
+        self.widgetSubscriptionOutput = widgetSubscriptionOutput
+        self.router = router
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -238,6 +247,8 @@ private extension MainFlowRootViewController {
             routeToHome()
         case .aiEntry:
             openAIEntryFromWidget()
+        case .subscription:
+            openSubscriptionFromWidget()
         }
     }
 
@@ -271,6 +282,23 @@ private extension MainFlowRootViewController {
             let destination = await self.widgetEntryDestinationResolver.resolveDestination()
             await MainActor.run {
                 self.presentWidgetEntry(destination)
+            }
+        }
+    }
+
+    func openSubscriptionFromWidget() {
+        Task { [weak self] in
+            guard let self else {
+                return
+            }
+
+            let currentTier = await self.subscriptionAccessService.currentTier()
+            await MainActor.run {
+                self.router.openSubscription(
+                    from: self,
+                    currentTier: currentTier,
+                    output: self.widgetSubscriptionOutput
+                )
             }
         }
     }
@@ -316,7 +344,6 @@ private extension MainFlowRootViewController {
 
         presentEntry()
     }
-
     @objc
     func handleTapProfileButton() {
         screenNavigator.navigate(to: { route in

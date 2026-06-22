@@ -4,3 +4,5 @@
 "vault_widget_spent_today" = "За сегодня";
 "vault_widget_total_spent" = "Всего";
 "vault_widget_ai_entry" = "AI ввод";
+"vault_widget_log_in" = "Войти";
+"vault_widget_subscribe" = "Подписаться";

@@ -172,6 +172,8 @@ private extension AppAssembly {
 
         container.register(VaultWidgetSnapshotSyncing.self) { resolver in
             guard let summaryService = resolver.resolve(MainSummaryContractServicing.self),
+                  let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self),
+                  let subscriptionAccessService = resolver.resolve(SubscriptionAccessServicing.self),
                   let storage = resolver.resolve(VaultWidgetSnapshotStoring.self),
                   let timelineReloader = resolver.resolve(VaultWidgetTimelineReloading.self) else {
                 fatalError("Failed to resolve dependencies for VaultWidgetSnapshotSyncService")
@@ -179,6 +181,8 @@ private extension AppAssembly {
 
             return VaultWidgetSnapshotSyncService(
                 summaryService: summaryService,
+                userProfileStorageService: userProfileStorageService,
+                subscriptionAccessService: subscriptionAccessService,
                 storage: storage,
                 timelineReloader: timelineReloader
             )

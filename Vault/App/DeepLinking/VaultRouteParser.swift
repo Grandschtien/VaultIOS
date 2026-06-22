@@ -22,6 +22,8 @@ struct VaultRouteParser: VaultRouteParsing {
             return .home
         case ("add-expense", "/ai-entry"):
             return .aiEntry
+        case ("subscription", ""):
+            return .subscription
         default:
             return nil
         }

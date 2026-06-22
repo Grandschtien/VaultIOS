@@ -4,3 +4,5 @@
 "vault_widget_spent_today" = "Бүгін жұмсалды";
 "vault_widget_total_spent" = "Барлығы жұмсалды";
 "vault_widget_ai_entry" = "AI енгізу";
+"vault_widget_log_in" = "Кіру";
+"vault_widget_subscribe" = "Жазылу";

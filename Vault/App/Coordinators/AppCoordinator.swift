@@ -14,6 +14,7 @@ final class AppCoordinator {
     private let screenNavigator: ScreenNavigator
     private let appAssebler: Assembler
     private var logoutObserver: NSObjectProtocol?
+    private var subscriptionAccessDidChangeObserver: NSObjectProtocol?
     
     @UserDefault(.isOnboardingCompleted, default: false)
     var isOnboardingShown: Bool
@@ -34,6 +35,7 @@ final class AppCoordinator {
             .clearKeychainIfNeeded()
         appAssebler.resolver.resolve(SubscriptionAccessServicing.self)?.startMonitoring()
         observeLogoutEvents()
+        observeSubscriptionAccessDidChange()
         
         Task {
             await appAssebler.resolver.resolve(SubscriptionInitializerLogic.self)!.initialize()
@@ -48,6 +50,10 @@ final class AppCoordinator {
     deinit {
         if let logoutObserver {
             NotificationCenter.default.removeObserver(logoutObserver)
+        }
+
+        if let subscriptionAccessDidChangeObserver {
+            NotificationCenter.default.removeObserver(subscriptionAccessDidChangeObserver)
         }
     }
 }
@@ -86,6 +92,8 @@ private extension AppCoordinator {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
+                self?.appAssebler.resolver.resolve(VaultWidgetSnapshotSyncing.self)?
+                    .clearSnapshot()
                 AppLogBridge.log(
                     category: .navigation,
                     name: "logout_route_to_auth",
@@ -94,6 +102,26 @@ private extension AppCoordinator {
                 self?.showAuthFlow()
             }
         }
+    }
+
+    func observeSubscriptionAccessDidChange() {
+        subscriptionAccessDidChangeObserver = NotificationCenter.default.addObserver(
+            forName: .subscriptionAccessDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let widgetSnapshotSyncService = self?.resolveWidgetSnapshotSyncService() else {
+                    return
+                }
+
+                await widgetSnapshotSyncService.syncSnapshot()
+            }
+        }
+    }
+
+    func resolveWidgetSnapshotSyncService() -> VaultWidgetSnapshotSyncing? {
+        appAssebler.resolver.resolve(VaultWidgetSnapshotSyncing.self)
     }
 
     func showOnboardingFlow() {

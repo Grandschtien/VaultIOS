@@ -18,6 +18,7 @@ actor EmailVerificationInteractor: EmailVerificationBusinessLogic {
     private let tokenStorageService: TokenStorageServiceProtocol
     private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let subscriptionInitializer: SubscriptionInitializerLogic
+    private let widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
     private let context: EmailVerificationContext
     private let registrationStorage: RegistrationStorageProtocol?
 
@@ -34,6 +35,7 @@ actor EmailVerificationInteractor: EmailVerificationBusinessLogic {
         tokenStorageService: TokenStorageServiceProtocol,
         userProfileStorageService: UserProfileStorageServiceProtocol,
         subscriptionInitializer: SubscriptionInitializerLogic,
+        widgetSnapshotSyncService: VaultWidgetSnapshotSyncing,
         context: EmailVerificationContext,
         registrationStorage: RegistrationStorageProtocol?
     ) {
@@ -43,6 +45,7 @@ actor EmailVerificationInteractor: EmailVerificationBusinessLogic {
         self.tokenStorageService = tokenStorageService
         self.userProfileStorageService = userProfileStorageService
         self.subscriptionInitializer = subscriptionInitializer
+        self.widgetSnapshotSyncService = widgetSnapshotSyncService
         self.context = context
         self.registrationStorage = registrationStorage
         self.resendAvailableIn = context.resendAvailableIn
@@ -120,6 +123,7 @@ private extension EmailVerificationInteractor {
         )
         userProfileStorageService.saveProfile(UserProfileDefaults(user: response.user))
         await subscriptionInitializer.setUserId(response.user.id)
+        await widgetSnapshotSyncService.syncSnapshot()
     }
 
     func inlineErrorMessage(for error: AuthVerificationContractError) -> String? {
