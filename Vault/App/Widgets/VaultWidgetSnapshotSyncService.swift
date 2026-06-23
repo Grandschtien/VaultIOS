@@ -1,17 +1,17 @@
 import Foundation
 
-protocol VaultWidgetSnapshotSyncing: Sendable {
+protocol VylokWidgetSnapshotSyncing: Sendable {
     func syncSnapshot() async
     func clearSnapshot()
 }
 
-final class VaultWidgetSnapshotSyncService: VaultWidgetSnapshotSyncing, @unchecked Sendable {
+final class VylokWidgetSnapshotSyncService: VylokWidgetSnapshotSyncing, @unchecked Sendable {
     private let summaryService: MainSummaryContractServicing
     private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let subscriptionAccessService: SubscriptionAccessServicing
-    private let storage: VaultWidgetSnapshotStoring
-    private let timelineReloader: VaultWidgetTimelineReloading
-    private let entitlementStateResolver: VaultWidgetEntitlementStateResolver
+    private let storage: VylokWidgetSnapshotStoring
+    private let timelineReloader: VylokWidgetTimelineReloading
+    private let entitlementStateResolver: VylokWidgetEntitlementStateResolver
     private let calendar: Calendar
     private let now: @Sendable () -> Date
 
@@ -19,9 +19,9 @@ final class VaultWidgetSnapshotSyncService: VaultWidgetSnapshotSyncing, @uncheck
         summaryService: MainSummaryContractServicing,
         userProfileStorageService: UserProfileStorageServiceProtocol,
         subscriptionAccessService: SubscriptionAccessServicing,
-        storage: VaultWidgetSnapshotStoring,
-        timelineReloader: VaultWidgetTimelineReloading,
-        entitlementStateResolver: VaultWidgetEntitlementStateResolver = VaultWidgetEntitlementStateResolver(),
+        storage: VylokWidgetSnapshotStoring,
+        timelineReloader: VylokWidgetTimelineReloading,
+        entitlementStateResolver: VylokWidgetEntitlementStateResolver = VylokWidgetEntitlementStateResolver(),
         calendar: Calendar = .current,
         now: @escaping @Sendable () -> Date = Date.init
     ) {
@@ -66,7 +66,7 @@ final class VaultWidgetSnapshotSyncService: VaultWidgetSnapshotSyncing, @uncheck
         let resolvedMonthSummary = await monthSummary
 
         storage.saveSnapshot(
-            VaultWidgetSnapshot(
+            VylokWidgetSnapshot(
                 entitlementState: entitlementState,
                 todayAmount: resolvedTodaySummary?.total ?? fallbackSnapshot?.todayAmount,
                 todayCurrency: resolvedTodaySummary?.currency ?? fallbackSnapshot?.todayCurrency,
@@ -84,8 +84,8 @@ final class VaultWidgetSnapshotSyncService: VaultWidgetSnapshotSyncing, @uncheck
     }
 }
 
-private extension VaultWidgetSnapshotSyncService {
-    func resolveEntitlementState() async -> VaultWidgetEntitlementState {
+private extension VylokWidgetSnapshotSyncService {
+    func resolveEntitlementState() async -> VylokWidgetEntitlementState {
         if let currentSnapshot = await subscriptionAccessService.currentSubscriptionSnapshot() {
             return entitlementStateResolver.resolve(from: currentSnapshot)
         }

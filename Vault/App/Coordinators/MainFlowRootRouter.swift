@@ -6,7 +6,7 @@ protocol MainFlowRootRoutingLogic: Sendable {
     func routeToHome()
     func openWidgetEntry(
         context: MainFlowContext,
-        destination: VaultWidgetEntryDestination
+        destination: VylokWidgetEntryDestination
     )
     func openSubscription(
         currentTier: SubscriptionTier,
@@ -45,7 +45,7 @@ final class MainFlowRootRouter: MainFlowRootRoutingLogic {
 
     func openWidgetEntry(
         context: MainFlowContext,
-        destination: VaultWidgetEntryDestination
+        destination: VylokWidgetEntryDestination
     ) {
         guard let viewController else {
             return

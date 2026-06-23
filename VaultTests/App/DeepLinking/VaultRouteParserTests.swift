@@ -2,11 +2,11 @@ import XCTest
 @testable import Vault
 
 final class VaultRouteParserTests: XCTestCase {
-    private var sut: VaultRouteParser!
+    private var sut: VylokRouteParser!
 
     override func setUp() {
         super.setUp()
-        sut = VaultRouteParser()
+        sut = VylokRouteParser()
     }
 
     override func tearDown() {
@@ -17,15 +17,15 @@ final class VaultRouteParserTests: XCTestCase {
 
 extension VaultRouteParserTests {
     func testParseHomeRoute() {
-        XCTAssertEqual(sut.parse(url: VaultRoute.home.url), .home)
+        XCTAssertEqual(sut.parse(url: VylokRoute.home.url), .home)
     }
 
     func testParseAIEntryRoute() {
-        XCTAssertEqual(sut.parse(url: VaultRoute.aiEntry.url), .aiEntry)
+        XCTAssertEqual(sut.parse(url: VylokRoute.aiEntry.url), .aiEntry)
     }
 
     func testParseSubscriptionRoute() {
-        XCTAssertEqual(sut.parse(url: VaultRoute.subscription.url), .subscription)
+        XCTAssertEqual(sut.parse(url: VylokRoute.subscription.url), .subscription)
     }
 
     func testParseUnknownRouteReturnsNil() {

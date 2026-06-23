@@ -1,6 +1,6 @@
 import Foundation
 
-enum VaultWidgetValueFormatter {
+enum VylokWidgetValueFormatter {
     static func string(
         amount: Double?,
         currency: String?,

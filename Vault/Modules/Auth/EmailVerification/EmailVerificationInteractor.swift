@@ -18,7 +18,7 @@ actor EmailVerificationInteractor: EmailVerificationBusinessLogic {
     private let tokenStorageService: TokenStorageServiceProtocol
     private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let subscriptionInitializer: SubscriptionInitializerLogic
-    private let widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
+    private let widgetSnapshotSyncService: VylokWidgetSnapshotSyncing
     private let context: EmailVerificationContext
     private let registrationStorage: RegistrationStorageProtocol?
 
@@ -35,7 +35,7 @@ actor EmailVerificationInteractor: EmailVerificationBusinessLogic {
         tokenStorageService: TokenStorageServiceProtocol,
         userProfileStorageService: UserProfileStorageServiceProtocol,
         subscriptionInitializer: SubscriptionInitializerLogic,
-        widgetSnapshotSyncService: VaultWidgetSnapshotSyncing,
+        widgetSnapshotSyncService: VylokWidgetSnapshotSyncing,
         context: EmailVerificationContext,
         registrationStorage: RegistrationStorageProtocol?
     ) {

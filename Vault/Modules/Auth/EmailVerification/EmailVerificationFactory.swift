@@ -26,7 +26,7 @@ final class EmailVerificationFactory: Screen {
         @SafeInject
         var subscriptionInitializer: SubscriptionInitializerLogic
         @SafeInject
-        var widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
+        var widgetSnapshotSyncService: VylokWidgetSnapshotSyncing
 
         let viewModel = EmailVerificationViewModel()
         let presenter = EmailVerificationPresenter(viewModel: viewModel)

@@ -23,8 +23,8 @@ final class VaultWidgetSnapshotSyncServiceTests: XCTestCase {
                 )
             ]
         )
-        let storage = VaultWidgetSnapshotStoreSpy()
-        let timelineReloader = VaultWidgetTimelineReloaderSpy()
+        let storage = VylokWidgetSnapshotStoreSpy()
+        let timelineReloader = VylokWidgetTimelineReloaderSpy()
         let profileStorage = UserProfileStorageSpy(
             profile: .init(
                 userId: "user-id",
@@ -47,7 +47,7 @@ final class VaultWidgetSnapshotSyncServiceTests: XCTestCase {
             )
         )
         let snapshotDate = Date(timeIntervalSince1970: 1234)
-        let sut = VaultWidgetSnapshotSyncService(
+        let sut = VylokWidgetSnapshotSyncService(
             summaryService: summaryService,
             userProfileStorageService: profileStorage,
             subscriptionAccessService: subscriptionAccessService,
@@ -62,7 +62,7 @@ final class VaultWidgetSnapshotSyncServiceTests: XCTestCase {
         XCTAssertEqual(
             storage.savedSnapshots,
             [
-                VaultWidgetSnapshot(
+                VylokWidgetSnapshot(
                     entitlementState: .subscribed,
                     todayAmount: 45.2,
                     todayCurrency: "USD",
@@ -77,8 +77,8 @@ final class VaultWidgetSnapshotSyncServiceTests: XCTestCase {
     }
 
     func testSyncSnapshotClearsSnapshotWhenUserIsSignedOut() async {
-        let storage = VaultWidgetSnapshotStoreSpy(
-            initialSnapshot: VaultWidgetSnapshot(
+        let storage = VylokWidgetSnapshotStoreSpy(
+            initialSnapshot: VylokWidgetSnapshot(
                 entitlementState: .subscribed,
                 todayAmount: 1,
                 todayCurrency: "USD",
@@ -87,8 +87,8 @@ final class VaultWidgetSnapshotSyncServiceTests: XCTestCase {
                 updatedAt: Date()
             )
         )
-        let timelineReloader = VaultWidgetTimelineReloaderSpy()
-        let sut = VaultWidgetSnapshotSyncService(
+        let timelineReloader = VylokWidgetTimelineReloaderSpy()
+        let sut = VylokWidgetSnapshotSyncService(
             summaryService: MainSummaryServiceSpy(results: []),
             userProfileStorageService: UserProfileStorageSpy(profile: nil),
             subscriptionAccessService: SubscriptionAccessServiceSpy(currentSnapshot: nil),
@@ -110,8 +110,8 @@ final class VaultWidgetSnapshotSyncServiceTests: XCTestCase {
                 .failure(StubError.any)
             ]
         )
-        let storage = VaultWidgetSnapshotStoreSpy(
-            initialSnapshot: VaultWidgetSnapshot(
+        let storage = VylokWidgetSnapshotStoreSpy(
+            initialSnapshot: VylokWidgetSnapshot(
                 entitlementState: .subscribed,
                 todayAmount: 12.5,
                 todayCurrency: "KZT",
@@ -120,7 +120,7 @@ final class VaultWidgetSnapshotSyncServiceTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 10)
             )
         )
-        let timelineReloader = VaultWidgetTimelineReloaderSpy()
+        let timelineReloader = VylokWidgetTimelineReloaderSpy()
         let profileStorage = UserProfileStorageSpy(
             profile: .init(
                 userId: "user-id",
@@ -130,7 +130,7 @@ final class VaultWidgetSnapshotSyncServiceTests: XCTestCase {
                 language: "en"
             )
         )
-        let sut = VaultWidgetSnapshotSyncService(
+        let sut = VylokWidgetSnapshotSyncService(
             summaryService: summaryService,
             userProfileStorageService: profileStorage,
             subscriptionAccessService: SubscriptionAccessServiceSpy(
@@ -152,7 +152,7 @@ final class VaultWidgetSnapshotSyncServiceTests: XCTestCase {
 
         XCTAssertEqual(
             storage.savedSnapshots.last,
-            VaultWidgetSnapshot(
+            VylokWidgetSnapshot(
                 entitlementState: .regular,
                 todayAmount: 12.5,
                 todayCurrency: "KZT",
@@ -165,9 +165,9 @@ final class VaultWidgetSnapshotSyncServiceTests: XCTestCase {
     }
 
     func testClearSnapshotClearsStorageAndReloadsTimelines() {
-        let storage = VaultWidgetSnapshotStoreSpy()
-        let timelineReloader = VaultWidgetTimelineReloaderSpy()
-        let sut = VaultWidgetSnapshotSyncService(
+        let storage = VylokWidgetSnapshotStoreSpy()
+        let timelineReloader = VylokWidgetTimelineReloaderSpy()
+        let sut = VylokWidgetSnapshotSyncService(
             summaryService: MainSummaryServiceSpy(results: []),
             userProfileStorageService: UserProfileStorageSpy(profile: nil),
             subscriptionAccessService: SubscriptionAccessServiceSpy(currentSnapshot: nil),
@@ -200,7 +200,7 @@ private actor MainSummaryServiceSpy: MainSummaryContractServicing {
         recordedParameters.append(parameters)
 
         guard results.isEmpty == false else {
-            throw VaultWidgetSnapshotSyncServiceTests.StubError.any
+            throw VylokWidgetSnapshotSyncServiceTests.StubError.any
         }
 
         let result = results.removeFirst()
@@ -224,20 +224,20 @@ private actor MainSummaryServiceSpy: MainSummaryContractServicing {
     }
 }
 
-private final class VaultWidgetSnapshotStoreSpy: VaultWidgetSnapshotStoring, @unchecked Sendable {
-    private var initialSnapshot: VaultWidgetSnapshot?
-    private(set) var savedSnapshots: [VaultWidgetSnapshot] = []
+private final class VaultWidgetSnapshotStoreSpy: VylokWidgetSnapshotStoring, @unchecked Sendable {
+    private var initialSnapshot: VylokWidgetSnapshot?
+    private(set) var savedSnapshots: [VylokWidgetSnapshot] = []
     private(set) var clearCallsCount: Int = .zero
 
-    init(initialSnapshot: VaultWidgetSnapshot? = nil) {
+    init(initialSnapshot: VylokWidgetSnapshot? = nil) {
         self.initialSnapshot = initialSnapshot
     }
 
-    func loadSnapshot() -> VaultWidgetSnapshot? {
+    func loadSnapshot() -> VylokWidgetSnapshot? {
         savedSnapshots.last ?? initialSnapshot
     }
 
-    func saveSnapshot(_ snapshot: VaultWidgetSnapshot) {
+    func saveSnapshot(_ snapshot: VylokWidgetSnapshot) {
         savedSnapshots.append(snapshot)
         initialSnapshot = snapshot
     }
@@ -248,7 +248,7 @@ private final class VaultWidgetSnapshotStoreSpy: VaultWidgetSnapshotStoring, @un
     }
 }
 
-private final class VaultWidgetTimelineReloaderSpy: VaultWidgetTimelineReloading, @unchecked Sendable {
+private final class VaultWidgetTimelineReloaderSpy: VylokWidgetTimelineReloading, @unchecked Sendable {
     private(set) var reloadCallsCount: Int = .zero
 
     func reloadTimelines() {

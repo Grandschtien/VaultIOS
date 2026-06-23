@@ -78,8 +78,8 @@ final class MainFlowRootInteractorTests: XCTestCase {
 
 private extension MainFlowRootInteractorTests {
     func makeSut(
-        pendingRouteStore: PendingVaultRouteStoring = PendingVaultRouteStoreSpy(),
-        widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving = WidgetEntryDestinationResolverSpy(
+        pendingRouteStore: PendingVylokRouteStoring = PendingVaultRouteStoreSpy(),
+        widgetEntryDestinationResolver: VylokWidgetEntryDestinationResolving = WidgetEntryDestinationResolverSpy(
             destination: .aiEntry
         ),
         subscriptionAccessService: SubscriptionAccessServicing = SubscriptionAccessServiceSpy(),
@@ -105,34 +105,34 @@ private extension MainFlowRootInteractorTests {
     }
 }
 
-private final class PendingVaultRouteStoreSpy: PendingVaultRouteStoring, @unchecked Sendable {
-    private var route: VaultRoute?
+private final class PendingVaultRouteStoreSpy: PendingVylokRouteStoring, @unchecked Sendable {
+    private var route: VylokRoute?
     private(set) var consumeCallsCount: Int = .zero
 
-    init(route: VaultRoute? = nil) {
+    init(route: VylokRoute? = nil) {
         self.route = route
     }
 
-    func store(_ route: VaultRoute) {
+    func store(_ route: VylokRoute) {
         self.route = route
     }
 
-    func consume() -> VaultRoute? {
+    func consume() -> VylokRoute? {
         consumeCallsCount += 1
         defer { route = nil }
         return route
     }
 }
 
-private final class WidgetEntryDestinationResolverSpy: VaultWidgetEntryDestinationResolving, @unchecked Sendable {
-    private let destination: VaultWidgetEntryDestination
+private final class WidgetEntryDestinationResolverSpy: VylokWidgetEntryDestinationResolving, @unchecked Sendable {
+    private let destination: VylokWidgetEntryDestination
     private var callsCount: Int = .zero
 
-    init(destination: VaultWidgetEntryDestination) {
+    init(destination: VylokWidgetEntryDestination) {
         self.destination = destination
     }
 
-    func resolveDestination() async -> VaultWidgetEntryDestination {
+    func resolveDestination() async -> VylokWidgetEntryDestination {
         callsCount += 1
         return destination
     }
@@ -179,7 +179,7 @@ private final class MainFlowRootRouterSpy: MainFlowRootRoutingLogic, @unchecked 
     private(set) var routeToHomeCallsCount: Int = .zero
     private(set) var openWidgetEntryCallsCount: Int = .zero
     private(set) var openSubscriptionCallsCount: Int = .zero
-    private(set) var recordedWidgetEntryDestination: VaultWidgetEntryDestination?
+    private(set) var recordedWidgetEntryDestination: VylokWidgetEntryDestination?
     private(set) var recordedSubscriptionTier: SubscriptionTier?
 
     func routeToHome() {
@@ -188,7 +188,7 @@ private final class MainFlowRootRouterSpy: MainFlowRootRoutingLogic, @unchecked 
 
     func openWidgetEntry(
         context: MainFlowContext,
-        destination: VaultWidgetEntryDestination
+        destination: VylokWidgetEntryDestination
     ) {
         openWidgetEntryCallsCount += 1
         recordedWidgetEntryDestination = destination

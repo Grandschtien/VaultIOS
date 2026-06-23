@@ -6,16 +6,16 @@ protocol MainFlowRootBusinessLogic: Sendable {
 
 actor MainFlowRootInteractor: MainFlowRootBusinessLogic {
     private let context: MainFlowContext
-    private let pendingRouteStore: PendingVaultRouteStoring
-    private let widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving
+    private let pendingRouteStore: PendingVylokRouteStoring
+    private let widgetEntryDestinationResolver: VylokWidgetEntryDestinationResolving
     private let subscriptionAccessService: SubscriptionAccessServicing
     private let widgetSubscriptionOutput: SubscriptionOutput
     private let router: MainFlowRootRoutingLogic
 
     init(
         context: MainFlowContext,
-        pendingRouteStore: PendingVaultRouteStoring,
-        widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving,
+        pendingRouteStore: PendingVylokRouteStoring,
+        widgetEntryDestinationResolver: VylokWidgetEntryDestinationResolving,
         subscriptionAccessService: SubscriptionAccessServicing,
         widgetSubscriptionOutput: SubscriptionOutput,
         router: MainFlowRootRoutingLogic

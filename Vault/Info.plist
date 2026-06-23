@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>RevenueCatAPIKey</key>
-	<string>$(REVENUECAT_API_KEY)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -19,14 +15,8 @@
 			</array>
 		</dict>
 	</array>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Access Your Photo Library To Select Images If Needed While Using The App</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Record Your Voice To Turn Speech Into Expense Text</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Recognize Your Speech And Fill The AI Entry Field</string>
-	<key>UIDesignRequiresCompatibility</key>
-	<true/>
+	<key>RevenueCatAPIKey</key>
+	<string>$(REVENUECAT_API_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -44,5 +34,7 @@
 			</array>
 		</dict>
 	</dict>
+	<key>UIDesignRequiresCompatibility</key>
+	<true/>
 </dict>
 </plist>

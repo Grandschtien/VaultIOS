@@ -1,9 +1,9 @@
 import Foundation
 
-struct VaultWidgetEntitlementStateResolver {
+struct VylokWidgetEntitlementStateResolver {
     func resolve(
         from snapshot: SubscriptionAccessSnapshot?
-    ) -> VaultWidgetEntitlementState {
+    ) -> VylokWidgetEntitlementState {
         guard let snapshot else {
             return .regular
         }

@@ -3,7 +3,7 @@ import XCTest
 
 final class VaultWidgetValueFormatterTests: XCTestCase {
     func testStringReturnsFormattedCurrencyForNormalizedCode() {
-        let result = VaultWidgetValueFormatter.string(
+        let result = VylokWidgetValueFormatter.string(
             amount: 2755,
             currencyCode: " usd ",
             locale: Locale(identifier: "en_US")
@@ -13,7 +13,7 @@ final class VaultWidgetValueFormatterTests: XCTestCase {
     }
 
     func testStringReturnsFallbackWhenValueIsMissing() {
-        let result = VaultWidgetValueFormatter.string(
+        let result = VylokWidgetValueFormatter.string(
             amount: nil,
             currency: nil,
             locale: Locale(identifier: "en_US")
@@ -23,7 +23,7 @@ final class VaultWidgetValueFormatterTests: XCTestCase {
     }
 
     func testCurrencySymbolReturnsResolvedSymbol() {
-        let result = VaultWidgetValueFormatter.currencySymbol(
+        let result = VylokWidgetValueFormatter.currencySymbol(
             for: " eur ",
             locale: Locale(identifier: "en_US"),
             fallback: "EUR"

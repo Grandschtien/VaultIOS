@@ -26,7 +26,7 @@ actor LoginInteractor: LoginBusinessLogic {
     private let tokenStorageService: TokenStorageServiceProtocol
     private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let subscriptionInitializerLogic: SubscriptionInitializerLogic
-    private let widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
+    private let widgetSnapshotSyncService: VylokWidgetSnapshotSyncing
     private let analytics: LoginAnalyticsTracking?
     
     private var email: String = ""
@@ -39,7 +39,7 @@ actor LoginInteractor: LoginBusinessLogic {
         tokenStorageService: TokenStorageServiceProtocol,
         subscriptionInitializerLogic: SubscriptionInitializerLogic,
         userProfileStorageService: UserProfileStorageServiceProtocol,
-        widgetSnapshotSyncService: VaultWidgetSnapshotSyncing,
+        widgetSnapshotSyncService: VylokWidgetSnapshotSyncing,
         analytics: LoginAnalyticsTracking? = nil
     ) {
         self.authVerificationService = authVerificationService

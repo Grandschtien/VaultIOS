@@ -21,7 +21,7 @@ final class MainFactory: Screen {
         @SafeInject
         var subscriptionAccessService: SubscriptionAccessServicing
         @SafeInject
-        var widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
+        var widgetSnapshotSyncService: VylokWidgetSnapshotSyncing
 
         let currencyRateProvider = MainCurrencyRateProvider(
             currencyRateService: currencyRateService,

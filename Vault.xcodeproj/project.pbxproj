@@ -397,7 +397,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if command -v swiftgen > /dev/null 2>&1; then\n  swiftgen config run --config \"${SRCROOT}/swiftgen.widget.yml\"\n  swiftgen run xcassets --templateName swift5 --param enumName=VaultWidgetAssetCatalog --output \"${SRCROOT}/VaultWidgetExtension/Assets.generated.swift\" \"${SRCROOT}/VaultWidgetExtension/Assets.xcassets\"\nelse\n  echo \"SwiftGen is not installed. Install it from https://github.com/SwiftGen/SwiftGen\"\nfi\n";
+			shellScript = "if command -v swiftgen > /dev/null 2>&1; then\n  swiftgen config run --config \"${SRCROOT}/swiftgen.widget.yml\"\n  swiftgen run xcassets --templateName swift5 --param enumName=VylokWidgetAssetCatalog --output \"${SRCROOT}/VaultWidgetExtension/Assets.generated.swift\" \"${SRCROOT}/VaultWidgetExtension/Assets.xcassets\"\nelse\n  echo \"SwiftGen is not installed. Install it from https://github.com/SwiftGen/SwiftGen\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -454,8 +454,11 @@
 				EXTRACT_APP_INTENTS_METADATA = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Vault/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Vault Finance";
+				INFOPLIST_KEY_CFBundleDisplayName = Vylok;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone access to record voice input for expense entry";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Allow speech recognition to convert voice input into expense text";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -497,8 +500,11 @@
 				EXTRACT_APP_INTENTS_METADATA = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Vault/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Vault Finance";
+				INFOPLIST_KEY_CFBundleDisplayName = Vylok;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone access to record voice input for expense entry";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Allow speech recognition to convert voice input into expense text";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;

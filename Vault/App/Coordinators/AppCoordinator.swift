@@ -92,7 +92,7 @@ private extension AppCoordinator {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.appAssebler.resolver.resolve(VaultWidgetSnapshotSyncing.self)?
+                self?.appAssebler.resolver.resolve(VylokWidgetSnapshotSyncing.self)?
                     .clearSnapshot()
                 AppLogBridge.log(
                     category: .navigation,
@@ -120,8 +120,8 @@ private extension AppCoordinator {
         }
     }
 
-    func resolveWidgetSnapshotSyncService() -> VaultWidgetSnapshotSyncing? {
-        appAssebler.resolver.resolve(VaultWidgetSnapshotSyncing.self)
+    func resolveWidgetSnapshotSyncService() -> VylokWidgetSnapshotSyncing? {
+        appAssebler.resolver.resolve(VylokWidgetSnapshotSyncing.self)
     }
 
     func showOnboardingFlow() {

@@ -1,10 +1,10 @@
 import WidgetKit
 
-protocol VaultWidgetTimelineReloading: Sendable {
+protocol VylokWidgetTimelineReloading: Sendable {
     func reloadTimelines()
 }
 
-final class VaultWidgetTimelineReloader: VaultWidgetTimelineReloading {
+final class VylokWidgetTimelineReloader: VylokWidgetTimelineReloading {
     func reloadTimelines() {
         WidgetCenter.shared.reloadAllTimelines()
     }

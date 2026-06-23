@@ -1,8 +1,8 @@
 import Foundation
 
-protocol PendingVaultRouteStoring: Sendable {
-    func store(_ route: VaultRoute)
-    func consume() -> VaultRoute?
+protocol PendingVylokRouteStoring: Sendable {
+    func store(_ route: VylokRoute)
+    func consume() -> VylokRoute?
 }
 
 extension Notification.Name {
@@ -11,11 +11,11 @@ extension Notification.Name {
     )
 }
 
-final class PendingVaultRouteStore: PendingVaultRouteStoring, @unchecked Sendable {
+final class PendingVylokRouteStore: PendingVylokRouteStoring, @unchecked Sendable {
     private let lock = NSLock()
-    private var pendingRoute: VaultRoute?
+    private var pendingRoute: VylokRoute?
 
-    func store(_ route: VaultRoute) {
+    func store(_ route: VylokRoute) {
         lock.lock()
         pendingRoute = route
         lock.unlock()
@@ -26,7 +26,7 @@ final class PendingVaultRouteStore: PendingVaultRouteStoring, @unchecked Sendabl
         )
     }
 
-    func consume() -> VaultRoute? {
+    func consume() -> VylokRoute? {
         lock.lock()
         defer { lock.unlock() }
 

@@ -4,7 +4,7 @@ import XCTest
 final class VaultWidgetSnapshotStorageTests: XCTestCase {
     private var suiteName: String!
     private var userDefaults: UserDefaults!
-    private var sut: VaultWidgetSnapshotStorage!
+    private var sut: VylokWidgetSnapshotStorage!
 
     override func setUp() {
         super.setUp()
@@ -12,7 +12,7 @@ final class VaultWidgetSnapshotStorageTests: XCTestCase {
         suiteName = "VaultWidgetSnapshotStorageTests.\(UUID().uuidString)"
         userDefaults = UserDefaults(suiteName: suiteName)
         userDefaults.removePersistentDomain(forName: suiteName)
-        sut = VaultWidgetSnapshotStorage(userDefaults: userDefaults)
+        sut = VylokWidgetSnapshotStorage(userDefaults: userDefaults)
     }
 
     override func tearDown() {
@@ -28,7 +28,7 @@ final class VaultWidgetSnapshotStorageTests: XCTestCase {
 
 extension VaultWidgetSnapshotStorageTests {
     func testSaveAndLoadSnapshot() {
-        let snapshot = VaultWidgetSnapshot(
+        let snapshot = VylokWidgetSnapshot(
             entitlementState: .subscribed,
             todayAmount: 45.2,
             todayCurrency: "USD",
@@ -44,7 +44,7 @@ extension VaultWidgetSnapshotStorageTests {
 
     func testClearSnapshotRemovesStoredValue() {
         sut.saveSnapshot(
-            VaultWidgetSnapshot(
+            VylokWidgetSnapshot(
                 entitlementState: .regular,
                 todayAmount: 1,
                 todayCurrency: "USD",
@@ -80,12 +80,12 @@ extension VaultWidgetSnapshotStorageTests {
         )
         userDefaults.set(
             data,
-            forKey: VaultWidgetSharedConfiguration.snapshotStorageKey
+            forKey: VylokWidgetSharedConfiguration.snapshotStorageKey
         )
 
         XCTAssertEqual(
             sut.loadSnapshot(),
-            VaultWidgetSnapshot(
+            VylokWidgetSnapshot(
                 entitlementState: .subscribed,
                 todayAmount: 12,
                 todayCurrency: "USD",

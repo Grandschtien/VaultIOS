@@ -1,18 +1,18 @@
 import Foundation
 
-protocol VaultWidgetSnapshotStoring: Sendable {
-    func loadSnapshot() -> VaultWidgetSnapshot?
-    func saveSnapshot(_ snapshot: VaultWidgetSnapshot)
+protocol VylokWidgetSnapshotStoring: Sendable {
+    func loadSnapshot() -> VylokWidgetSnapshot?
+    func saveSnapshot(_ snapshot: VylokWidgetSnapshot)
     func clearSnapshot()
 }
 
-enum VaultWidgetSharedConfiguration {
+enum VylokWidgetSharedConfiguration {
     static let appGroupIdentifier = "group.com.egor.shkarin.Vault"
     static let snapshotStorageKey = "vault.widget.snapshot"
 }
 
-final class VaultWidgetSnapshotStorage: VaultWidgetSnapshotStoring, @unchecked Sendable {
-    private struct LegacyVaultWidgetSnapshot: Codable {
+final class VylokWidgetSnapshotStorage: VylokWidgetSnapshotStoring, @unchecked Sendable {
+    private struct LegacyVylokWidgetSnapshot: Codable {
         let todayAmount: Double
         let todayCurrency: String
         let monthAmount: Double
@@ -30,28 +30,28 @@ final class VaultWidgetSnapshotStorage: VaultWidgetSnapshotStoring, @unchecked S
         encoder: JSONEncoder = JSONEncoder()
     ) {
         self.userDefaults = userDefaults
-            ?? UserDefaults(suiteName: VaultWidgetSharedConfiguration.appGroupIdentifier)
+            ?? UserDefaults(suiteName: VylokWidgetSharedConfiguration.appGroupIdentifier)
             ?? .standard
         self.decoder = decoder
         self.encoder = encoder
     }
 
-    func loadSnapshot() -> VaultWidgetSnapshot? {
+    func loadSnapshot() -> VylokWidgetSnapshot? {
         guard let data = userDefaults.data(
-            forKey: VaultWidgetSharedConfiguration.snapshotStorageKey
+            forKey: VylokWidgetSharedConfiguration.snapshotStorageKey
         ) else {
             return nil
         }
 
-        if let snapshot = try? decoder.decode(VaultWidgetSnapshot.self, from: data) {
+        if let snapshot = try? decoder.decode(VylokWidgetSnapshot.self, from: data) {
             return snapshot
         }
 
-        guard let legacySnapshot = try? decoder.decode(LegacyVaultWidgetSnapshot.self, from: data) else {
+        guard let legacySnapshot = try? decoder.decode(LegacyVylokWidgetSnapshot.self, from: data) else {
             return nil
         }
 
-        return VaultWidgetSnapshot(
+        return VylokWidgetSnapshot(
             entitlementState: .subscribed,
             todayAmount: legacySnapshot.todayAmount,
             todayCurrency: legacySnapshot.todayCurrency,
@@ -61,20 +61,20 @@ final class VaultWidgetSnapshotStorage: VaultWidgetSnapshotStoring, @unchecked S
         )
     }
 
-    func saveSnapshot(_ snapshot: VaultWidgetSnapshot) {
+    func saveSnapshot(_ snapshot: VylokWidgetSnapshot) {
         guard let data = try? encoder.encode(snapshot) else {
             return
         }
 
         userDefaults.set(
             data,
-            forKey: VaultWidgetSharedConfiguration.snapshotStorageKey
+            forKey: VylokWidgetSharedConfiguration.snapshotStorageKey
         )
     }
 
     func clearSnapshot() {
         userDefaults.removeObject(
-            forKey: VaultWidgetSharedConfiguration.snapshotStorageKey
+            forKey: VylokWidgetSharedConfiguration.snapshotStorageKey
         )
     }
 }

@@ -25,7 +25,7 @@
 "auth_verification_error_server" = "Что-то пошло не так. Попробуйте еще раз.";
 "get_started" = "Начать";
 "insightful_analytics" = "Понятная аналитика";
-"join_vault_to_start_tracking_effortlessly" = "Присоединяйтесь к Vault и начните легко отслеживать расходы";
+"join_vault_to_start_tracking_effortlessly" = "Присоединяйтесь к Vylok и начните легко отслеживать расходы";
 "name" = "Имя";
 "next" = "Далее";
 "privacy" = "Конфиденциальность";
@@ -38,7 +38,7 @@
 "smart_savings" = "Умные накопления";
 "support" = "Поддержка";
 "terms" = "Условия";
-"vault" = "Vault";
+"vault" = "Vylok";
 
 "onboarding_1_title" = "Легко отслеживайте расходы";
 "onboarding_2_title" = "Голос или текст - AI всё сделает";
@@ -56,7 +56,7 @@
 
 "step_number" = "Шаг %@ из %@";
 "account_step_registration_sutitle" = "Используйте надежный пароль для защиты данных";
-"name_step_registration_sutitle" = "Присоединяйтесь к Vault и начните отслеживать расходы";
+"name_step_registration_sutitle" = "Присоединяйтесь к Vylok и начните отслеживать расходы";
 "registration_back" = "Назад";
 "registration_confirm_password" = "Подтвердите пароль";
 "registration_name_placeholder" = "Имя";

@@ -27,7 +27,7 @@ actor MainInteractor: MainBusinessLogic {
     private let subscriptionAccessService: SubscriptionAccessServicing
     private let repository: MainFlowDomainRepositoryProtocol
     private let observer: MainFlowDomainObserverProtocol
-    private let widgetSnapshotSyncService: VaultWidgetSnapshotSyncing?
+    private let widgetSnapshotSyncService: VylokWidgetSnapshotSyncing?
 
     private var blockingErrorDescription: String?
     private var isRefreshing: Bool = false
@@ -51,7 +51,7 @@ actor MainInteractor: MainBusinessLogic {
         subscriptionAccessService: SubscriptionAccessServicing,
         repository: MainFlowDomainRepositoryProtocol,
         observer: MainFlowDomainObserverProtocol,
-        widgetSnapshotSyncService: VaultWidgetSnapshotSyncing? = nil
+        widgetSnapshotSyncService: VylokWidgetSnapshotSyncing? = nil
     ) {
         self.presenter = presenter
         self.router = router

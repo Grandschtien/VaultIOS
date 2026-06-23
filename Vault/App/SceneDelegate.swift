@@ -42,8 +42,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 private extension SceneDelegate {
     func handleURLContexts(_ urlContexts: Set<UIOpenURLContext>) {
-        guard let parser = DI.assembler.resolver.resolve(VaultRouteParsing.self),
-              let store = DI.assembler.resolver.resolve(PendingVaultRouteStoring.self) else {
+        guard let parser = DI.assembler.resolver.resolve(VylokRouteParsing.self),
+              let store = DI.assembler.resolver.resolve(PendingVylokRouteStoring.self) else {
             return
         }
 

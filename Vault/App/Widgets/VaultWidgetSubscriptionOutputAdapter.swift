@@ -1,9 +1,9 @@
 import Foundation
 
-final class VaultWidgetSubscriptionOutputAdapter: SubscriptionOutput, @unchecked Sendable {
-    private let widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
+final class VylokWidgetSubscriptionOutputAdapter: SubscriptionOutput, @unchecked Sendable {
+    private let widgetSnapshotSyncService: VylokWidgetSnapshotSyncing
 
-    init(widgetSnapshotSyncService: VaultWidgetSnapshotSyncing) {
+    init(widgetSnapshotSyncService: VylokWidgetSnapshotSyncing) {
         self.widgetSnapshotSyncService = widgetSnapshotSyncService
     }
 

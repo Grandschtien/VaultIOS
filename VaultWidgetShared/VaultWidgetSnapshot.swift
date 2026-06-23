@@ -1,12 +1,12 @@
 import Foundation
 
-enum VaultWidgetEntitlementState: String, Codable, Equatable, Sendable {
+enum VylokWidgetEntitlementState: String, Codable, Equatable, Sendable {
     case regular
     case subscribed
 }
 
-struct VaultWidgetSnapshot: Codable, Equatable, Sendable {
-    let entitlementState: VaultWidgetEntitlementState
+struct VylokWidgetSnapshot: Codable, Equatable, Sendable {
+    let entitlementState: VylokWidgetEntitlementState
     let todayAmount: Double?
     let todayCurrency: String?
     let monthAmount: Double?
@@ -14,7 +14,7 @@ struct VaultWidgetSnapshot: Codable, Equatable, Sendable {
     let updatedAt: Date
 
     init(
-        entitlementState: VaultWidgetEntitlementState,
+        entitlementState: VylokWidgetEntitlementState,
         todayAmount: Double?,
         todayCurrency: String?,
         monthAmount: Double?,

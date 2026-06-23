@@ -132,14 +132,14 @@ private extension ExpenseManualEntryPresenter {
     }
 
     func amountCurrencyText(for currencyCode: String) -> String {
-        let normalizedCurrencyCode = VaultWidgetValueFormatter.normalizedCurrencyCode(
+        let normalizedCurrencyCode = VylokWidgetValueFormatter.normalizedCurrencyCode(
             currencyCode
         )
         guard !normalizedCurrencyCode.isEmpty else {
             return "USD"
         }
 
-        return VaultWidgetValueFormatter.currencySymbol(
+        return VylokWidgetValueFormatter.currencySymbol(
             for: normalizedCurrencyCode,
             fallback: normalizedCurrencyCode
         )

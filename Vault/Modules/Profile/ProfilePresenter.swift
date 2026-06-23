@@ -276,13 +276,13 @@ private extension ProfilePresenter {
     }
 
     func currencyTitle(from code: String) -> String {
-        let normalized = VaultWidgetValueFormatter.normalizedCurrencyCode(code)
+        let normalized = VylokWidgetValueFormatter.normalizedCurrencyCode(code)
 
         guard !normalized.isEmpty else {
             return "-"
         }
 
-        let symbol = VaultWidgetValueFormatter.currencySymbol(
+        let symbol = VylokWidgetValueFormatter.currencySymbol(
             for: normalized,
             fallback: normalized
         )

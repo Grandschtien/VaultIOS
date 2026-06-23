@@ -25,7 +25,7 @@
 "auth_verification_error_server" = "Бірдеңе дұрыс болмады. Қайта көріңіз.";
 "get_started" = "Бастау";
 "insightful_analytics" = "Түсінікті аналитика";
-"join_vault_to_start_tracking_effortlessly" = "Vault-қа қосылып, шығындарды оңай бақылауды бастаңыз";
+"join_vault_to_start_tracking_effortlessly" = "Vylok-қа қосылып, шығындарды оңай бақылауды бастаңыз";
 "name" = "Аты";
 "next" = "Келесі";
 "privacy" = "Құпиялылық";
@@ -38,7 +38,7 @@
 "smart_savings" = "Ақылды жинақ";
 "support" = "Қолдау";
 "terms" = "Шарттар";
-"vault" = "Vault";
+"vault" = "Vylok";
 
 "onboarding_1_title" = "Шығындарды оңай бақылаңыз";
 "onboarding_2_title" = "Дауыс немесе мәтін — AI бәрін өзі жасайды";
@@ -56,7 +56,7 @@
 
 "step_number" = "%@ қадам %@-дан";
 "account_step_registration_sutitle" = "Деректеріңізді қорғау үшін сенімді құпиясөз қолданыңыз";
-"name_step_registration_sutitle" = "Vault-қа қосылып, шығындарды бақылауды бастаңыз";
+"name_step_registration_sutitle" = "Vylok-қа қосылып, шығындарды бақылауды бастаңыз";
 "registration_back" = "Артқа";
 "registration_confirm_password" = "Құпиясөзді растаңыз";
 "registration_name_placeholder" = "Аты";

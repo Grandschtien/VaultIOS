@@ -13,11 +13,11 @@ final class MainFlowRootFactory: Screen {
         @SafeInject
         var currencyConversionService: UserCurrencyConverting
         @SafeInject
-        var pendingRouteStore: PendingVaultRouteStoring
+        var pendingRouteStore: PendingVylokRouteStoring
         @SafeInject
-        var widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
+        var widgetSnapshotSyncService: VylokWidgetSnapshotSyncing
         @SafeInject
-        var widgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving
+        var widgetEntryDestinationResolver: VylokWidgetEntryDestinationResolving
         @SafeInject
         var subscriptionAccessService: SubscriptionAccessServicing
 
@@ -43,7 +43,7 @@ final class MainFlowRootFactory: Screen {
             summaryPeriodProvider: summaryPeriodProvider
         )
 
-        let widgetSubscriptionOutput = VaultWidgetSubscriptionOutputAdapter(
+        let widgetSubscriptionOutput = VylokWidgetSubscriptionOutputAdapter(
             widgetSnapshotSyncService: widgetSnapshotSyncService
         )
         let router = MainFlowRootRouter(screenNavigator: navigator)

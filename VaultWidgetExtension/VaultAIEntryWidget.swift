@@ -1,16 +1,16 @@
 import SwiftUI
 import WidgetKit
 
-private struct VaultAIEntryWidgetEntry: TimelineEntry {
+private struct VylokAIEntryWidgetEntry: TimelineEntry {
     let date: Date
-    let snapshot: VaultWidgetSnapshot?
+    let snapshot: VylokWidgetSnapshot?
 }
 
-private struct VaultAIEntryWidgetProvider: TimelineProvider {
-    private let storage = VaultWidgetSnapshotStorage()
+private struct VylokAIEntryWidgetProvider: TimelineProvider {
+    private let storage = VylokWidgetSnapshotStorage()
 
-    func placeholder(in context: Context) -> VaultAIEntryWidgetEntry {
-        VaultAIEntryWidgetEntry(
+    func placeholder(in context: Context) -> VylokAIEntryWidgetEntry {
+        VylokAIEntryWidgetEntry(
             date: Date(),
             snapshot: nil
         )
@@ -18,10 +18,10 @@ private struct VaultAIEntryWidgetProvider: TimelineProvider {
 
     func getSnapshot(
         in context: Context,
-        completion: @escaping (VaultAIEntryWidgetEntry) -> Void
+        completion: @escaping (VylokAIEntryWidgetEntry) -> Void
     ) {
         completion(
-            VaultAIEntryWidgetEntry(
+            VylokAIEntryWidgetEntry(
                 date: Date(),
                 snapshot: storage.loadSnapshot()
             )
@@ -30,10 +30,10 @@ private struct VaultAIEntryWidgetProvider: TimelineProvider {
 
     func getTimeline(
         in context: Context,
-        completion: @escaping (Timeline<VaultAIEntryWidgetEntry>) -> Void
+        completion: @escaping (Timeline<VylokAIEntryWidgetEntry>) -> Void
     ) {
         let currentDate = Date()
-        let entry = VaultAIEntryWidgetEntry(
+        let entry = VylokAIEntryWidgetEntry(
             date: currentDate,
             snapshot: storage.loadSnapshot()
         )
@@ -52,21 +52,21 @@ private struct VaultAIEntryWidgetProvider: TimelineProvider {
     }
 }
 
-private struct VaultWidgetMetrics: LayoutScaleProviding {}
+private struct VylokWidgetMetrics: LayoutScaleProviding {}
 
-private enum VaultAIEntrySmallState {
+private enum VylokAIEntrySmallState {
     case signedOut
     case subscribe
     case content
 }
 
-struct VaultAIEntryWidget: Widget {
+struct VylokAIEntryWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(
             kind: "VaultAIEntryWidget",
-            provider: VaultAIEntryWidgetProvider()
+            provider: VylokAIEntryWidgetProvider()
         ) { entry in
-            VaultAIEntryWidgetEntryView(entry: entry)
+            VylokAIEntryWidgetEntryView(entry: entry)
         }
         .configurationDisplayName(L10n.vaultWidgetConfigurationDisplayName)
         .description(L10n.vaultWidgetConfigurationDescription)
@@ -75,25 +75,25 @@ struct VaultAIEntryWidget: Widget {
     }
 }
 
-private struct VaultAIEntryWidgetEntryView: View {
+private struct VylokAIEntryWidgetEntryView: View {
     @Environment(\.widgetFamily)
     private var family
 
-    private let metrics = VaultWidgetMetrics()
-    let entry: VaultAIEntryWidgetEntry
+    private let metrics = VylokWidgetMetrics()
+    let entry: VylokAIEntryWidgetEntry
 
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(VaultWidgetAssetCatalog.backgroundPrimary.swiftUIColor)
+                .fill(VylokWidgetAssetCatalog.backgroundPrimary.swiftUIColor)
 
             switch family {
             case .systemSmall:
-                VaultAIEntrySmallView(entry: entry)
+                VylokAIEntrySmallView(entry: entry)
             case .systemMedium:
-                VaultAIEntryMediumView(entry: entry)
+                VylokAIEntryMediumView(entry: entry)
             default:
-                VaultAIEntrySmallView(entry: entry)
+                VylokAIEntrySmallView(entry: entry)
             }
         }
         .widgetURL(widgetURL)
@@ -107,16 +107,16 @@ private struct VaultAIEntryWidgetEntryView: View {
         case .systemSmall:
             switch smallState {
             case .signedOut, .content:
-                VaultRoute.home.url
+                VylokRoute.home.url
             case .subscribe:
-                VaultRoute.subscription.url
+                VylokRoute.subscription.url
             }
         default:
-            VaultRoute.home.url
+            VylokRoute.home.url
         }
     }
 
-    private var smallState: VaultAIEntrySmallState {
+    private var smallState: VylokAIEntrySmallState {
         guard let snapshot = entry.snapshot else {
             return .signedOut
         }
@@ -125,32 +125,32 @@ private struct VaultAIEntryWidgetEntryView: View {
     }
 }
 
-private struct VaultAIEntrySmallView: View {
-    private let metrics = VaultWidgetMetrics()
-    let entry: VaultAIEntryWidgetEntry
+private struct VylokAIEntrySmallView: View {
+    private let metrics = VylokWidgetMetrics()
+    let entry: VylokAIEntryWidgetEntry
 
     var body: some View {
         switch state {
         case .signedOut:
-            VaultWidgetCenteredCTAView(
+            VylokWidgetCenteredCTAView(
                 title: L10n.vaultWidgetLogIn,
-                destination: VaultRoute.home.url
+                destination: VylokRoute.home.url
             )
         case .subscribe:
-            VaultWidgetCenteredCTAView(
+            VylokWidgetCenteredCTAView(
                 title: L10n.vaultWidgetSubscribe,
-                destination: VaultRoute.subscription.url
+                destination: VylokRoute.subscription.url
             )
         case .content:
             VStack(alignment: .leading, spacing: metrics.spaceXXS) {
                 HStack(spacing: metrics.spaceXS) {
                     Image(systemName: "wallet.pass")
                         .font(.appTypography(Typography.typographySemibold16))
-                        .foregroundStyle(VaultWidgetAssetCatalog.widgetAccentPrimary.swiftUIColor)
+                        .foregroundStyle(VylokWidgetAssetCatalog.widgetAccentPrimary.swiftUIColor)
 
                     Text(L10n.vaultWidgetBrand)
                         .font(.appTypography(Typography.typographyBold16))
-                        .foregroundStyle(VaultWidgetAssetCatalog.widgetTextTertiary.swiftUIColor)
+                        .foregroundStyle(VylokWidgetAssetCatalog.widgetTextTertiary.swiftUIColor)
                         .textCase(.uppercase)
                         .tracking(1.2)
                 }
@@ -158,25 +158,25 @@ private struct VaultAIEntrySmallView: View {
                 VStack(alignment: .leading, spacing: metrics.spaceXXS) {
                     Text(L10n.vaultWidgetSpentToday)
                         .font(.appTypography(Typography.typographyMedium14))
-                        .foregroundStyle(VaultWidgetAssetCatalog.widgetTextSecondary.swiftUIColor)
+                        .foregroundStyle(VylokWidgetAssetCatalog.widgetTextSecondary.swiftUIColor)
 
-                    Text(VaultWidgetValueFormatter.string(
+                    Text(VylokWidgetValueFormatter.string(
                         amount: entry.snapshot?.todayAmount,
                         currency: entry.snapshot?.todayCurrency
                     ))
                         .font(.appTypography(Typography.typographyBold16))
-                        .foregroundStyle(VaultWidgetAssetCatalog.widgetTextPrimary.swiftUIColor)
+                        .foregroundStyle(VylokWidgetAssetCatalog.widgetTextPrimary.swiftUIColor)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
                 }
 
                 HStack(alignment: .bottom) {
-                    VaultWidgetDecorativeBars()
+                    VylokWidgetDecorativeBars()
 
                     Spacer()
 
-                    Link(destination: VaultRoute.aiEntry.url) {
-                        VaultWidgetPlusButton()
+                    Link(destination: VylokRoute.aiEntry.url) {
+                        VylokWidgetPlusButton()
                     }
                 }
             }
@@ -186,7 +186,7 @@ private struct VaultAIEntrySmallView: View {
         }
     }
 
-    private var state: VaultAIEntrySmallState {
+    private var state: VylokAIEntrySmallState {
         guard let snapshot = entry.snapshot else {
             return .signedOut
         }
@@ -195,29 +195,29 @@ private struct VaultAIEntrySmallView: View {
     }
 }
 
-private struct VaultAIEntryMediumView: View {
-    private let metrics = VaultWidgetMetrics()
-    let entry: VaultAIEntryWidgetEntry
+private struct VylokAIEntryMediumView: View {
+    private let metrics = VylokWidgetMetrics()
+    let entry: VylokAIEntryWidgetEntry
 
     var body: some View {
         if entry.snapshot == nil {
-            VaultWidgetCenteredCTAView(
+            VylokWidgetCenteredCTAView(
                 title: L10n.vaultWidgetLogIn,
-                destination: VaultRoute.home.url
+                destination: VylokRoute.home.url
             )
         } else {
             VStack(alignment: .leading, spacing: metrics.spaceXXS) {
                 Text(L10n.vaultWidgetTotalSpent)
                     .font(.appTypography(Typography.typographyBold16))
-                    .foregroundStyle(VaultWidgetAssetCatalog.widgetTextTertiary.swiftUIColor)
+                    .foregroundStyle(VylokWidgetAssetCatalog.widgetTextTertiary.swiftUIColor)
                     .tracking(1.2)
 
-                Text(VaultWidgetValueFormatter.string(
+                Text(VylokWidgetValueFormatter.string(
                     amount: entry.snapshot?.monthAmount,
                     currency: entry.snapshot?.monthCurrency
                 ))
                     .font(.appTypography(Typography.typographyBold24))
-                    .foregroundStyle(VaultWidgetAssetCatalog.widgetTextPrimary.swiftUIColor)
+                    .foregroundStyle(VylokWidgetAssetCatalog.widgetTextPrimary.swiftUIColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
@@ -227,13 +227,13 @@ private struct VaultAIEntryMediumView: View {
                     Image(systemName: "gamecontroller")
                 }
                 .font(.appTypography(Typography.typographyMedium18))
-                .foregroundStyle(VaultWidgetAssetCatalog.widgetTextSubtle.swiftUIColor)
+                .foregroundStyle(VylokWidgetAssetCatalog.widgetTextSubtle.swiftUIColor)
                 .frame(maxWidth: .infinity, alignment: .trailing)
 
                 HStack(alignment: .center, spacing: metrics.spaceXS) {
                     Spacer()
-                    Link(destination: VaultRoute.aiEntry.url) {
-                        VaultWidgetPlusButton()
+                    Link(destination: VylokRoute.aiEntry.url) {
+                        VylokWidgetPlusButton()
                     }
                 }
             }
@@ -244,8 +244,8 @@ private struct VaultAIEntryMediumView: View {
     }
 }
 
-private struct VaultWidgetCenteredCTAView: View {
-    private let metrics = VaultWidgetMetrics()
+private struct VylokWidgetCenteredCTAView: View {
+    private let metrics = VylokWidgetMetrics()
     let title: String
     let destination: URL
 
@@ -256,10 +256,10 @@ private struct VaultWidgetCenteredCTAView: View {
             Link(destination: destination) {
                 Text(title)
                     .font(.appTypography(Typography.typographyBold16))
-                    .foregroundStyle(VaultWidgetAssetCatalog.widgetForegroundInverted.swiftUIColor)
+                    .foregroundStyle(VylokWidgetAssetCatalog.widgetForegroundInverted.swiftUIColor)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, metrics.spaceS)
-                    .background(VaultWidgetAssetCatalog.widgetAccentPrimary.swiftUIColor)
+                    .background(VylokWidgetAssetCatalog.widgetAccentPrimary.swiftUIColor)
                     .clipShape(Capsule())
             }
 
@@ -270,31 +270,31 @@ private struct VaultWidgetCenteredCTAView: View {
     }
 }
 
-private struct VaultWidgetPlusButton: View {
-    private let metrics = VaultWidgetMetrics()
+private struct VylokWidgetPlusButton: View {
+    private let metrics = VylokWidgetMetrics()
 
     var body: some View {
         ZStack {
             Circle()
-                .fill(VaultWidgetAssetCatalog.widgetAccentPrimary.swiftUIColor)
+                .fill(VylokWidgetAssetCatalog.widgetAccentPrimary.swiftUIColor)
                 .frame(width: metrics.sizeXL, height: metrics.sizeXL)
 
             Image(systemName: "plus")
                 .font(.appTypography(Typography.typographyBold22))
-                .foregroundStyle(VaultWidgetAssetCatalog.widgetForegroundInverted.swiftUIColor)
+                .foregroundStyle(VylokWidgetAssetCatalog.widgetForegroundInverted.swiftUIColor)
         }
     }
 }
 
-private struct VaultWidgetDecorativeBars: View {
-    private let metrics = VaultWidgetMetrics()
+private struct VylokWidgetDecorativeBars: View {
+    private let metrics = VylokWidgetMetrics()
 
     var body: some View {
         HStack(alignment: .bottom, spacing: metrics.spaceXXS) {
-            Capsule().fill(VaultWidgetAssetCatalog.widgetDecorativeBar.swiftUIColor).frame(width: metrics.sizeXS, height: metrics.sizeS)
-            Capsule().fill(VaultWidgetAssetCatalog.widgetDecorativeBar.swiftUIColor).frame(width: metrics.sizeXS, height: metrics.sizeL)
-            Capsule().fill(VaultWidgetAssetCatalog.widgetDecorativeBar.swiftUIColor).frame(width: metrics.sizeXS, height: metrics.sizeS)
-            Capsule().fill(VaultWidgetAssetCatalog.widgetDecorativeBar.swiftUIColor).frame(width: metrics.sizeXS, height: metrics.sizeM)
+            Capsule().fill(VylokWidgetAssetCatalog.widgetDecorativeBar.swiftUIColor).frame(width: metrics.sizeXS, height: metrics.sizeS)
+            Capsule().fill(VylokWidgetAssetCatalog.widgetDecorativeBar.swiftUIColor).frame(width: metrics.sizeXS, height: metrics.sizeL)
+            Capsule().fill(VylokWidgetAssetCatalog.widgetDecorativeBar.swiftUIColor).frame(width: metrics.sizeXS, height: metrics.sizeS)
+            Capsule().fill(VylokWidgetAssetCatalog.widgetDecorativeBar.swiftUIColor).frame(width: metrics.sizeXS, height: metrics.sizeM)
         }
     }
 }

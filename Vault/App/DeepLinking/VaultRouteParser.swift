@@ -1,11 +1,11 @@
 import Foundation
 
-protocol VaultRouteParsing: Sendable {
-    func parse(url: URL) -> VaultRoute?
+protocol VylokRouteParsing: Sendable {
+    func parse(url: URL) -> VylokRoute?
 }
 
-struct VaultRouteParser: VaultRouteParsing {
-    func parse(url: URL) -> VaultRoute? {
+struct VylokRouteParser: VylokRouteParsing {
+    func parse(url: URL) -> VylokRoute? {
         guard let components = URLComponents(
             url: url,
             resolvingAgainstBaseURL: false

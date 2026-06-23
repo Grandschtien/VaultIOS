@@ -26,7 +26,7 @@
 "auth_verification_error_server" = "Something went wrong. Please try again.";
 "get_started" = "Get Started";
 "insightful_analytics" = "Insightful Analytics";
-"join_vault_to_start_tracking_effortlessly" = "Join Vault to start tracking effortlessly.";
+"join_vault_to_start_tracking_effortlessly" = "Join Vylok to start tracking effortlessly.";
 "name" = "Name";
 "next" = "Next";
 "privacy" = "Privacy";
@@ -39,7 +39,7 @@
 "smart_savings" = "Smart Savings";
 "support" = "Support";
 "terms" = "Terms";
-"vault" = "Vault";
+"vault" = "Vylok";
 
 "onboarding_1_title" = "Track expenses effortlessly";
 "onboarding_2_title" = "Voice or text. AI handles it";
@@ -57,7 +57,7 @@
 
 "step_number" = "Step %@ of %@";
 "account_step_registration_sutitle" = "Use a strong password to keep your data safe";
-"name_step_registration_sutitle" = "Join Vault to start tracking effortlessly";
+"name_step_registration_sutitle" = "Join Vylok to start tracking effortlessly";
 "registration_back" = "Back";
 "registration_confirm_password" = "Confirm Password";
 "registration_name_placeholder" = "Name";

@@ -78,7 +78,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
     private let currencyConversionService: UserCurrencyConverting
     private let store: MainFlowDomainStoreProtocol
     private let observer: MainFlowDomainObserverProtocol
-    private let widgetSnapshotSyncService: VaultWidgetSnapshotSyncing?
+    private let widgetSnapshotSyncService: VylokWidgetSnapshotSyncing?
     private let now: @Sendable () -> Date
     private let periodResolver: MainPeriodRangeResolver
 
@@ -90,7 +90,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         currencyConversionService: UserCurrencyConverting,
         store: MainFlowDomainStoreProtocol,
         observer: MainFlowDomainObserverProtocol,
-        widgetSnapshotSyncService: VaultWidgetSnapshotSyncing? = nil,
+        widgetSnapshotSyncService: VylokWidgetSnapshotSyncing? = nil,
         calendar: Calendar = .current,
         now: @escaping @Sendable () -> Date = Date.init
     ) {

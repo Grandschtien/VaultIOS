@@ -1,6 +1,6 @@
-"vault_widget_configuration_display_name" = "Vault AI Entry";
+"vault_widget_configuration_display_name" = "Vylok AI Entry";
 "vault_widget_configuration_description" = "Quick access to AI entry and recent spend totals.";
-"vault_widget_brand" = "Vault";
+"vault_widget_brand" = "Vylok";
 "vault_widget_spent_today" = "Today";
 "vault_widget_total_spent" = "Total";
 "vault_widget_ai_entry" = "AI entry";

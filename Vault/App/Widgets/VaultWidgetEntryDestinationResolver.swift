@@ -1,22 +1,22 @@
 import Foundation
 
-enum VaultWidgetEntryDestination: Equatable, Sendable {
+enum VylokWidgetEntryDestination: Equatable, Sendable {
     case aiEntry
     case manualEntry
 }
 
-protocol VaultWidgetEntryDestinationResolving: Sendable {
-    func resolveDestination() async -> VaultWidgetEntryDestination
+protocol VylokWidgetEntryDestinationResolving: Sendable {
+    func resolveDestination() async -> VylokWidgetEntryDestination
 }
 
-final class VaultWidgetEntryDestinationResolver: VaultWidgetEntryDestinationResolving, @unchecked Sendable {
+final class VylokWidgetEntryDestinationResolver: VylokWidgetEntryDestinationResolving, @unchecked Sendable {
     private let subscriptionAccessService: SubscriptionAccessServicing
 
     init(subscriptionAccessService: SubscriptionAccessServicing) {
         self.subscriptionAccessService = subscriptionAccessService
     }
 
-    func resolveDestination() async -> VaultWidgetEntryDestination {
+    func resolveDestination() async -> VylokWidgetEntryDestination {
         if let currentSnapshot = await subscriptionAccessService.currentSubscriptionSnapshot(),
            currentSnapshot.hasAiInputAccess {
             return .aiEntry

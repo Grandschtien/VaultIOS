@@ -2,7 +2,7 @@ import XCTest
 @testable import Vault
 
 final class VaultWidgetEntitlementStateResolverTests: XCTestCase {
-    private let sut = VaultWidgetEntitlementStateResolver()
+    private let sut = VylokWidgetEntitlementStateResolver()
 
     func testResolveReturnsRegularForRegularTier() {
         let state = sut.resolve(

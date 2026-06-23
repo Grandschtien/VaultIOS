@@ -1,6 +1,6 @@
-"vault_widget_configuration_display_name" = "Vault AI Ввод";
+"vault_widget_configuration_display_name" = "Vylok AI Ввод";
 "vault_widget_configuration_description" = "Быстрый доступ к AI вводу и актуальным суммам расходов.";
-"vault_widget_brand" = "Vault";
+"vault_widget_brand" = "Vylok";
 "vault_widget_spent_today" = "За сегодня";
 "vault_widget_total_spent" = "Всего";
 "vault_widget_ai_entry" = "AI ввод";

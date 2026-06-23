@@ -2,8 +2,8 @@ import SwiftUI
 import WidgetKit
 
 @main
-struct VaultWidgetBundle: WidgetBundle {
+struct VylokWidgetBundle: WidgetBundle {
     var body: some Widget {
-        VaultAIEntryWidget()
+        VylokAIEntryWidget()
     }
 }

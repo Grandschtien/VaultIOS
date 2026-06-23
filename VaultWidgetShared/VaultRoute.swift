@@ -1,6 +1,6 @@
 import Foundation
 
-enum VaultRoute: Equatable, Sendable {
+enum VylokRoute: Equatable, Sendable {
     case home
     case aiEntry
     case subscription

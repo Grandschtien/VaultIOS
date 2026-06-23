@@ -18,7 +18,7 @@ final class LoginFactory: Screen {
         @SafeInject
         var subscriptionInitializer: SubscriptionInitializerLogic
         @SafeInject
-        var widgetSnapshotSyncService: VaultWidgetSnapshotSyncing
+        var widgetSnapshotSyncService: VylokWidgetSnapshotSyncing
         @SafeInject
         var analyticsCoreManager: AnalyticsCoreManaging
         @SafeInject

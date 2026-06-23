@@ -248,7 +248,7 @@ private final class AuthVerificationContractServiceSpy: AuthVerificationContract
     }
 }
 
-private final class WidgetSnapshotSyncSpy: VaultWidgetSnapshotSyncing, @unchecked Sendable {
+private final class WidgetSnapshotSyncSpy: VylokWidgetSnapshotSyncing, @unchecked Sendable {
     func syncSnapshot() async {}
 
     func clearSnapshot() {}

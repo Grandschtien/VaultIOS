@@ -64,32 +64,32 @@ private extension AppAssembly {
         }
         .inObjectScope(.transient)
 
-        container.register(VaultRouteParsing.self) { _ in
-            VaultRouteParser()
+        container.register(VylokRouteParsing.self) { _ in
+            VylokRouteParser()
         }
         .inObjectScope(.transient)
 
-        container.register(PendingVaultRouteStoring.self) { _ in
-            PendingVaultRouteStore()
+        container.register(PendingVylokRouteStoring.self) { _ in
+            PendingVylokRouteStore()
         }
         .inObjectScope(.container)
 
-        container.register(VaultWidgetSnapshotStoring.self) { _ in
-            VaultWidgetSnapshotStorage()
+        container.register(VylokWidgetSnapshotStoring.self) { _ in
+            VylokWidgetSnapshotStorage()
         }
         .inObjectScope(.transient)
 
-        container.register(VaultWidgetTimelineReloading.self) { _ in
-            VaultWidgetTimelineReloader()
+        container.register(VylokWidgetTimelineReloading.self) { _ in
+            VylokWidgetTimelineReloader()
         }
         .inObjectScope(.transient)
 
-        container.register(VaultWidgetEntryDestinationResolving.self) { resolver in
+        container.register(VylokWidgetEntryDestinationResolving.self) { resolver in
             guard let subscriptionAccessService = resolver.resolve(SubscriptionAccessServicing.self) else {
-                fatalError("Failed to resolve SubscriptionAccessService for VaultWidgetEntryDestinationResolver")
+                fatalError("Failed to resolve SubscriptionAccessService for VylokWidgetEntryDestinationResolver")
             }
 
-            return VaultWidgetEntryDestinationResolver(
+            return VylokWidgetEntryDestinationResolver(
                 subscriptionAccessService: subscriptionAccessService
             )
         }
@@ -170,16 +170,16 @@ private extension AppAssembly {
         }
         .inObjectScope(.transient)
 
-        container.register(VaultWidgetSnapshotSyncing.self) { resolver in
+        container.register(VylokWidgetSnapshotSyncing.self) { resolver in
             guard let summaryService = resolver.resolve(MainSummaryContractServicing.self),
                   let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self),
                   let subscriptionAccessService = resolver.resolve(SubscriptionAccessServicing.self),
-                  let storage = resolver.resolve(VaultWidgetSnapshotStoring.self),
-                  let timelineReloader = resolver.resolve(VaultWidgetTimelineReloading.self) else {
-                fatalError("Failed to resolve dependencies for VaultWidgetSnapshotSyncService")
+                  let storage = resolver.resolve(VylokWidgetSnapshotStoring.self),
+                  let timelineReloader = resolver.resolve(VylokWidgetTimelineReloading.self) else {
+                fatalError("Failed to resolve dependencies for VylokWidgetSnapshotSyncService")
             }
 
-            return VaultWidgetSnapshotSyncService(
+            return VylokWidgetSnapshotSyncService(
                 summaryService: summaryService,
                 userProfileStorageService: userProfileStorageService,
                 subscriptionAccessService: subscriptionAccessService,

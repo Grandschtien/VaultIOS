@@ -2,11 +2,11 @@ import XCTest
 @testable import Vault
 
 final class PendingVaultRouteStoreTests: XCTestCase {
-    private var sut: PendingVaultRouteStore!
+    private var sut: PendingVylokRouteStore!
 
     override func setUp() {
         super.setUp()
-        sut = PendingVaultRouteStore()
+        sut = PendingVylokRouteStore()
     }
 
     override func tearDown() {

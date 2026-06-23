@@ -19,7 +19,7 @@ struct MainValueFormatter: MainValueFormatting {
     }
 
     func formatAmount(_ amount: Double, currencyCode: String) -> String {
-        VaultWidgetValueFormatter.string(
+        VylokWidgetValueFormatter.string(
             amount: amount,
             currencyCode: currencyCode,
             locale: localeProvider(),

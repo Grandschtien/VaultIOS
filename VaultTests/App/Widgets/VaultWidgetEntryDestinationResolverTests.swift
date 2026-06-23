@@ -15,7 +15,7 @@ final class VaultWidgetEntryDestinationResolverTests: XCTestCase {
                 hasAiRequestsLimit: true
             )
         )
-        let sut = VaultWidgetEntryDestinationResolver(
+        let sut = VylokWidgetEntryDestinationResolver(
             subscriptionAccessService: subscriptionAccessService
         )
 
@@ -40,7 +40,7 @@ final class VaultWidgetEntryDestinationResolverTests: XCTestCase {
             ),
             refreshedSnapshot: nil
         )
-        let sut = VaultWidgetEntryDestinationResolver(
+        let sut = VylokWidgetEntryDestinationResolver(
             subscriptionAccessService: subscriptionAccessService
         )
 
@@ -73,7 +73,7 @@ final class VaultWidgetEntryDestinationResolverTests: XCTestCase {
                 hasAiRequestsLimit: true
             )
         )
-        let sut = VaultWidgetEntryDestinationResolver(
+        let sut = VylokWidgetEntryDestinationResolver(
             subscriptionAccessService: subscriptionAccessService
         )
 
