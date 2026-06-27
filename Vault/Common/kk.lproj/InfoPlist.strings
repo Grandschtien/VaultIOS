@@ -1,3 +1,4 @@
 /* Permission usage descriptions */
 "NSMicrophoneUsageDescription" = "Шығындарды дауыспен енгізу үшін микрофонға қол жеткізуге рұқсат беріңіз";
+"NSPhotoLibraryUsageDescription" = "Қолданбада сурет таңдауды шешсеңіз, медиатекаға қол жеткізуге рұқсат беріңіз";
 "NSSpeechRecognitionUsageDescription" = "Дауысты шығын мәтініне айналдыру үшін сөйлеуді тануға рұқсат беріңіз";

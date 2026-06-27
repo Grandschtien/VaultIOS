@@ -1,3 +1,4 @@
 /* Permission usage descriptions */
 "NSMicrophoneUsageDescription" = "Разрешите доступ к микрофону для голосового ввода расходов";
+"NSPhotoLibraryUsageDescription" = "Разрешите доступ к медиатеке, если вы решите выбрать изображение в приложении";
 "NSSpeechRecognitionUsageDescription" = "Разрешите распознавание речи, чтобы преобразовывать голос в текст расхода";

@@ -458,6 +458,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone access to record voice input for expense entry";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow photo library access when you choose to select an image in the app";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Allow speech recognition to convert voice input into expense text";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -504,6 +505,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone access to record voice input for expense entry";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow photo library access when you choose to select an image in the app";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Allow speech recognition to convert voice input into expense text";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;

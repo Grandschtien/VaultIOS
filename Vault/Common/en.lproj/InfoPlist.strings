@@ -1,3 +1,4 @@
 /* Permission usage descriptions */
 "NSMicrophoneUsageDescription" = "Allow microphone access to record voice input for expense entry";
+"NSPhotoLibraryUsageDescription" = "Allow photo library access when you choose to select an image in the app";
 "NSSpeechRecognitionUsageDescription" = "Allow speech recognition to convert voice input into expense text";
