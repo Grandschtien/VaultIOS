@@ -8,6 +8,7 @@ private struct VylokAIEntryWidgetEntry: TimelineEntry {
 
 private struct VylokAIEntryWidgetProvider: TimelineProvider {
     private let storage = VylokWidgetSnapshotStorage()
+    private let timelineResolver = VylokWidgetSnapshotTimelineResolver()
 
     func placeholder(in context: Context) -> VylokAIEntryWidgetEntry {
         VylokAIEntryWidgetEntry(
@@ -20,10 +21,14 @@ private struct VylokAIEntryWidgetProvider: TimelineProvider {
         in context: Context,
         completion: @escaping (VylokAIEntryWidgetEntry) -> Void
     ) {
+        let currentDate = Date()
         completion(
             VylokAIEntryWidgetEntry(
-                date: Date(),
-                snapshot: storage.loadSnapshot()
+                date: currentDate,
+                snapshot: timelineResolver.resolveSnapshot(
+                    storage.loadSnapshot(),
+                    at: currentDate
+                )
             )
         )
     }
@@ -33,20 +38,42 @@ private struct VylokAIEntryWidgetProvider: TimelineProvider {
         completion: @escaping (Timeline<VylokAIEntryWidgetEntry>) -> Void
     ) {
         let currentDate = Date()
-        let entry = VylokAIEntryWidgetEntry(
+        let storedSnapshot = storage.loadSnapshot()
+        let currentEntry = VylokAIEntryWidgetEntry(
             date: currentDate,
-            snapshot: storage.loadSnapshot()
+            snapshot: timelineResolver.resolveSnapshot(
+                storedSnapshot,
+                at: currentDate
+            )
         )
-        let refreshDate = Calendar.current.date(
-            byAdding: .minute,
-            value: 15,
-            to: currentDate
-        ) ?? currentDate.addingTimeInterval(900)
+        let futureEntries = timelineResolver.significantDates(
+            for: storedSnapshot,
+            currentDate: currentDate
+        )
+        .map { refreshDate in
+            VylokAIEntryWidgetEntry(
+                date: refreshDate,
+                snapshot: timelineResolver.resolveSnapshot(
+                    storedSnapshot,
+                    at: refreshDate
+                )
+            )
+        }
+        let entries = [currentEntry] + futureEntries
+        let policy: TimelineReloadPolicy
+        if let nextRefreshDate = timelineResolver.nextSignificantDate(
+            for: storedSnapshot,
+            currentDate: currentDate
+        ) {
+            policy = .after(nextRefreshDate)
+        } else {
+            policy = .never
+        }
 
         completion(
             Timeline(
-                entries: [entry],
-                policy: .after(refreshDate)
+                entries: entries,
+                policy: policy
             )
         )
     }
