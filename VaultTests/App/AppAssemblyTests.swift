@@ -1,6 +1,6 @@
 import XCTest
 import Swinject
-@testable import Vault
+@testable import Vylok
 
 final class AppAssemblyTests: XCTestCase {
     func testAssembleResolvesSharedToastPresenter() {

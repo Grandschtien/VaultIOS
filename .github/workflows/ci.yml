@@ -14,7 +14,7 @@ concurrency:
 
 env:
   PROJECT_PATH: Vault.xcodeproj
-  SCHEME: Vault
+  SCHEME: Vylok
   DESTINATION: platform=iOS Simulator,name=iPhone 17
   DERIVED_DATA_PATH: /tmp/VaultCI/DerivedData
   SOURCE_PACKAGES_PATH: /tmp/VaultCI/SourcePackages

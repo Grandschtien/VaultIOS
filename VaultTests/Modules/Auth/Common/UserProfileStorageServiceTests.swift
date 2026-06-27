@@ -1,6 +1,6 @@
 import XCTest
 import Foundation
-@testable import Vault
+@testable import Vylok
 
 final class UserProfileStorageServiceTests: XCTestCase {
     private var sut: UserProfileStorageService!

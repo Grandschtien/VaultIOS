@@ -1,6 +1,6 @@
 import XCTest
 import UIKit
-@testable import Vault
+@testable import Vylok
 
 @MainActor
 final class CategoryEditorPresenterTests: XCTestCase {

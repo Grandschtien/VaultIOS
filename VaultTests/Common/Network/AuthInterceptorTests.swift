@@ -1,7 +1,7 @@
 import XCTest
 import Foundation
 import Alamofire
-@testable import Vault
+@testable import Vylok
 
 final class AuthInterceptorTests: XCTestCase {
     func testAdaptDoesNotAppendAuthorizationHeaderForLoginPath() async {

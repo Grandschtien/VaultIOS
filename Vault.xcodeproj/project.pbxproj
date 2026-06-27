@@ -26,7 +26,7 @@
 			containerPortal = 609A28412F2F7B86007145D5 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 609A28482F2F7B86007145D5;
-			remoteInfo = Vault;
+			remoteInfo = Vylok;
 		};
 		70A1000226C5B10000A10001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,7 +52,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		609A28492F2F7B86007145D5 /* Vault.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vault.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		609A28492F2F7B86007145D5 /* Vylok.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vylok.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		61B0A100307E8B0100A10001 /* VaultTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VaultTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		62C4AF8731A2345600A10001 /* Vault/Configuration/AppSecrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Vault/Configuration/AppSecrets.xcconfig; sourceTree = "<group>"; };
 		70A1000426C5B10000A10001 /* VaultWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VaultWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -156,7 +156,7 @@
 		609A284A2F2F7B86007145D5 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				609A28492F2F7B86007145D5 /* Vault.app */,
+				609A28492F2F7B86007145D5 /* Vylok.app */,
 				61B0A100307E8B0100A10001 /* VaultTests.xctest */,
 				70A1000426C5B10000A10001 /* VaultWidgetExtension.appex */,
 			);
@@ -174,9 +174,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		609A28482F2F7B86007145D5 /* Vault */ = {
+		609A28482F2F7B86007145D5 /* Vylok */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 609A285C2F2F7B88007145D5 /* Build configuration list for PBXNativeTarget "Vault" */;
+			buildConfigurationList = 609A285C2F2F7B88007145D5 /* Build configuration list for PBXNativeTarget "Vylok" */;
 			buildPhases = (
 				60F8D93B307D4CEB00F4E7A1 /* SwiftGen */,
 				609A28452F2F7B86007145D5 /* Sources */,
@@ -194,7 +194,7 @@
 				609A284B2F2F7B86007145D5 /* Vault */,
 				70A1000726C5B10000A10001 /* VaultWidgetShared */,
 			);
-			name = Vault;
+			name = Vylok;
 			packageProductDependencies = (
 				60A19B232F5C8A1E00607182 /* NetworkClient */,
 				60A19B2B2F5C8A8F00607182 /* Swinject */,
@@ -207,8 +207,8 @@
 				60B849512FADADB500412ACA /* FirebaseCore */,
 				60B849532FADADB500412ACA /* FirebaseCrashlytics */,
 			);
-			productName = Vault;
-			productReference = 609A28492F2F7B86007145D5 /* Vault.app */;
+			productName = Vylok;
+			productReference = 609A28492F2F7B86007145D5 /* Vylok.app */;
 			productType = "com.apple.product-type.application";
 		};
 		61B0A102307E8B0100A10001 /* VaultTests */ = {
@@ -397,7 +397,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if command -v swiftgen > /dev/null 2>&1; then\n  swiftgen config run --config \"${SRCROOT}/swiftgen.widget.yml\"\n  swiftgen run xcassets --templateName swift5 --param enumName=VylokWidgetAssetCatalog --output \"${SRCROOT}/VaultWidgetExtension/Assets.generated.swift\" \"${SRCROOT}/VaultWidgetExtension/Assets.xcassets\"\nelse\n  echo \"SwiftGen is not installed. Install it from https://github.com/SwiftGen/SwiftGen\"\nfi\n";
+			shellScript = "if command -v swiftgen > /dev/null 2>&1; then\n  swiftgen config run --config \"${SRCROOT}/swiftgen.widget.yml\"\nelse\n  echo \"SwiftGen is not installed. Install it from https://github.com/SwiftGen/SwiftGen\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -679,7 +679,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vault.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vault";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vylok.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vylok";
 			};
 			name = Debug;
 		};
@@ -705,7 +705,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vault.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vault";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vylok.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vylok";
 			};
 			name = Release;
 		};
@@ -795,7 +795,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		609A285C2F2F7B88007145D5 /* Build configuration list for PBXNativeTarget "Vault" */ = {
+		609A285C2F2F7B88007145D5 /* Build configuration list for PBXNativeTarget "Vylok" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				609A285D2F2F7B88007145D5 /* Debug */,

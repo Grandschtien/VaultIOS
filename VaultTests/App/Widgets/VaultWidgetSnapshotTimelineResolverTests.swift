@@ -1,5 +1,5 @@
 import XCTest
-@testable import Vault
+@testable import Vylok
 
 final class VaultWidgetSnapshotTimelineResolverTests: XCTestCase {
     private var calendar: Calendar!

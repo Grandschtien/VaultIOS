@@ -1,5 +1,5 @@
 import XCTest
-@testable import Vault
+@testable import Vylok
 
 final class VaultRouteParserTests: XCTestCase {
     private var sut: VylokRouteParser!

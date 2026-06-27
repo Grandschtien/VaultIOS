@@ -1,5 +1,5 @@
 import XCTest
-@testable import Vault
+@testable import Vylok
 
 final class MainCurrencyRateContractServiceTests: XCTestCase {
     func testGetCurrencyRateForwardsCurrencyAndDecodesResponse() async throws {

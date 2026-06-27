@@ -1,5 +1,5 @@
 import XCTest
-@testable import Vault
+@testable import Vylok
 
 @MainActor
 final class ExpesiesListInteractorTests: XCTestCase {

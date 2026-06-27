@@ -15,8 +15,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "609A28482F2F7B86007145D5"
-               BuildableName = "Vault.app"
-               BlueprintName = "Vault"
+               BuildableName = "Vylok.app"
+               BlueprintName = "Vylok"
                ReferencedContainer = "container:Vault.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -31,8 +31,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "609A28482F2F7B86007145D5"
-            BuildableName = "Vault.app"
-            BlueprintName = "Vault"
+            BuildableName = "Vylok.app"
+            BlueprintName = "Vylok"
             ReferencedContainer = "container:Vault.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -64,8 +64,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "609A28482F2F7B86007145D5"
-            BuildableName = "Vault.app"
-            BlueprintName = "Vault"
+            BuildableName = "Vylok.app"
+            BlueprintName = "Vylok"
             ReferencedContainer = "container:Vault.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -101,8 +101,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "609A28482F2F7B86007145D5"
-            BuildableName = "Vault.app"
-            BlueprintName = "Vault"
+            BuildableName = "Vylok.app"
+            BlueprintName = "Vylok"
             ReferencedContainer = "container:Vault.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

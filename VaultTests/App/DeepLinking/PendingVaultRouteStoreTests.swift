@@ -1,5 +1,5 @@
 import XCTest
-@testable import Vault
+@testable import Vylok
 
 final class PendingVaultRouteStoreTests: XCTestCase {
     private var sut: PendingVylokRouteStore!

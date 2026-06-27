@@ -1,5 +1,5 @@
 import XCTest
-@testable import Vault
+@testable import Vylok
 
 final class MainExpensesProviderTests: XCTestCase {
     func testFetchExpensesRequestsFiveItemsAndCapsOutputToFive() async throws {

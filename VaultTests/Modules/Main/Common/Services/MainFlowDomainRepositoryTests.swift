@@ -1,5 +1,5 @@
 import XCTest
-@testable import Vault
+@testable import Vylok
 
 final class MainFlowDomainRepositoryTests: XCTestCase {
     func testRefreshMainFlowFillsStoreAndObserverSnapshots() async throws {

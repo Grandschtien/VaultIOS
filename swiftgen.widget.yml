@@ -7,3 +7,12 @@ strings:
   outputs:
     - templateName: flat-swift5
       output: VaultWidgetExtension/Strings.generated.swift
+
+xcassets:
+  inputs:
+    - VaultWidgetExtension/Assets.xcassets
+  outputs:
+    - templateName: swift5
+      params:
+        enumName: VylokWidgetAssetCatalog
+      output: VaultWidgetExtension/Assets.generated.swift

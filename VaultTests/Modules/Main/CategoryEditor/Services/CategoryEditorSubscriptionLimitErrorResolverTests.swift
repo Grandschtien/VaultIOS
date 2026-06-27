@@ -2,7 +2,7 @@ import XCTest
 import Foundation
 import Alamofire
 @testable import NetworkClient
-@testable import Vault
+@testable import Vylok
 
 final class CategoryEditorSubscriptionLimitErrorResolverTests: XCTestCase {
     func testIsSubscriptionLimitErrorWhenStatusCodeIs429ReturnsTrue() {

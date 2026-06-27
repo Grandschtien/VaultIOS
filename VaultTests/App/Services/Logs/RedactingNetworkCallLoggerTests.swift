@@ -1,6 +1,6 @@
 import XCTest
 import NetworkClient
-@testable import Vault
+@testable import Vylok
 
 final class RedactingNetworkCallLoggerTests: XCTestCase {
     func testLogRequestRedactsSecretsAndPreservesRequestID() async {

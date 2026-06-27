@@ -1,5 +1,5 @@
 import XCTest
-@testable import Vault
+@testable import Vylok
 
 final class SubscriptionAccessContractServiceTests: XCTestCase {
     func testGetSubscriptionForwardsTargetAndDecodesResponse() async throws {

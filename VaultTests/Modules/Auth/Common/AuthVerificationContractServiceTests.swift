@@ -1,5 +1,5 @@
 import XCTest
-@testable import Vault
+@testable import Vylok
 
 final class AuthVerificationContractServiceTests: XCTestCase {
     func testStartEmailRegistrationForwardsPayload() async throws {

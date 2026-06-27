@@ -1,7 +1,7 @@
 import XCTest
 import Foundation
 import NetworkClient
-@testable import Vault
+@testable import Vylok
 
 final class AuthSessionServiceTests: XCTestCase {
     func testHasValidSessionWhenTokenIsNotExpiredReturnsTrueWithoutRefresh() async {

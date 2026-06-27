@@ -1,5 +1,5 @@
 import Foundation
-@testable import Vault
+@testable import Vylok
 
 final class AppLogServiceSpy: AppLogServiceProtocol, @unchecked Sendable {
     let sessionID: String

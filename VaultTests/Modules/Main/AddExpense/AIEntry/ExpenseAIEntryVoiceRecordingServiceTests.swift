@@ -1,7 +1,7 @@
 import XCTest
 import Speech
 import AVFoundation
-@testable import Vault
+@testable import Vylok
 
 @MainActor
 final class ExpenseAIEntryVoiceRecordingServiceTests: XCTestCase {
