@@ -8,7 +8,6 @@ final class MainViewController: UIViewController, HasContentView {
     private let interactor: MainBusinessLogic
     private let viewModelStore: ViewModelStore<MainViewModel>
     private let categoriesCollectionAdapter: CategoryCollectionViewAdapter
-    private let periodBarButtonView = MainPeriodBarButtonView()
 
     init(
         interactor: MainBusinessLogic,
@@ -46,8 +45,7 @@ final class MainViewController: UIViewController, HasContentView {
 private extension MainViewController {
     func render(with viewModel: MainViewModel) {
         contentView.configure(with: viewModel)
-        periodBarButtonView.configure(with: viewModel.periodButton)
-        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: periodBarButtonView)
+        navigationItem.leftBarButtonItem = nil
         tabBarController?.tabBar.isUserInteractionEnabled = !viewModel.isInteractionBlocked
         navigationController?.navigationBar.isUserInteractionEnabled = !viewModel.isInteractionBlocked
     }

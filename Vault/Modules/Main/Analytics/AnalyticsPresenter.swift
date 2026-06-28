@@ -28,17 +28,39 @@ final class AnalyticsPresenter: AnalyticsPresentationLogic {
 
     func presentFetchedData(_ data: AnalyticsFetchData) {
         viewModel = AnalyticsViewModel(
-            periodButton: .init(
-                tapCommand: Command { [weak handler] in
-                    await handler?.handleTapMonthFilter()
-                }
-            ),
+            periodButton: makePeriodButtonViewModel(from: data),
             state: makeState(from: data)
         )
     }
 }
 
 private extension AnalyticsPresenter {
+    func makePeriodButtonViewModel(from data: AnalyticsFetchData) -> AnalyticsMonthBarButtonView.ViewModel {
+        .init(
+            title: makePeriodButtonTitle(
+                selectedPeriod: data.selectedPeriod,
+                selectedPreset: data.selectedPreset
+            ),
+            tapCommand: Command { [weak handler] in
+                await handler?.handleTapMonthFilter()
+            }
+        )
+    }
+
+    func makePeriodButtonTitle(
+        selectedPeriod: MainSummaryPeriod,
+        selectedPreset: AnalyticsPeriodPreset?
+    ) -> String {
+        if selectedPreset == .month {
+            return formatter.formatMonth(selectedPeriod.from)
+        }
+
+        return formatter.formatPeriodTitle(
+            from: selectedPeriod.from,
+            to: selectedPeriod.to
+        )
+    }
+
     func makeState(from data: AnalyticsFetchData) -> AnalyticsViewModel.State {
         if data.isLocked {
             return .locked(makeLockedViewModel())

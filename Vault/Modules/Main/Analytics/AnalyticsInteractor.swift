@@ -20,22 +20,19 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
         }
     }
 
-    private enum Constants {
-        static let regularTier = "REGULAR"
-    }
-
     private let presenter: AnalyticsPresentationLogic
     private let router: AnalyticsRoutingLogic
     private let repository: MainFlowDomainRepositoryProtocol
     private let dataProvider: AnalyticsDataProviding
     private let observer: MainFlowDomainObserverProtocol
-    private let summaryPeriodProvider: MainSummaryPeriodServicing
+    private let periodResolver: AnalyticsPeriodResolving
     private let subscriptionAccessService: SubscriptionAccessServicing
     private let analytics: AnalyticsModuleAnalyticsTracking?
 
     private var loadingState: LoadingStatus = .idle
     private var data: AnalyticsDataModel?
     private var currentTier: SubscriptionTier = .regular
+    private var currentPeriodResolution: AnalyticsPeriodResolution?
     private var observationTask: Task<Void, Never>?
     private var didReceiveInitialObserverEvent = false
     private var hasTrackedScreenOpen: Bool = false
@@ -46,7 +43,7 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
         repository: MainFlowDomainRepositoryProtocol,
         dataProvider: AnalyticsDataProviding,
         observer: MainFlowDomainObserverProtocol,
-        summaryPeriodProvider: MainSummaryPeriodServicing,
+        periodResolver: AnalyticsPeriodResolving,
         subscriptionAccessService: SubscriptionAccessServicing,
         analytics: AnalyticsModuleAnalyticsTracking? = nil
     ) {
@@ -55,7 +52,7 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
         self.repository = repository
         self.dataProvider = dataProvider
         self.observer = observer
-        self.summaryPeriodProvider = summaryPeriodProvider
+        self.periodResolver = periodResolver
         self.subscriptionAccessService = subscriptionAccessService
         self.analytics = analytics
     }
@@ -75,14 +72,12 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
             return
         }
 
-        if subscription.hasCustomDateRangeAccess == false {
-            summaryPeriodProvider.resetToCurrentMonth()
-        }
+        let resolution = resolvedCurrentPeriod()
         guard subscription.hasAnalyticsAccess else {
             data = nil
             loadingState = .idle
             await presentFetchedData(
-                period: summaryPeriodProvider.currentMonthPeriod(),
+                resolution: resolution,
                 isLocked: true
             )
             analytics?.trackScreenSuccess()
@@ -91,7 +86,7 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
 
         startObservingIfNeeded()
         await loadData(
-            for: summaryPeriodProvider.currentMonthPeriod(),
+            for: resolution,
             showLoadingWhenEmpty: true
         )
     }
@@ -113,8 +108,18 @@ private extension AnalyticsInteractor {
     func presentUnavailableTierError() async {
         data = nil
         loadingState = .failed(.undelinedError(description: L10n.mainOverviewError))
-        await presentFetchedData(period: summaryPeriodProvider.currentMonthPeriod())
+        await presentFetchedData(resolution: resolvedCurrentPeriod())
         analytics?.trackScreenFailure(LocalError.unavailableTier)
+    }
+
+    func resolvedCurrentPeriod() -> AnalyticsPeriodResolution {
+        if let currentPeriodResolution {
+            return currentPeriodResolution
+        }
+
+        let resolution = periodResolver.defaultPeriod()
+        currentPeriodResolution = resolution
+        return resolution
     }
 
     func startObservingIfNeeded() {
@@ -141,22 +146,22 @@ private extension AnalyticsInteractor {
         }
 
         await loadData(
-            for: summaryPeriodProvider.currentMonthPeriod(),
+            for: resolvedCurrentPeriod(),
             showLoadingWhenEmpty: false
         )
     }
 
     func loadData(
-        for period: MainSummaryPeriod,
+        for resolution: AnalyticsPeriodResolution,
         showLoadingWhenEmpty: Bool
     ) async {
         if showLoadingWhenEmpty || data == nil {
             loadingState = .loading
-            await presentFetchedData(period: period)
+            await presentFetchedData(resolution: resolution)
         }
 
         do {
-            let fetchedData = try await dataProvider.fetchData(for: period)
+            let fetchedData = try await dataProvider.fetchData(for: resolution.period)
             data = fetchedData
             loadingState = .loaded
             if showLoadingWhenEmpty {
@@ -176,33 +181,35 @@ private extension AnalyticsInteractor {
             }
         }
 
-        await presentFetchedData(period: period)
+        await presentFetchedData(resolution: resolution)
     }
 
-    func changePeriod(to period: MainSummaryPeriod) async {
+    func changePeriod(to resolution: AnalyticsPeriodResolution) async {
+        currentPeriodResolution = resolution
         data = nil
         loadingState = .loading
 
-        await presentFetchedData(period: period)
+        await presentFetchedData(resolution: resolution)
 
         do {
-            let fetchedData = try await dataProvider.fetchData(for: period)
+            let fetchedData = try await dataProvider.fetchData(for: resolution.period)
             data = fetchedData
             loadingState = .loaded
         } catch {
             loadingState = .failed(.undelinedError(description: error.localizedDescription))
         }
 
-        await presentFetchedData(period: period)
+        await presentFetchedData(resolution: resolution)
     }
 
     func presentFetchedData(
-        period: MainSummaryPeriod,
+        resolution: AnalyticsPeriodResolution,
         isLocked: Bool = false
     ) async {
         await presenter.presentFetchedData(
             AnalyticsFetchData(
-                selectedPeriod: period,
+                selectedPeriod: resolution.period,
+                selectedPreset: resolution.preset,
                 isLocked: isLocked,
                 loadingState: loadingState,
                 data: data
@@ -230,7 +237,7 @@ extension AnalyticsInteractor: AnalyticsHandler {
             return
         }
 
-        let period = summaryPeriodProvider.currentMonthPeriod()
+        let period = resolvedCurrentPeriod().period
         await router.openPeriodPicker(
             selectedFromDate: period.from,
             selectedToDate: period.to,
@@ -247,7 +254,11 @@ extension AnalyticsInteractor: AnalyticsHandler {
             return
         }
 
-        await router.openCategory(id: id, name: name)
+        await router.openCategory(
+            id: id,
+            name: name,
+            period: resolvedCurrentPeriod().period
+        )
     }
 
     func handleTapSubscribe() async {
@@ -260,22 +271,15 @@ extension AnalyticsInteractor: AnalyticsHandler {
 
 extension AnalyticsInteractor: CategoryPeriodPickerOutput {
     func handleDidConfirmCategoryPeriod(fromDate: Date, to date: Date) async {
-        let updatedPeriod = MainSummaryPeriod(
+        let updatedResolution = periodResolver.resolvePeriod(
             from: fromDate,
             to: date
         )
-        guard updatedPeriod != summaryPeriodProvider.currentMonthPeriod() else {
+        guard updatedResolution != resolvedCurrentPeriod() else {
             return
         }
 
-        summaryPeriodProvider.updatePeriod(
-            from: fromDate,
-            to: date
-        )
-        let currentPeriod = summaryPeriodProvider.currentMonthPeriod()
-        await changePeriod(to: currentPeriod)
-        try? await repository.refreshMainFlow()
-        await repository.refreshLoadedPeriodDependentModules()
+        await changePeriod(to: updatedResolution)
     }
 }
 
@@ -286,15 +290,12 @@ extension AnalyticsInteractor: SubscriptionOutput {
             return
         }
 
-        if subscription.hasCustomDateRangeAccess == false {
-            summaryPeriodProvider.resetToCurrentMonth()
-        }
-
+        let resolution = resolvedCurrentPeriod()
         guard subscription.hasAnalyticsAccess else {
             data = nil
             loadingState = .idle
             await presentFetchedData(
-                period: summaryPeriodProvider.currentMonthPeriod(),
+                resolution: resolution,
                 isLocked: true
             )
             return
@@ -302,7 +303,7 @@ extension AnalyticsInteractor: SubscriptionOutput {
 
         startObservingIfNeeded()
         await loadData(
-            for: summaryPeriodProvider.currentMonthPeriod(),
+            for: resolution,
             showLoadingWhenEmpty: true
         )
     }

@@ -8,15 +8,18 @@ final class CategoryFactory: Screen {
     private let categoryID: String
     private let categoryName: String?
     private let context: MainFlowContext
+    private let initialPeriod: MainSummaryPeriod?
 
     init(
         categoryID: String,
         categoryName: String?,
-        context: MainFlowContext
+        context: MainFlowContext,
+        initialPeriod: MainSummaryPeriod? = nil
     ) {
         self.categoryID = categoryID
         self.categoryName = categoryName
         self.context = context
+        self.initialPeriod = initialPeriod
     }
 
     func build(navigator: ScreenNavigator) -> UIViewController {
@@ -27,7 +30,7 @@ final class CategoryFactory: Screen {
         @SafeInject
         var analyticsFailurePayloadResolver: AnalyticsFailurePayloadResolving
 
-        let initialPeriod = context.summaryPeriodProvider.currentMonthPeriod()
+        let initialPeriod = initialPeriod ?? context.summaryPeriodProvider.currentMonthPeriod()
         let viewModel = CategoryViewModel()
         let presenter = CategoryPresenter(
             viewModel: viewModel,

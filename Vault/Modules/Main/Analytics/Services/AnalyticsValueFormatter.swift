@@ -10,11 +10,14 @@ protocol AnalyticsValueFormatting: Sendable {
 
 struct AnalyticsValueFormatter: AnalyticsValueFormatting {
     private let amountFormatter: MainValueFormatting
+    private let localeProvider: @Sendable () -> Locale
 
     init(
-        amountFormatter: MainValueFormatting = MainValueFormatter()
+        amountFormatter: MainValueFormatting = MainValueFormatter(),
+        localeProvider: @escaping @Sendable () -> Locale = { .current }
     ) {
         self.amountFormatter = amountFormatter
+        self.localeProvider = localeProvider
     }
 
     func formatAmount(_ amount: Double, currencyCode: String) -> String {
@@ -23,8 +26,8 @@ struct AnalyticsValueFormatter: AnalyticsValueFormatting {
 
     func formatMonth(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.locale = Locale.current
-        formatter.dateFormat = "MMMM yyyy"
+        formatter.locale = localeProvider()
+        formatter.dateFormat = "LLLL yyyy"
         return formatter.string(from: date).capitalized(with: formatter.locale)
     }
 
@@ -46,7 +49,7 @@ struct AnalyticsValueFormatter: AnalyticsValueFormatting {
 private extension AnalyticsValueFormatter {
     func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.locale = Locale.current
+        formatter.locale = localeProvider()
         formatter.dateFormat = "dd.MM.yyyy"
         return formatter.string(from: date)
     }

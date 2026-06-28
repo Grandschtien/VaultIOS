@@ -40,6 +40,8 @@ private extension AnalyticsMonthBarButtonView {
         button.configuration = .plain()
         button.setTitleColor(Asset.Colors.textAndIconPrimary.color, for: .normal)
         button.titleLabel?.font = Typography.typographyMedium16
+        button.titleLabel?.lineBreakMode = .byTruncatingTail
+        button.titleLabel?.numberOfLines = 1
         button.configuration?.contentInsets = NSDirectionalEdgeInsets(
             top: spaceXS,
             leading: spaceS,

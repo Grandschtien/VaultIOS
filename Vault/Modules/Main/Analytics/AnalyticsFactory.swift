@@ -37,7 +37,7 @@ final class AnalyticsFactory: Screen {
                 categoriesService: categoriesService
             ),
             observer: context.observer,
-            summaryPeriodProvider: context.summaryPeriodProvider,
+            periodResolver: AnalyticsPeriodResolver(),
             subscriptionAccessService: subscriptionAccessService,
             analytics: AnalyticsModuleAnalyticsTracker(
                 analyticsCoreManager: analyticsCoreManager,

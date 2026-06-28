@@ -59,14 +59,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		609A285B2F2F7B88007145D5 /* Exceptions for "Vault" folder in "Vault" target */ = {
+		609A285B2F2F7B88007145D5 /* Exceptions for "Vault" folder in "Vylok" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Configuration/AppSecrets.xcconfig,
 				Configuration/LocalSecrets.xcconfig,
 				Info.plist,
 			);
-			target = 609A28482F2F7B86007145D5 /* Vault */;
+			target = 609A28482F2F7B86007145D5 /* Vylok */;
 		};
 		70A1000626C5B10000A10001 /* Exceptions for "VaultWidgetExtension" folder in "VaultWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -81,7 +81,7 @@
 		609A284B2F2F7B86007145D5 /* Vault */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				609A285B2F2F7B88007145D5 /* Exceptions for "Vault" folder in "Vault" target */,
+				609A285B2F2F7B88007145D5 /* Exceptions for "Vault" folder in "Vylok" target */,
 			);
 			path = Vault;
 			sourceTree = "<group>";
@@ -305,7 +305,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				609A28482F2F7B86007145D5 /* Vault */,
+				609A28482F2F7B86007145D5 /* Vylok */,
 				61B0A102307E8B0100A10001 /* VaultTests */,
 				70A1000A26C5B10000A10001 /* VaultWidgetExtension */,
 			);
@@ -428,7 +428,7 @@
 /* Begin PBXTargetDependency section */
 		61B0A10A307E8B0100A10001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 609A28482F2F7B86007145D5 /* Vault */;
+			target = 609A28482F2F7B86007145D5 /* Vylok */;
 			targetProxy = 61B0A109307E8B0100A10001 /* PBXContainerItemProxy */;
 		};
 		70A1000E26C5B10000A10001 /* PBXTargetDependency */ = {

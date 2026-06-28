@@ -8,14 +8,13 @@ final class AnalyticsInteractorTests: XCTestCase {
         let dataProvider = AnalyticsDataProviderStub(
             results: [.success(makeData(monthStart: aprilStart, totalAmount: 120))]
         )
-        let summaryPeriodProvider = MainSummaryPeriodServiceStub(period: aprilCurrentPeriod)
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
             repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: summaryPeriodProvider,
+            periodResolver: makePeriodResolver(),
             subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
@@ -34,14 +33,13 @@ final class AnalyticsInteractorTests: XCTestCase {
         let dataProvider = AnalyticsDataProviderStub(
             results: [.success(makeData(monthStart: aprilStart, totalAmount: 120))]
         )
-        let summaryPeriodProvider = MainSummaryPeriodServiceStub(period: aprilCurrentPeriod)
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
             repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: summaryPeriodProvider,
+            periodResolver: makePeriodResolver(),
             subscriptionAccessService: SubscriptionAccessServiceStub(
                 currentTier: "REGULAR",
                 currentSnapshot: .init(
@@ -77,7 +75,7 @@ extension AnalyticsInteractorTests {
             repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: observer,
-            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
+            periodResolver: makePeriodResolver(),
             subscriptionAccessService: SubscriptionAccessServiceStub(currentTierState: .unavailable)
         )
 
@@ -103,14 +101,13 @@ extension AnalyticsInteractorTests {
                 .failure(StubError.any)
             ]
         )
-        let summaryPeriodProvider = MainSummaryPeriodServiceStub(period: aprilCurrentPeriod)
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
             repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: summaryPeriodProvider,
+            periodResolver: makePeriodResolver(),
             subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
@@ -128,7 +125,7 @@ extension AnalyticsInteractorTests {
 }
 
 extension AnalyticsInteractorTests {
-    func testHandleDidConfirmCategoryPeriodUpdatesSharedProviderAndLoadsConfirmedRange() async {
+    func testHandleDidConfirmCategoryPeriodUpdatesLocalPeriodAndLoadsConfirmedRange() async {
         let presenter = AnalyticsPresenterSpy()
         let dataProvider = AnalyticsDataProviderStub(
             results: [
@@ -136,7 +133,6 @@ extension AnalyticsInteractorTests {
                 .success(makeData(monthStart: marchStart, totalAmount: 80))
             ]
         )
-        let summaryPeriodProvider = MainSummaryPeriodServiceStub(period: aprilCurrentPeriod)
         let repository = AnalyticsRepositorySpy()
         let sut = AnalyticsInteractor(
             presenter: presenter,
@@ -144,7 +140,7 @@ extension AnalyticsInteractorTests {
             repository: repository,
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: summaryPeriodProvider,
+            periodResolver: makePeriodResolver(),
             subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
@@ -160,9 +156,10 @@ extension AnalyticsInteractorTests {
         let refreshMainFlowCalls = await repository.refreshMainFlowCalls()
         let refreshLoadedModulesCalls = await repository.refreshLoadedPeriodDependentModulesCalls()
         XCTAssertEqual(fetchCalls, [aprilCurrentPeriod, marchCustomPeriod])
-        XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), marchCustomPeriod)
-        XCTAssertEqual(refreshMainFlowCalls, 1)
-        XCTAssertEqual(refreshLoadedModulesCalls, 1)
+        XCTAssertEqual(refreshMainFlowCalls, 0)
+        XCTAssertEqual(refreshLoadedModulesCalls, 0)
+        XCTAssertEqual(presenter.presentedData.last?.selectedPeriod, marchCustomPeriod)
+        XCTAssertNil(presenter.presentedData.last?.selectedPreset)
         XCTAssertEqual(presenter.presentedData.last?.data?.monthStart, marchStart)
     }
 }
@@ -176,14 +173,13 @@ extension AnalyticsInteractorTests {
                 .failure(StubError.any)
             ]
         )
-        let summaryPeriodProvider = MainSummaryPeriodServiceStub(period: aprilCurrentPeriod)
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
             repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: summaryPeriodProvider,
+            periodResolver: makePeriodResolver(),
             subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
@@ -197,7 +193,7 @@ extension AnalyticsInteractorTests {
 
         let fetchCalls = await dataProvider.recordedFetchCalls()
         XCTAssertEqual(fetchCalls, [aprilCurrentPeriod, marchCustomPeriod])
-        XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), marchCustomPeriod)
+        XCTAssertEqual(presenter.presentedData.last?.selectedPeriod, marchCustomPeriod)
         XCTAssertEqual(presenter.presentedData.last?.loadingState, .failed(.undelinedError(description: StubError.any.localizedDescription)))
         XCTAssertNil(presenter.presentedData.last?.data)
     }
@@ -212,8 +208,8 @@ extension AnalyticsInteractorTests {
             repository: AnalyticsRepositorySpy(),
             dataProvider: AnalyticsDataProviderStub(results: []),
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
-            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PLUS")
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
         await sut.fetchData()
@@ -222,72 +218,25 @@ extension AnalyticsInteractorTests {
         XCTAssertEqual(router.openCategoryCalls.count, 1)
         XCTAssertEqual(router.openCategoryCalls.first?.0, "food")
         XCTAssertEqual(router.openCategoryCalls.first?.1, "Food")
+        XCTAssertEqual(router.openCategoryCalls.first?.2, aprilCurrentPeriod)
     }
 }
 
 extension AnalyticsInteractorTests {
-    func testHandleTapMonthFilterRoutesWithCurrentSharedPeriod() async {
-        let router = AnalyticsRouterSpy()
-        let currentPeriod = MainSummaryPeriod(
-            from: makeDate(year: 2026, month: 4, day: 3),
-            to: makeDate(year: 2026, month: 4, day: 6)
-        )
-        let sut = AnalyticsInteractor(
-            presenter: AnalyticsPresenterSpy(),
-            router: router,
-            repository: AnalyticsRepositorySpy(),
-            dataProvider: AnalyticsDataProviderStub(results: []),
-            observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: currentPeriod),
-            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
-        )
-
-        await sut.fetchData()
-        await sut.handleTapMonthFilter()
-
-        XCTAssertEqual(router.openPeriodPickerCalls, [currentPeriod])
-    }
-
-    func testHandleTapMonthFilterWithPlusTierOpensPeriodPicker() async {
+    func testHandleTapMonthFilterRoutesWithCurrentLocalPeriod() async {
         let router = AnalyticsRouterSpy()
         let sut = AnalyticsInteractor(
             presenter: AnalyticsPresenterSpy(),
             router: router,
             repository: AnalyticsRepositorySpy(),
-            dataProvider: AnalyticsDataProviderStub(results: []),
+            dataProvider: AnalyticsDataProviderStub(
+                results: [
+                    .success(makeData(monthStart: aprilStart, totalAmount: 120)),
+                    .success(makeData(monthStart: marchStart, totalAmount: 80))
+                ]
+            ),
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
-            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PLUS")
-        )
-
-        await sut.fetchData()
-        await sut.handleTapMonthFilter()
-
-        XCTAssertEqual(router.openPeriodPickerCalls, [aprilCurrentPeriod])
-        XCTAssertNil(router.lastOpenedSubscriptionTier)
-    }
-}
-
-extension AnalyticsInteractorTests {
-    func testObserverInvalidationRefreshesCurrentSharedPeriod() async {
-        let presenter = AnalyticsPresenterSpy()
-        let dataProvider = AnalyticsDataProviderStub(
-            results: [
-                .success(makeData(monthStart: aprilStart, totalAmount: 120)),
-                .success(makeData(monthStart: marchStart, totalAmount: 80)),
-                .success(makeData(monthStart: aprilStart, totalAmount: 130)),
-                .success(makeData(monthStart: aprilStart, totalAmount: 140))
-            ]
-        )
-        let observer = AnalyticsObserverStub()
-        let summaryPeriodProvider = MainSummaryPeriodServiceStub(period: aprilCurrentPeriod)
-        let sut = AnalyticsInteractor(
-            presenter: presenter,
-            router: AnalyticsRouterSpy(),
-            repository: AnalyticsRepositorySpy(),
-            dataProvider: dataProvider,
-            observer: observer,
-            summaryPeriodProvider: summaryPeriodProvider,
+            periodResolver: makePeriodResolver(),
             subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
@@ -298,9 +247,68 @@ extension AnalyticsInteractorTests {
             to: marchCustomPeriod.to
         )
         await waitForUpdates()
+        await sut.handleTapMonthFilter()
+
+        XCTAssertEqual(router.openPeriodPickerCalls, [marchCustomPeriod])
+    }
+
+    func testHandleTapMonthFilterWithoutCustomDateAccessOpensSubscription() async {
+        let router = AnalyticsRouterSpy()
+        let sut = AnalyticsInteractor(
+            presenter: AnalyticsPresenterSpy(),
+            router: router,
+            repository: AnalyticsRepositorySpy(),
+            dataProvider: AnalyticsDataProviderStub(results: []),
+            observer: AnalyticsObserverStub(),
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(
+                currentTier: "PREMIUM",
+                currentSnapshot: .init(
+                    tier: .premium,
+                    status: .active,
+                    paidAccessUntil: nil,
+                    capabilities: [.analytics],
+                    aiRequestsLimit: 300,
+                    aiRequestsRemaining: 300,
+                    statusVersion: 42
+                )
+            )
+        )
+
+        await sut.fetchData()
+        await sut.handleTapMonthFilter()
+
+        XCTAssertTrue(router.openPeriodPickerCalls.isEmpty)
+        XCTAssertEqual(router.lastOpenedSubscriptionTier, .premium)
+    }
+}
+
+extension AnalyticsInteractorTests {
+    func testObserverInvalidationRefreshesCurrentLocalPeriod() async {
+        let presenter = AnalyticsPresenterSpy()
+        let dataProvider = AnalyticsDataProviderStub(
+            results: [
+                .success(makeData(monthStart: aprilStart, totalAmount: 120)),
+                .success(makeData(monthStart: marchStart, totalAmount: 80)),
+                .success(makeData(monthStart: marchStart, totalAmount: 140))
+            ]
+        )
+        let observer = AnalyticsObserverStub()
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
+            dataProvider: dataProvider,
+            observer: observer,
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
         await sut.handleDidConfirmCategoryPeriod(
-            fromDate: aprilCustomPeriod.from,
-            to: aprilCustomPeriod.to
+            fromDate: marchCustomPeriod.from,
+            to: marchCustomPeriod.to
         )
         await waitForUpdates()
         observer.publishOverview()
@@ -309,20 +317,20 @@ extension AnalyticsInteractorTests {
         let fetchCalls = await dataProvider.recordedFetchCalls()
         XCTAssertEqual(
             fetchCalls,
-            [aprilCurrentPeriod, marchCustomPeriod, aprilCustomPeriod, aprilCustomPeriod]
+            [aprilCurrentPeriod, marchCustomPeriod, marchCustomPeriod]
         )
-        XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), aprilCustomPeriod)
         XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 140)
+        XCTAssertEqual(presenter.presentedData.last?.selectedPeriod, marchCustomPeriod)
     }
 
-    func testFetchDataWithPlusTierKeepsSelectedPeriodAndLoadsAnalytics() async {
+    func testHandleSubscriptionDidSyncKeepsSelectedLocalPeriodAndLoadsAnalytics() async {
         let presenter = AnalyticsPresenterSpy()
-        let summaryPeriodProvider = MainSummaryPeriodServiceStub(
-            period: marchCustomPeriod,
-            defaultPeriod: aprilCurrentPeriod
-        )
         let dataProvider = AnalyticsDataProviderStub(
-            results: [.success(makeData(monthStart: marchStart, totalAmount: 120))]
+            results: [
+                .success(makeData(monthStart: aprilStart, totalAmount: 120)),
+                .success(makeData(monthStart: marchStart, totalAmount: 90)),
+                .success(makeData(monthStart: marchStart, totalAmount: 130))
+            ]
         )
         let sut = AnalyticsInteractor(
             presenter: presenter,
@@ -330,19 +338,25 @@ extension AnalyticsInteractorTests {
             repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: summaryPeriodProvider,
-            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PLUS")
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM", refreshedTier: "PREMIUM")
         )
 
         await sut.fetchData()
         await waitForUpdates()
+        await sut.handleDidConfirmCategoryPeriod(
+            fromDate: marchCustomPeriod.from,
+            to: marchCustomPeriod.to
+        )
+        await waitForUpdates()
+        await sut.handleSubscriptionDidSync()
+        await waitForUpdates()
 
         let fetchCalls = await dataProvider.recordedFetchCalls()
 
-        XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), marchCustomPeriod)
-        XCTAssertEqual(summaryPeriodProvider.resetCallsCount, 0)
-        XCTAssertEqual(fetchCalls, [marchCustomPeriod])
-        XCTAssertEqual(presenter.presentedData.last?.data?.monthStart, marchStart)
+        XCTAssertEqual(fetchCalls, [aprilCurrentPeriod, marchCustomPeriod, marchCustomPeriod])
+        XCTAssertEqual(presenter.presentedData.last?.selectedPeriod, marchCustomPeriod)
+        XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 130)
     }
 
     func testFetchDataWithRegularTierShowsLockedStateWithoutLoadingData() async {
@@ -355,7 +369,7 @@ extension AnalyticsInteractorTests {
             repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: observer,
-            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
+            periodResolver: makePeriodResolver(),
             subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "REGULAR")
         )
 
@@ -375,7 +389,7 @@ extension AnalyticsInteractorTests {
             repository: AnalyticsRepositorySpy(),
             dataProvider: AnalyticsDataProviderStub(results: []),
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
+            periodResolver: makePeriodResolver(),
             subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "REGULAR")
         )
 
@@ -392,7 +406,7 @@ extension AnalyticsInteractorTests {
         )
         let subscriptionAccessService = SubscriptionAccessServiceStub(
             currentTier: "REGULAR",
-            refreshedTier: "PLUS"
+            refreshedTier: "PREMIUM"
         )
         let sut = AnalyticsInteractor(
             presenter: presenter,
@@ -400,7 +414,7 @@ extension AnalyticsInteractorTests {
             repository: AnalyticsRepositorySpy(),
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
-            summaryPeriodProvider: MainSummaryPeriodServiceStub(period: aprilCurrentPeriod),
+            periodResolver: makePeriodResolver(),
             subscriptionAccessService: subscriptionAccessService
         )
 
@@ -465,6 +479,14 @@ private extension AnalyticsInteractorTests {
         calendar.dateInterval(of: .month, for: marchStart)?.end.addingTimeInterval(-1) ?? .distantPast
     }
 
+    func makePeriodResolver(now: Date? = nil) -> AnalyticsPeriodResolving {
+        let currentDate = now ?? aprilCurrentPeriod.to
+        return AnalyticsPeriodResolver(
+            calendar: calendar,
+            now: { currentDate }
+        )
+    }
+
     func makeDate(
         year: Int,
         month: Int,
@@ -521,12 +543,12 @@ private final class AnalyticsPresenterSpy: AnalyticsPresentationLogic {
 
 @MainActor
 private final class AnalyticsRouterSpy: AnalyticsRoutingLogic {
-    private(set) var openCategoryCalls: [(String, String)] = []
+    private(set) var openCategoryCalls: [(String, String, MainSummaryPeriod)] = []
     private(set) var openPeriodPickerCalls: [MainSummaryPeriod] = []
     private(set) var lastOpenedSubscriptionTier: SubscriptionTier?
 
-    func openCategory(id: String, name: String) {
-        openCategoryCalls.append((id, name))
+    func openCategory(id: String, name: String, period: MainSummaryPeriod) {
+        openCategoryCalls.append((id, name, period))
     }
 
     func openSubscription(

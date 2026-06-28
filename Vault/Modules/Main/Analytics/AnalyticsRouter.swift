@@ -4,7 +4,7 @@ import Nivelir
 
 @MainActor
 protocol AnalyticsRoutingLogic: Sendable {
-    func openCategory(id: String, name: String)
+    func openCategory(id: String, name: String, period: MainSummaryPeriod)
     func openSubscription(
         currentTier: SubscriptionTier,
         output: SubscriptionOutput
@@ -30,7 +30,7 @@ final class AnalyticsRouter: AnalyticsRoutingLogic {
         self.context = context
     }
 
-    func openCategory(id: String, name: String) {
+    func openCategory(id: String, name: String, period: MainSummaryPeriod) {
         screenRouter.navigate(to: { route in
             route
                 .top(.stack)
@@ -38,7 +38,8 @@ final class AnalyticsRouter: AnalyticsRoutingLogic {
                     CategoryFactory(
                         categoryID: id,
                         categoryName: name,
-                        context: context
+                        context: context,
+                        initialPeriod: period
                     )
                 )
         })

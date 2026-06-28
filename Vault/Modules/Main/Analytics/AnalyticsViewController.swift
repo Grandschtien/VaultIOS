@@ -5,7 +5,7 @@ final class AnalyticsViewController: UIHostingController<AnalyticsView> {
 
     private let interactor: AnalyticsBusinessLogic
     private let viewModelStore: ViewModelStore<AnalyticsViewModel>
-    private let periodBarButtonView = MainPeriodBarButtonView()
+    private let periodBarButtonView = AnalyticsMonthBarButtonView()
 
     init(
         interactor: AnalyticsBusinessLogic,
@@ -39,6 +39,8 @@ final class AnalyticsViewController: UIHostingController<AnalyticsView> {
 private extension AnalyticsViewController {
     func render(with viewModel: AnalyticsViewModel) {
         periodBarButtonView.configure(with: viewModel.periodButton)
-        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: periodBarButtonView)
+        navigationItem.title = nil
+        navigationItem.leftBarButtonItem = nil
+        navigationItem.titleView = periodBarButtonView
     }
 }

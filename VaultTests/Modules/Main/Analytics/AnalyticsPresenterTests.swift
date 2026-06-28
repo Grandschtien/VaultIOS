@@ -43,6 +43,7 @@ extension AnalyticsPresenterTests {
             return XCTFail("Expected loading state")
         }
 
+        XCTAssertEqual(sut.viewModel.periodButton.title, "01.04.2026 - 06.04.2026")
         XCTAssertNotEqual(sut.viewModel.periodButton.tapCommand, .nope)
     }
 }
@@ -64,6 +65,7 @@ extension AnalyticsPresenterTests {
         }
 
         XCTAssertEqual(lockedViewModel.button.title, L10n.analyticsSubscribeToSee)
+        XCTAssertEqual(sut.viewModel.periodButton.title, "01.04.2026 - 06.04.2026")
     }
 }
 
@@ -75,6 +77,7 @@ extension AnalyticsPresenterTests {
                     from: Date(timeIntervalSince1970: 1_775_001_600),
                     to: Date(timeIntervalSince1970: 1_775_433_600)
                 ),
+                selectedPreset: .month,
                 loadingState: .loaded,
                 data: AnalyticsDataModel(
                     monthStart: Date(timeIntervalSince1970: 1_775_001_600),
@@ -94,6 +97,7 @@ extension AnalyticsPresenterTests {
             return XCTFail("Expected loaded state")
         }
 
+        XCTAssertEqual(sut.viewModel.periodButton.title, "month")
         XCTAssertEqual(content.periodTitle.text, "01.04.2026 - 06.04.2026")
         XCTAssertEqual(content.totalAmount.text, "amount-240.0-USD")
         XCTAssertEqual(content.chart.legendItems.map(\.title), ["food", "shopping", "transport", "fun"])
@@ -148,6 +152,8 @@ extension AnalyticsPresenterTests {
         guard case .error = sut.viewModel.state else {
             return XCTFail("Expected error state")
         }
+
+        XCTAssertEqual(sut.viewModel.periodButton.title, "01.04.2026 - 06.04.2026")
     }
 }
 
