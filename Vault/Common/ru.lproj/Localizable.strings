@@ -70,9 +70,12 @@
 "registration_error_select_currency" = "Выберите валюту";
 
 "analytics_empty" = "Пока нет аналитики за этот месяц";
+"analytics_day" = "День";
 "analytics_of_total" = "%@ от общей суммы";
+"analytics_month" = "Месяц";
 "analytics_spent" = "Потрачено";
 "analytics_subscribe_to_see" = "Оформите подписку, чтобы увидеть аналитику";
+"analytics_week" = "Неделя";
 "analytics_this_month" = "Этот месяц";
 "analytics_top_categories" = "Топ категорий";
 "analytics_unknown_category" = "Неизвестная категория";

@@ -71,9 +71,12 @@
 "registration_error_select_currency" = "Please select currency";
 
 "analytics_empty" = "No analytics yet for this month";
+"analytics_day" = "Day";
 "analytics_of_total" = "%@ of total";
+"analytics_month" = "Month";
 "analytics_spent" = "Spent";
 "analytics_subscribe_to_see" = "Subscribe to see analytics";
+"analytics_week" = "Week";
 "analytics_this_month" = "This Month";
 "analytics_top_categories" = "Top Categories";
 "analytics_unknown_category" = "Unknown Category";

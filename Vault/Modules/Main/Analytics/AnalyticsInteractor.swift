@@ -7,11 +7,22 @@ protocol AnalyticsBusinessLogic: Sendable {
 protocol AnalyticsHandler: AnyObject, Sendable {
     func handleTapRetry() async
     func handleTapMonthFilter() async
+    func handleSelectPreset(_ preset: AnalyticsPeriodPreset) async
     func handleTapCategory(id: String, name: String) async
     func handleTapSubscribe() async
 }
 
 actor AnalyticsInteractor: AnalyticsBusinessLogic {
+    private enum LoadPresentation {
+        case initial
+        case silent
+    }
+
+    private struct CachedPresetData {
+        let resolution: AnalyticsPeriodResolution
+        let data: AnalyticsDataModel
+    }
+
     private enum LocalError: LocalizedError {
         case unavailableTier
 
@@ -31,11 +42,13 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
 
     private var loadingState: LoadingStatus = .idle
     private var data: AnalyticsDataModel?
+    private var presetDataCache: [AnalyticsPeriodPreset: CachedPresetData] = [:]
     private var currentTier: SubscriptionTier = .regular
     private var currentPeriodResolution: AnalyticsPeriodResolution?
     private var observationTask: Task<Void, Never>?
     private var didReceiveInitialObserverEvent = false
     private var hasTrackedScreenOpen: Bool = false
+    private var hasShownContentShell: Bool = false
 
     init(
         presenter: AnalyticsPresentationLogic,
@@ -85,10 +98,15 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
         }
 
         startObservingIfNeeded()
-        await loadData(
-            for: resolution,
-            showLoadingWhenEmpty: true
-        )
+        if hasShownContentShell {
+            await refreshCurrentDataSilently(for: resolution)
+        } else {
+            await loadData(
+                for: resolution,
+                presentation: .initial,
+                trackScreenResult: true
+            )
+        }
     }
 }
 
@@ -145,61 +163,235 @@ private extension AnalyticsInteractor {
             return
         }
 
-        await loadData(
-            for: resolvedCurrentPeriod(),
-            showLoadingWhenEmpty: false
-        )
+        await refreshCurrentDataSilently(for: resolvedCurrentPeriod())
     }
 
-    func loadData(
+    private func loadData(
         for resolution: AnalyticsPeriodResolution,
-        showLoadingWhenEmpty: Bool
+        presentation: LoadPresentation,
+        trackScreenResult: Bool
     ) async {
-        if showLoadingWhenEmpty || data == nil {
+        switch presentation {
+        case .initial:
+            data = nil
             loadingState = .loading
             await presentFetchedData(resolution: resolution)
+        case .silent:
+            break
+        }
+
+        if case .initial = presentation {
+            await loadInitialPresetData(
+                for: resolution,
+                trackScreenResult: trackScreenResult
+            )
+            return
         }
 
         do {
             let fetchedData = try await dataProvider.fetchData(for: resolution.period)
+            cache(fetchedData, for: resolution)
+            currentPeriodResolution = resolution
             data = fetchedData
             loadingState = .loaded
-            if showLoadingWhenEmpty {
-                analytics?.trackScreenSuccess()
-            }
+            hasShownContentShell = true
+            await presentFetchedData(resolution: resolution)
         } catch {
             if data == nil {
                 loadingState = .failed(.undelinedError(description: error.localizedDescription))
-                if showLoadingWhenEmpty {
-                    analytics?.trackScreenFailure(error)
-                }
-            } else {
-                loadingState = .loaded
-                if showLoadingWhenEmpty {
-                    analytics?.trackScreenSuccess()
-                }
+                await presentFetchedData(resolution: resolution)
+            }
+        }
+    }
+
+    func loadInitialPresetData(
+        for resolution: AnalyticsPeriodResolution,
+        trackScreenResult: Bool
+    ) async {
+        let presetResolutions = currentPresetResolutions()
+        let results = await fetchPresetData(for: presetResolutions)
+
+        for (preset, result) in results {
+            if
+                case let .success(model) = result,
+                let cachedResolution = presetResolutions[preset]
+            {
+                presetDataCache[preset] = .init(
+                    resolution: cachedResolution,
+                    data: model
+                )
             }
         }
 
-        await presentFetchedData(resolution: resolution)
+        guard let selectedPreset = resolution.preset else {
+            await loadInitialCustomData(
+                for: resolution,
+                trackScreenResult: trackScreenResult
+            )
+            return
+        }
+
+        switch results[selectedPreset] {
+        case let .success(model):
+            currentPeriodResolution = resolution
+            data = model
+            loadingState = .loaded
+            hasShownContentShell = true
+            await presentFetchedData(resolution: resolution)
+            if trackScreenResult {
+                analytics?.trackScreenSuccess()
+            }
+        case let .failure(error):
+            data = nil
+            loadingState = .failed(.undelinedError(description: error.localizedDescription))
+            await presentFetchedData(resolution: resolution)
+            if trackScreenResult {
+                analytics?.trackScreenFailure(error)
+            }
+        case .none:
+            data = nil
+            loadingState = .failed(.undelinedError(description: L10n.mainOverviewError))
+            await presentFetchedData(resolution: resolution)
+            if trackScreenResult {
+                analytics?.trackScreenFailure(LocalError.unavailableTier)
+            }
+        }
+    }
+
+    func loadInitialCustomData(
+        for resolution: AnalyticsPeriodResolution,
+        trackScreenResult: Bool
+    ) async {
+        do {
+            let fetchedData = try await dataProvider.fetchData(for: resolution.period)
+            currentPeriodResolution = resolution
+            data = fetchedData
+            loadingState = .loaded
+            hasShownContentShell = true
+            await presentFetchedData(resolution: resolution)
+            if trackScreenResult {
+                analytics?.trackScreenSuccess()
+            }
+        } catch {
+            data = nil
+            loadingState = .failed(.undelinedError(description: error.localizedDescription))
+            await presentFetchedData(resolution: resolution)
+            if trackScreenResult {
+                analytics?.trackScreenFailure(error)
+            }
+        }
+    }
+
+    func refreshCurrentDataSilently(for resolution: AnalyticsPeriodResolution) async {
+        if resolution.preset != nil {
+            await refreshPresetCacheSilently(selecting: resolution)
+            return
+        }
+
+        await loadData(
+            for: resolution,
+            presentation: .silent,
+            trackScreenResult: false
+        )
+    }
+
+    func refreshPresetCacheSilently(selecting resolution: AnalyticsPeriodResolution) async {
+        guard let selectedPreset = resolution.preset else {
+            return
+        }
+
+        let presetResolutions = currentPresetResolutions()
+        let results = await fetchPresetData(for: presetResolutions)
+
+        for (preset, result) in results {
+            if
+                case let .success(model) = result,
+                let cachedResolution = presetResolutions[preset]
+            {
+                presetDataCache[preset] = .init(
+                    resolution: cachedResolution,
+                    data: model
+                )
+            }
+        }
+
+        guard
+            let updatedResolution = presetResolutions[selectedPreset],
+            case let .success(model) = results[selectedPreset]
+        else {
+            return
+        }
+
+        currentPeriodResolution = updatedResolution
+        data = model
+        loadingState = .loaded
+        await presentFetchedData(resolution: updatedResolution)
+    }
+
+    func fetchPresetData(
+        for resolutions: [AnalyticsPeriodPreset: AnalyticsPeriodResolution]
+    ) async -> [AnalyticsPeriodPreset: Result<AnalyticsDataModel, Error>] {
+        let dataProvider = self.dataProvider
+
+        return await withTaskGroup(
+            of: (AnalyticsPeriodPreset, Result<AnalyticsDataModel, Error>).self,
+            returning: [AnalyticsPeriodPreset: Result<AnalyticsDataModel, Error>].self
+        ) { group in
+            for (preset, resolution) in resolutions {
+                group.addTask {
+                    do {
+                        return (preset, .success(try await dataProvider.fetchData(for: resolution.period)))
+                    } catch {
+                        return (preset, .failure(error))
+                    }
+                }
+            }
+
+            var results: [AnalyticsPeriodPreset: Result<AnalyticsDataModel, Error>] = [:]
+            for await (preset, result) in group {
+                results[preset] = result
+            }
+            return results
+        }
+    }
+
+    func currentPresetResolutions() -> [AnalyticsPeriodPreset: AnalyticsPeriodResolution] {
+        Dictionary(
+            uniqueKeysWithValues: AnalyticsPeriodPreset.allCases.map { preset in
+                (preset, periodResolver.resolveCurrentPeriod(for: preset))
+            }
+        )
+    }
+
+    func cache(_ data: AnalyticsDataModel, for resolution: AnalyticsPeriodResolution) {
+        guard let preset = resolution.preset else {
+            return
+        }
+
+        presetDataCache[preset] = .init(
+            resolution: resolution,
+            data: data
+        )
     }
 
     func changePeriod(to resolution: AnalyticsPeriodResolution) async {
-        currentPeriodResolution = resolution
-        data = nil
-        loadingState = .loading
-
-        await presentFetchedData(resolution: resolution)
-
-        do {
-            let fetchedData = try await dataProvider.fetchData(for: resolution.period)
-            data = fetchedData
+        if
+            let preset = resolution.preset,
+            let cachedData = presetDataCache[preset],
+            cachedData.resolution == resolution
+        {
+            currentPeriodResolution = resolution
+            data = cachedData.data
             loadingState = .loaded
-        } catch {
-            loadingState = .failed(.undelinedError(description: error.localizedDescription))
+            await presentFetchedData(resolution: resolution)
+            return
         }
 
-        await presentFetchedData(resolution: resolution)
+        await loadData(
+            for: resolution,
+            presentation: hasShownContentShell ? .silent : .initial,
+            trackScreenResult: false
+        )
     }
 
     func presentFetchedData(
@@ -212,7 +404,8 @@ private extension AnalyticsInteractor {
                 selectedPreset: resolution.preset,
                 isLocked: isLocked,
                 loadingState: loadingState,
-                data: data
+                data: data,
+                showsContentShell: hasShownContentShell
             )
         )
     }
@@ -220,7 +413,31 @@ private extension AnalyticsInteractor {
 
 extension AnalyticsInteractor: AnalyticsHandler {
     func handleTapRetry() async {
-        await fetchData()
+        guard let subscription = await resolveCurrentSubscription(forceRefresh: false) else {
+            await presentUnavailableTierError()
+            return
+        }
+
+        let resolution = resolvedCurrentPeriod()
+        guard subscription.hasAnalyticsAccess else {
+            data = nil
+            loadingState = .idle
+            await presentFetchedData(
+                resolution: resolution,
+                isLocked: true
+            )
+            return
+        }
+
+        if hasShownContentShell {
+            await refreshCurrentDataSilently(for: resolution)
+        } else {
+            await loadData(
+                for: resolution,
+                presentation: .initial,
+                trackScreenResult: true
+            )
+        }
     }
 
     func handleTapMonthFilter() async {
@@ -243,6 +460,24 @@ extension AnalyticsInteractor: AnalyticsHandler {
             selectedToDate: period.to,
             output: self
         )
+    }
+
+    func handleSelectPreset(_ preset: AnalyticsPeriodPreset) async {
+        guard let subscription = await resolveCurrentSubscription(forceRefresh: false) else {
+            await presentUnavailableTierError()
+            return
+        }
+
+        guard subscription.hasAnalyticsAccess else {
+            return
+        }
+
+        let updatedResolution = periodResolver.resolveCurrentPeriod(for: preset)
+        guard updatedResolution != resolvedCurrentPeriod() else {
+            return
+        }
+
+        await changePeriod(to: updatedResolution)
     }
 
     func handleTapCategory(id: String, name: String) async {
@@ -302,9 +537,14 @@ extension AnalyticsInteractor: SubscriptionOutput {
         }
 
         startObservingIfNeeded()
-        await loadData(
-            for: resolution,
-            showLoadingWhenEmpty: true
-        )
+        if hasShownContentShell {
+            await refreshCurrentDataSilently(for: resolution)
+        } else {
+            await loadData(
+                for: resolution,
+                presentation: .initial,
+                trackScreenResult: false
+            )
+        }
     }
 }

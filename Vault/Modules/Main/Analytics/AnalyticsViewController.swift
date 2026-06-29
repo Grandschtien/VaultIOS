@@ -38,7 +38,11 @@ final class AnalyticsViewController: UIHostingController<AnalyticsView> {
 
 private extension AnalyticsViewController {
     func render(with viewModel: AnalyticsViewModel) {
-        periodBarButtonView.configure(with: viewModel.periodButton)
+        let shouldAnimatePeriodButton = navigationItem.titleView === periodBarButtonView
+        periodBarButtonView.configure(
+            with: viewModel.periodButton,
+            animated: shouldAnimatePeriodButton
+        )
         navigationItem.title = nil
         navigationItem.leftBarButtonItem = nil
         navigationItem.titleView = periodBarButtonView

@@ -66,13 +66,8 @@ private extension AnalyticsPresenter {
             return .locked(makeLockedViewModel())
         }
 
-        if let model = data.data, model.isEmpty == false {
-            return .loaded(
-                makeContentViewModel(
-                    from: model,
-                    selectedPeriod: data.selectedPeriod
-                )
-            )
+        if data.showsContentShell {
+            return .content(makeContentViewModel(from: data))
         }
 
         switch data.loadingState {
@@ -81,15 +76,7 @@ private extension AnalyticsPresenter {
         case .failed:
             return .error(makeErrorViewModel())
         case .loaded:
-            return .empty(
-                .init(
-                    text: L10n.analyticsEmpty,
-                    font: Typography.typographyMedium16,
-                    textColor: Asset.Colors.textAndIconSecondary.color,
-                    alignment: .center,
-                    numberOfLines: 0
-                )
-            )
+            return .content(makeContentViewModel(from: data))
         }
     }
 
@@ -108,22 +95,54 @@ private extension AnalyticsPresenter {
         )
     }
 
-    func makeContentViewModel(
-        from model: AnalyticsDataModel,
-        selectedPeriod: MainSummaryPeriod
-    ) -> AnalyticsViewModel.ContentViewModel {
+    func makeContentViewModel(from data: AnalyticsFetchData) -> AnalyticsViewModel.ContentViewModel {
+        return AnalyticsViewModel.ContentViewModel(
+            presetPills: makePresetPillViewModels(selectedPreset: data.selectedPreset),
+            body: makeBodyState(from: data)
+        )
+    }
+
+    func makePresetPillViewModels(selectedPreset: AnalyticsPeriodPreset?) -> [AnalyticsViewModel.PresetPillViewModel] {
+        AnalyticsPeriodPreset.allCases.map { preset in
+            AnalyticsViewModel.PresetPillViewModel(
+                preset: preset,
+                title: title(for: preset),
+                isSelected: preset == selectedPreset,
+                tapCommand: Command { [weak handler] in
+                    await handler?.handleSelectPreset(preset)
+                }
+            )
+        }
+    }
+
+    func title(for preset: AnalyticsPeriodPreset) -> String {
+        switch preset {
+        case .day:
+            return L10n.analyticsDay
+        case .week:
+            return L10n.analyticsWeek
+        case .month:
+            return L10n.analyticsMonth
+        }
+    }
+
+    func makeBodyState(from data: AnalyticsFetchData) -> AnalyticsViewModel.BodyState {
+        if let model = data.data, model.isEmpty == false {
+            return .loaded(makeLoadedBodyViewModel(from: model))
+        }
+
+        switch data.loadingState {
+        case .failed:
+            return .error(makeErrorViewModel())
+        case .idle, .loading, .loaded:
+            return .empty(makeEmptyViewModel())
+        }
+    }
+
+    func makeLoadedBodyViewModel(from model: AnalyticsDataModel) -> AnalyticsViewModel.LoadedBodyViewModel {
         let totalAmount = formatter.formatAmount(model.totalAmount, currencyCode: model.currency)
 
-        return AnalyticsViewModel.ContentViewModel(
-            periodTitle: .init(
-                text: formatter.formatPeriodTitle(
-                    from: selectedPeriod.from,
-                    to: selectedPeriod.to
-                ),
-                font: Typography.typographyMedium18,
-                textColor: Asset.Colors.textAndIconSecondary.color,
-                alignment: .center
-            ),
+        return AnalyticsViewModel.LoadedBodyViewModel(
             totalAmount: .init(
                 text: totalAmount,
                 font: Typography.typographyBold36,
@@ -141,6 +160,16 @@ private extension AnalyticsPresenter {
                 alignment: .left
             ),
             rows: model.categories.map(makeRowViewModel)
+        )
+    }
+
+    func makeEmptyViewModel() -> Label.LabelViewModel {
+        .init(
+            text: L10n.analyticsEmpty,
+            font: Typography.typographyMedium16,
+            textColor: Asset.Colors.textAndIconSecondary.color,
+            alignment: .center,
+            numberOfLines: 0
         )
     }
 

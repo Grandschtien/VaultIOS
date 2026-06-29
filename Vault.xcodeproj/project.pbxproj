@@ -448,7 +448,7 @@
 				CODE_SIGN_ENTITLEMENTS = Vault/VaultDebug.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = PLUM5QCSG5;
 				EXTRACT_APP_INTENTS_METADATA = NO;
@@ -468,7 +468,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.egor.shkarin.Vault;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -496,7 +496,7 @@
 				CODE_SIGN_ENTITLEMENTS = Vault/VaultRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PLUM5QCSG5;
 				EXTRACT_APP_INTENTS_METADATA = NO;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -515,7 +515,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.egor.shkarin.Vault;
 				PRODUCT_NAME = "$(TARGET_NAME)";

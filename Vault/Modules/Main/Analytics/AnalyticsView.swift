@@ -13,9 +13,8 @@ struct AnalyticsView: View {
             switch viewModelStore.viewModel.state {
             case .loading: loadingView
             case let .error(viewModel): errorView(viewModel)
-            case let .empty(viewModel): emptyView(viewModel)
             case let .locked(viewModel): lockedView(viewModel)
-            case let .loaded(viewModel): loadedView(viewModel)
+            case let .content(viewModel): contentView(viewModel)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -53,10 +52,6 @@ struct AnalyticsView: View {
         }
     }
 
-    private func emptyView(_ viewModel: Label.LabelViewModel) -> some View {
-        VStack { Spacer(); text(viewModel).padding(.horizontal, metrics.spaceL); Spacer() }
-    }
-
     private func lockedView(_ viewModel: AnalyticsViewModel.LockedViewModel) -> some View {
         ZStack {
             Rectangle().fill(.ultraThinMaterial)
@@ -81,20 +76,95 @@ struct AnalyticsView: View {
         }
     }
 
-    private func loadedView(_ viewModel: AnalyticsViewModel.ContentViewModel) -> some View {
+    private func contentView(_ viewModel: AnalyticsViewModel.ContentViewModel) -> some View {
         ScrollView {
             VStack(spacing: metrics.spaceM) {
-                text(viewModel.periodTitle)
-                chartView(viewModel.chart)
-                text(viewModel.topCategoriesTitle)
-                VStack(spacing: metrics.spaceXS) {
-                    ForEach(viewModel.rows, id: \.id) { rowView($0) }
-                }
+                presetPillsView(viewModel.presetPills)
+                bodyView(viewModel.body)
             }
             .padding(.vertical, metrics.spaceS)
             .padding(.horizontal, metrics.spaceS)
+            .animation(.easeInOut(duration: 0.2), value: bodyStateID(viewModel.body))
         }
         .scrollIndicators(.hidden)
+    }
+
+    @ViewBuilder
+    private func bodyView(_ viewModel: AnalyticsViewModel.BodyState) -> some View {
+        switch viewModel {
+        case let .error(viewModel):
+            bodyErrorView(viewModel)
+                .transition(.opacity)
+        case let .empty(viewModel):
+            bodyEmptyView(viewModel)
+                .transition(.opacity)
+        case let .loaded(viewModel):
+            loadedBodyView(viewModel)
+                .transition(.opacity)
+        }
+    }
+
+    private func loadedBodyView(_ viewModel: AnalyticsViewModel.LoadedBodyViewModel) -> some View {
+        VStack(spacing: metrics.spaceM) {
+            chartView(viewModel.chart)
+            text(viewModel.topCategoriesTitle)
+            VStack(spacing: metrics.spaceXS) {
+                ForEach(viewModel.rows, id: \.id) { rowView($0) }
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.rows.count)
+    }
+
+    private func presetPillsView(_ viewModels: [AnalyticsViewModel.PresetPillViewModel]) -> some View {
+        HStack(spacing: metrics.spaceXS) {
+            ForEach(viewModels, id: \.preset) { viewModel in
+                SwiftUI.Button(action: { viewModel.tapCommand.execute() }) {
+                    Text(viewModel.title)
+                        .font(.system(size: Typography.typographySemibold14.pointSize, weight: Typography.typographySemibold14.fontWeight))
+                        .foregroundStyle(
+                            Color(
+                                uiColor: viewModel.isSelected
+                                    ? Asset.Colors.textAndIconPrimaryInverted.color
+                                    : Asset.Colors.textAndIconSecondary.color
+                            )
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, metrics.spaceXS)
+                        .background(
+                            Group {
+                                if viewModel.isSelected {
+                                    Color(uiColor: Asset.Colors.interactiveElemetsPrimary.color)
+                                } else {
+                                    Color(uiColor: Asset.Colors.interactiveInputBackground.color)
+                                }
+                            }
+                        )
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func bodyErrorView(_ viewModel: FullScreenCommonErrorView.ViewModel) -> some View {
+        SwiftUI.Button(action: { viewModel.tapCommand.execute() }) {
+            text(viewModel.title)
+                .padding(metrics.spaceS)
+                .frame(maxWidth: .infinity, minHeight: metrics.sizeXXL)
+                .background(Color(uiColor: Asset.Colors.interactiveInputBackground.color))
+                .clipShape(RoundedRectangle(cornerRadius: metrics.sizeM, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: metrics.sizeM, style: .continuous)
+                        .stroke(Color(uiColor: Asset.Colors.textAndIconPlaceseholder.color).opacity(0.35), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func bodyEmptyView(_ viewModel: Label.LabelViewModel) -> some View {
+        text(viewModel)
+            .padding(.horizontal, metrics.spaceL)
+            .padding(.vertical, metrics.spaceXL)
     }
 
     private func chartView(_ viewModel: AnalyticsChartSectionView.ViewModel) -> some View {
@@ -212,6 +282,17 @@ struct AnalyticsView: View {
     private func placeholder(width: CGFloat? = nil, height: CGFloat? = nil, radius: CGFloat) -> some View {
         SkeletonPlaceholderView(radius: radius)
             .frame(width: width, height: height)
+    }
+
+    private func bodyStateID(_ state: AnalyticsViewModel.BodyState) -> Int {
+        switch state {
+        case .error:
+            return 0
+        case .empty:
+            return 1
+        case .loaded:
+            return 2
+        }
     }
 }
 

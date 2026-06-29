@@ -1,6 +1,6 @@
 import Foundation
 
-enum AnalyticsPeriodPreset: Equatable, Sendable {
+enum AnalyticsPeriodPreset: CaseIterable, Equatable, Hashable, Sendable {
     case day
     case week
     case month
@@ -13,6 +13,7 @@ struct AnalyticsPeriodResolution: Equatable, Sendable {
 
 protocol AnalyticsPeriodResolving: Sendable {
     func defaultPeriod() -> AnalyticsPeriodResolution
+    func resolveCurrentPeriod(for preset: AnalyticsPeriodPreset) -> AnalyticsPeriodResolution
     func resolvePeriod(from: Date, to: Date) -> AnalyticsPeriodResolution
     func previousPeriod(for resolution: AnalyticsPeriodResolution) -> AnalyticsPeriodResolution
 }
@@ -34,11 +35,23 @@ final class AnalyticsPeriodResolver: AnalyticsPeriodResolving {
         .init(period: periodResolver.defaultPeriod(for: now()), preset: .month)
     }
 
+    func resolveCurrentPeriod(for preset: AnalyticsPeriodPreset) -> AnalyticsPeriodResolution {
+        let currentDate = now()
+        return .init(
+            period: makePresetPeriod(
+                preset,
+                anchorDate: currentDate,
+                currentDate: currentDate
+            ),
+            preset: preset
+        )
+    }
+
     func resolvePeriod(from: Date, to: Date) -> AnalyticsPeriodResolution {
         let currentDate = now()
         let period = periodResolver.explicitPeriod(from: from, to: to, now: currentDate)
 
-        for preset in [AnalyticsPeriodPreset.day, .week, .month] {
+        for preset in AnalyticsPeriodPreset.allCases {
             let candidate = makePresetPeriod(preset, anchorDate: period.from, currentDate: currentDate)
             if candidate == period {
                 return .init(period: period, preset: preset)

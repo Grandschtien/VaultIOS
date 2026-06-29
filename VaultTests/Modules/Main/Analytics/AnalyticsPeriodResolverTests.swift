@@ -8,6 +8,13 @@ final class AnalyticsPeriodResolverTests: XCTestCase {
         XCTAssertEqual(resolution.preset, .month)
     }
 
+    func testResolveCurrentPeriodReturnsPresetRanges() {
+        let sut = makeSut()
+        XCTAssertEqual(sut.resolveCurrentPeriod(for: .day), .init(period: currentDay, preset: .day))
+        XCTAssertEqual(sut.resolveCurrentPeriod(for: .week), .init(period: currentWeek, preset: .week))
+        XCTAssertEqual(sut.resolveCurrentPeriod(for: .month), .init(period: currentMonth, preset: .month))
+    }
+
     func testResolvePeriodRecognizesPresetRanges() {
         let sut = makeSut()
         XCTAssertEqual(sut.resolvePeriod(from: currentDay.from, to: currentDay.to), .init(period: currentDay, preset: .day))

@@ -5,9 +5,15 @@ final class AnalyticsMonthBarButtonView: UIView, LayoutScaleProviding, ImageProv
     private let button = UIButton(type: .system)
     private var tapCommand: Command = .nope
     private let chevronImageView = UIImageView()
+    private var currentViewModel = ViewModel()
+    private var preferredSize: CGSize = .zero
 
     override var intrinsicContentSize: CGSize {
-        button.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
+        preferredSize == .zero ? measuredSize() : preferredSize
+    }
+
+    override func sizeThatFits(_ size: CGSize) -> CGSize {
+        preferredSize == .zero ? measuredSize() : preferredSize
     }
 
     override init(frame: CGRect) {
@@ -21,10 +27,32 @@ final class AnalyticsMonthBarButtonView: UIView, LayoutScaleProviding, ImageProv
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(with viewModel: ViewModel) {
+    func configure(
+        with viewModel: ViewModel,
+        animated: Bool = false
+    ) {
+        let shouldAnimate = animated
+            && currentViewModel.title != viewModel.title
+            && currentViewModel.title.isEmpty == false
+
         tapCommand = viewModel.tapCommand
         button.setTitle(viewModel.title, for: .normal)
-        invalidateIntrinsicContentSize()
+        let targetSize = measuredSize()
+        currentViewModel = viewModel
+
+        guard shouldAnimate else {
+            applyPreferredSize(targetSize)
+            return
+        }
+
+        UIView.animate(
+            withDuration: 0.25,
+            delay: .zero,
+            options: [.curveEaseInOut, .allowUserInteraction]
+        ) {
+            self.applyPreferredSize(targetSize)
+            self.superview?.layoutIfNeeded()
+        }
     }
     
     override func layoutSubviews() {
@@ -75,6 +103,19 @@ private extension AnalyticsMonthBarButtonView {
     @objc
     func handleTap() {
         tapCommand.execute()
+    }
+
+    func measuredSize() -> CGSize {
+        button.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
+    }
+
+    func applyPreferredSize(_ size: CGSize) {
+        preferredSize = size
+        bounds.size = size
+        frame.size = size
+        invalidateIntrinsicContentSize()
+        setNeedsLayout()
+        layoutIfNeeded()
     }
 }
 

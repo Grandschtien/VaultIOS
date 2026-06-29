@@ -18,20 +18,36 @@ extension AnalyticsViewModel {
     enum State: Equatable {
         case loading
         case error(FullScreenCommonErrorView.ViewModel)
-        case empty(Label.LabelViewModel)
         case locked(LockedViewModel)
-        case loaded(ContentViewModel)
+        case content(ContentViewModel)
     }
 
     struct LockedViewModel: Equatable {
         let button: Button.ButtonViewModel
     }
 
-    struct ContentViewModel: Equatable {
-        let periodTitle: Label.LabelViewModel
+    struct PresetPillViewModel: Equatable {
+        let preset: AnalyticsPeriodPreset
+        let title: String
+        let isSelected: Bool
+        let tapCommand: Command
+    }
+
+    enum BodyState: Equatable {
+        case error(FullScreenCommonErrorView.ViewModel)
+        case empty(Label.LabelViewModel)
+        case loaded(LoadedBodyViewModel)
+    }
+
+    struct LoadedBodyViewModel: Equatable {
         let totalAmount: Label.LabelViewModel
         let chart: AnalyticsChartSectionView.ViewModel
         let topCategoriesTitle: Label.LabelViewModel
         let rows: [AnalyticsCategorySummaryCell.ViewModel]
+    }
+
+    struct ContentViewModel: Equatable {
+        let presetPills: [PresetPillViewModel]
+        let body: BodyState
     }
 }

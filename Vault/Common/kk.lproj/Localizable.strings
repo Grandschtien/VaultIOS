@@ -70,9 +70,12 @@
 "registration_error_select_currency" = "Валютаны таңдаңыз";
 
 "analytics_empty" = "Бұл айға арналған аналитика әлі жоқ";
+"analytics_day" = "Күн";
 "analytics_of_total" = "Жалпы соманың %@";
+"analytics_month" = "Ай";
 "analytics_spent" = "Жұмсалды";
 "analytics_subscribe_to_see" = "Аналитиканы көру үшін жазылыңыз";
+"analytics_week" = "Апта";
 "analytics_this_month" = "Осы ай";
 "analytics_top_categories" = "Үздік санаттар";
 "analytics_unknown_category" = "Белгісіз санат";
