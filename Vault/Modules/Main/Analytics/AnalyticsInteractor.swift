@@ -38,14 +38,16 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
     private let observer: MainFlowDomainObserverProtocol
     private let periodResolver: AnalyticsPeriodResolving
     private let subscriptionAccessService: SubscriptionAccessServicing
+    private let notificationCenter: NotificationCenter
     private let analytics: AnalyticsModuleAnalyticsTracking?
 
     private var loadingState: LoadingStatus = .idle
     private var data: AnalyticsDataModel?
     private var presetDataCache: [AnalyticsPeriodPreset: CachedPresetData] = [:]
-    private var currentTier: SubscriptionTier = .regular
+    private var canPresentAnalyticsContent = false
     private var currentPeriodResolution: AnalyticsPeriodResolution?
     private var observationTask: Task<Void, Never>?
+    private var subscriptionObservationTask: Task<Void, Never>?
     private var didReceiveInitialObserverEvent = false
     private var hasTrackedScreenOpen: Bool = false
     private var hasShownContentShell: Bool = false
@@ -58,6 +60,7 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
         observer: MainFlowDomainObserverProtocol,
         periodResolver: AnalyticsPeriodResolving,
         subscriptionAccessService: SubscriptionAccessServicing,
+        notificationCenter: NotificationCenter = .default,
         analytics: AnalyticsModuleAnalyticsTracking? = nil
     ) {
         self.presenter = presenter
@@ -67,36 +70,35 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
         self.observer = observer
         self.periodResolver = periodResolver
         self.subscriptionAccessService = subscriptionAccessService
+        self.notificationCenter = notificationCenter
         self.analytics = analytics
     }
 
     deinit {
         observationTask?.cancel()
+        subscriptionObservationTask?.cancel()
     }
 
     func fetchData() async {
+        startObservingSubscriptionChangesIfNeeded()
         if !hasTrackedScreenOpen {
             analytics?.trackScreenOpen()
             hasTrackedScreenOpen = true
         }
 
-        guard let subscription = await resolveCurrentSubscription(forceRefresh: false) else {
+        guard let subscription = await resolveCurrentSubscriptionSnapshot(forceRefresh: false) else {
             await presentUnavailableTierError()
             return
         }
 
         let resolution = resolvedCurrentPeriod()
         guard subscription.hasAnalyticsAccess else {
-            data = nil
-            loadingState = .idle
-            await presentFetchedData(
-                resolution: resolution,
-                isLocked: true
-            )
+            await presentLockedState(resolution: resolution)
             analytics?.trackScreenSuccess()
             return
         }
 
+        canPresentAnalyticsContent = true
         startObservingIfNeeded()
         if hasShownContentShell {
             await refreshCurrentDataSilently(for: resolution)
@@ -111,19 +113,20 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
 }
 
 private extension AnalyticsInteractor {
-    func resolveCurrentSubscription(forceRefresh: Bool) async -> SubscriptionAccessSnapshot? {
-        let subscription: SubscriptionAccessSnapshot?
+    var cacheComparisonCalendar: Calendar {
+        .current
+    }
+
+    func resolveCurrentSubscriptionSnapshot(forceRefresh: Bool) async -> SubscriptionAccessSnapshot? {
         if forceRefresh {
-            subscription = await subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
-        } else {
-            subscription = await subscriptionAccessService.currentSubscriptionSnapshot()
+            return await subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
         }
 
-        currentTier = subscription?.tier ?? .regular
-        return subscription
+        return await subscriptionAccessService.currentSubscriptionSnapshot()
     }
 
     func presentUnavailableTierError() async {
+        canPresentAnalyticsContent = false
         data = nil
         loadingState = .failed(.undelinedError(description: L10n.mainOverviewError))
         await presentFetchedData(resolution: resolvedCurrentPeriod())
@@ -138,6 +141,27 @@ private extension AnalyticsInteractor {
         let resolution = periodResolver.defaultPeriod()
         currentPeriodResolution = resolution
         return resolution
+    }
+
+    func startObservingSubscriptionChangesIfNeeded() {
+        guard subscriptionObservationTask == nil else {
+            return
+        }
+
+        let notificationCenter = notificationCenter
+        subscriptionObservationTask = Task { [weak self] in
+            for await notification in notificationCenter.notifications(
+                named: .subscriptionAccessDidChange
+            ) {
+                guard !Task.isCancelled,
+                      let self,
+                      let snapshot = notification.object as? SubscriptionAccessSnapshot else {
+                    continue
+                }
+
+                await self.handleSubscriptionAccessDidChange(snapshot)
+            }
+        }
     }
 
     func startObservingIfNeeded() {
@@ -157,6 +181,12 @@ private extension AnalyticsInteractor {
         }
     }
 
+    func stopObservingOverview() {
+        observationTask?.cancel()
+        observationTask = nil
+        didReceiveInitialObserverEvent = false
+    }
+
     func handleObserverEvent() async {
         if didReceiveInitialObserverEvent == false {
             didReceiveInitialObserverEvent = true
@@ -164,6 +194,32 @@ private extension AnalyticsInteractor {
         }
 
         await refreshCurrentDataSilently(for: resolvedCurrentPeriod())
+    }
+
+    func handleSubscriptionAccessDidChange(
+        _ snapshot: SubscriptionAccessSnapshot
+    ) async {
+        guard snapshot.hasAnalyticsAccess == false else {
+            return
+        }
+
+        guard canPresentAnalyticsContent else {
+            return
+        }
+
+        await presentLockedState(resolution: resolvedCurrentPeriod())
+    }
+
+    func presentLockedState(resolution: AnalyticsPeriodResolution) async {
+        canPresentAnalyticsContent = false
+        stopObservingOverview()
+        data = nil
+        loadingState = .idle
+        hasShownContentShell = false
+        await presentFetchedData(
+            resolution: resolution,
+            isLocked: true
+        )
     }
 
     private func loadData(
@@ -190,6 +246,10 @@ private extension AnalyticsInteractor {
 
         do {
             let fetchedData = try await dataProvider.fetchData(for: resolution.period)
+            guard canPresentAnalyticsContent else {
+                return
+            }
+
             cache(fetchedData, for: resolution)
             currentPeriodResolution = resolution
             data = fetchedData
@@ -231,6 +291,10 @@ private extension AnalyticsInteractor {
             return
         }
 
+        guard canPresentAnalyticsContent else {
+            return
+        }
+
         switch results[selectedPreset] {
         case let .success(model):
             currentPeriodResolution = resolution
@@ -264,6 +328,10 @@ private extension AnalyticsInteractor {
     ) async {
         do {
             let fetchedData = try await dataProvider.fetchData(for: resolution.period)
+            guard canPresentAnalyticsContent else {
+                return
+            }
+
             currentPeriodResolution = resolution
             data = fetchedData
             loadingState = .loaded
@@ -316,6 +384,7 @@ private extension AnalyticsInteractor {
         }
 
         guard
+            canPresentAnalyticsContent,
             let updatedResolution = presetResolutions[selectedPreset],
             case let .success(model) = results[selectedPreset]
         else {
@@ -378,12 +447,15 @@ private extension AnalyticsInteractor {
         if
             let preset = resolution.preset,
             let cachedData = presetDataCache[preset],
-            cachedData.resolution == resolution
+            matchesCachedPresetResolution(
+                cachedData.resolution,
+                requestedResolution: resolution
+            )
         {
-            currentPeriodResolution = resolution
+            currentPeriodResolution = cachedData.resolution
             data = cachedData.data
             loadingState = .loaded
-            await presentFetchedData(resolution: resolution)
+            await presentFetchedData(resolution: cachedData.resolution)
             return
         }
 
@@ -409,26 +481,41 @@ private extension AnalyticsInteractor {
             )
         )
     }
+
+    func matchesCachedPresetResolution(
+        _ cachedResolution: AnalyticsPeriodResolution,
+        requestedResolution: AnalyticsPeriodResolution
+    ) -> Bool {
+        guard let cachedPreset = cachedResolution.preset,
+              cachedPreset == requestedResolution.preset else {
+            return cachedResolution == requestedResolution
+        }
+
+        guard cachedResolution.period.from == requestedResolution.period.from else {
+            return false
+        }
+
+        return cacheComparisonCalendar.isDate(
+            cachedResolution.period.to,
+            inSameDayAs: requestedResolution.period.to
+        )
+    }
 }
 
 extension AnalyticsInteractor: AnalyticsHandler {
     func handleTapRetry() async {
-        guard let subscription = await resolveCurrentSubscription(forceRefresh: false) else {
+        guard let subscription = await resolveCurrentSubscriptionSnapshot(forceRefresh: false) else {
             await presentUnavailableTierError()
             return
         }
 
         let resolution = resolvedCurrentPeriod()
         guard subscription.hasAnalyticsAccess else {
-            data = nil
-            loadingState = .idle
-            await presentFetchedData(
-                resolution: resolution,
-                isLocked: true
-            )
+            await presentLockedState(resolution: resolution)
             return
         }
 
+        canPresentAnalyticsContent = true
         if hasShownContentShell {
             await refreshCurrentDataSilently(for: resolution)
         } else {
@@ -441,7 +528,7 @@ extension AnalyticsInteractor: AnalyticsHandler {
     }
 
     func handleTapMonthFilter() async {
-        guard let subscription = await resolveCurrentSubscription(forceRefresh: false) else {
+        guard let subscription = await resolveCurrentSubscriptionSnapshot(forceRefresh: false) else {
             await presentUnavailableTierError()
             return
         }
@@ -463,12 +550,7 @@ extension AnalyticsInteractor: AnalyticsHandler {
     }
 
     func handleSelectPreset(_ preset: AnalyticsPeriodPreset) async {
-        guard let subscription = await resolveCurrentSubscription(forceRefresh: false) else {
-            await presentUnavailableTierError()
-            return
-        }
-
-        guard subscription.hasAnalyticsAccess else {
+        guard canPresentAnalyticsContent else {
             return
         }
 
@@ -481,11 +563,7 @@ extension AnalyticsInteractor: AnalyticsHandler {
     }
 
     func handleTapCategory(id: String, name: String) async {
-        guard let subscription = await resolveCurrentSubscription(forceRefresh: false) else {
-            return
-        }
-
-        guard subscription.hasAnalyticsAccess else {
+        guard canPresentAnalyticsContent else {
             return
         }
 
@@ -497,6 +575,7 @@ extension AnalyticsInteractor: AnalyticsHandler {
     }
 
     func handleTapSubscribe() async {
+        let currentTier = await resolveCurrentSubscriptionSnapshot(forceRefresh: false)?.tier ?? .regular
         await router.openSubscription(
             currentTier: currentTier,
             output: self
@@ -520,22 +599,18 @@ extension AnalyticsInteractor: CategoryPeriodPickerOutput {
 
 extension AnalyticsInteractor: SubscriptionOutput {
     func handleSubscriptionDidSync() async {
-        guard let subscription = await resolveCurrentSubscription(forceRefresh: true) else {
+        guard let subscription = await resolveCurrentSubscriptionSnapshot(forceRefresh: true) else {
             await presentUnavailableTierError()
             return
         }
 
         let resolution = resolvedCurrentPeriod()
         guard subscription.hasAnalyticsAccess else {
-            data = nil
-            loadingState = .idle
-            await presentFetchedData(
-                resolution: resolution,
-                isLocked: true
-            )
+            await presentLockedState(resolution: resolution)
             return
         }
 
+        canPresentAnalyticsContent = true
         startObservingIfNeeded()
         if hasShownContentShell {
             await refreshCurrentDataSilently(for: resolution)

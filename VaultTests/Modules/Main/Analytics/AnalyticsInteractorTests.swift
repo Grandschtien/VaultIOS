@@ -284,6 +284,55 @@ extension AnalyticsInteractorTests {
 }
 
 extension AnalyticsInteractorTests {
+    func testHandleSelectPresetDoesNotRefetchSubscriptionOrAnalyticsDataWithinSameDay() async {
+        let presenter = AnalyticsPresenterSpy()
+        let dataProvider = AnalyticsDataProviderStub(
+            results: [.success(makeData(monthStart: aprilStart, totalAmount: 120))]
+        )
+        let subscriptionAccessService = SubscriptionAccessServiceStub(currentTier: "PREMIUM")
+        var currentDate = makeDate(
+            year: 2026,
+            month: 4,
+            day: 6,
+            hour: 10,
+            minute: 0,
+            second: 0
+        )
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
+            dataProvider: dataProvider,
+            observer: AnalyticsObserverStub(),
+            periodResolver: AnalyticsPeriodResolver(
+                calendar: calendar,
+                now: { currentDate }
+            ),
+            subscriptionAccessService: subscriptionAccessService
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+        let fetchCallsCountBeforeSwitch = await dataProvider.recordedFetchCalls().count
+
+        currentDate = makeDate(
+            year: 2026,
+            month: 4,
+            day: 6,
+            hour: 10,
+            minute: 1,
+            second: 30
+        )
+        await sut.handleSelectPreset(.week)
+        await waitForUpdates()
+
+        let fetchCallsCountAfterSwitch = await dataProvider.recordedFetchCalls().count
+        let currentSnapshotCallsCount = await subscriptionAccessService.currentSubscriptionSnapshotCallsCount()
+        XCTAssertEqual(fetchCallsCountAfterSwitch, fetchCallsCountBeforeSwitch)
+        XCTAssertEqual(currentSnapshotCallsCount, 1)
+        XCTAssertEqual(presenter.presentedData.last?.selectedPreset, .week)
+    }
+
     func testObserverInvalidationRefreshesCurrentLocalPeriod() async {
         let presenter = AnalyticsPresenterSpy()
         let dataProvider = AnalyticsDataProviderStub(
@@ -321,6 +370,44 @@ extension AnalyticsInteractorTests {
         )
         XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 140)
         XCTAssertEqual(presenter.presentedData.last?.selectedPeriod, marchCustomPeriod)
+    }
+
+    func testSubscriptionAccessDowngradeLocksScreenAndStopsOverviewRefresh() async {
+        let presenter = AnalyticsPresenterSpy()
+        let dataProvider = AnalyticsDataProviderStub(
+            results: [.success(makeData(monthStart: aprilStart, totalAmount: 120))]
+        )
+        let observer = AnalyticsObserverStub()
+        let notificationCenter = NotificationCenter()
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
+            dataProvider: dataProvider,
+            observer: observer,
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM"),
+            notificationCenter: notificationCenter
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+        let fetchCallsBeforeDowngrade = await dataProvider.recordedFetchCalls()
+        let fetchCallsCountBeforeDowngrade = fetchCallsBeforeDowngrade.count
+
+        notificationCenter.post(
+            name: .subscriptionAccessDidChange,
+            object: makeSubscriptionSnapshot(tier: .regular)
+        )
+        await waitForUpdates()
+        observer.publishOverview()
+        await waitForUpdates()
+
+        let fetchCallsAfterDowngrade = await dataProvider.recordedFetchCalls()
+        let fetchCallsCountAfterDowngrade = fetchCallsAfterDowngrade.count
+        XCTAssertEqual(fetchCallsCountAfterDowngrade, fetchCallsCountBeforeDowngrade)
+        XCTAssertEqual(presenter.presentedData.last?.isLocked, true)
+        XCTAssertNil(presenter.presentedData.last?.data)
     }
 
     func testHandleSubscriptionDidSyncKeepsSelectedLocalPeriodAndLoadsAnalytics() async {
@@ -490,14 +577,20 @@ private extension AnalyticsInteractorTests {
     func makeDate(
         year: Int,
         month: Int,
-        day: Int
+        day: Int,
+        hour: Int = 0,
+        minute: Int = 0,
+        second: Int = 0
     ) -> Date {
         calendar.date(
             from: DateComponents(
                 timeZone: calendar.timeZone,
                 year: year,
                 month: month,
-                day: day
+                day: day,
+                hour: hour,
+                minute: minute,
+                second: second
             )
         ) ?? .distantPast
     }
@@ -522,6 +615,27 @@ private extension AnalyticsInteractorTests {
                     isInteractive: true
                 )
             ]
+        )
+    }
+
+    func makeSubscriptionSnapshot(
+        tier: SubscriptionTier
+    ) -> SubscriptionAccessSnapshot {
+        let capabilities: [SubscriptionCapability] = switch tier {
+        case .premium:
+            [.analytics, .customDateRange, .aiInput]
+        case .regular:
+            []
+        }
+
+        return SubscriptionAccessSnapshot(
+            tier: tier,
+            status: .active,
+            paidAccessUntil: nil,
+            capabilities: capabilities,
+            aiRequestsLimit: capabilities.isEmpty ? 0 : 300,
+            aiRequestsRemaining: capabilities.isEmpty ? 0 : 300,
+            statusVersion: 42
         )
     }
 
@@ -723,6 +837,7 @@ private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
     private let currentSnapshotValue: SubscriptionAccessSnapshot?
     private let refreshedSnapshotValue: SubscriptionAccessSnapshot?
     private var refreshCalls = 0
+    private var currentSubscriptionSnapshotCalls = 0
 
     init(
         currentTier: String = "REGULAR",
@@ -761,12 +876,17 @@ private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
     }
 
     func currentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
+        currentSubscriptionSnapshotCalls += 1
         currentSnapshotValue
     }
 
     func refreshCurrentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
         refreshCalls += 1
         return refreshedSnapshotValue
+    }
+
+    func currentSubscriptionSnapshotCallsCount() -> Int {
+        currentSubscriptionSnapshotCalls
     }
 
     func refreshCallsCount() -> Int {
