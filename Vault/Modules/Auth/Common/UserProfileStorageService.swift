@@ -16,6 +16,7 @@ struct UserProfileDefaults: Codable, Equatable, Sendable {
     let currencyRate: Double?
     let currencyRateUpdatedAt: Date?
     let cachedSubscription: SubscriptionAccessSnapshot?
+    let cachedAIParseUsage: AIParseUsageDTO?
 
     init(
         userId: String,
@@ -25,7 +26,8 @@ struct UserProfileDefaults: Codable, Equatable, Sendable {
         language: String,
         currencyRate: Double? = nil,
         currencyRateUpdatedAt: Date? = nil,
-        cachedSubscription: SubscriptionAccessSnapshot? = nil
+        cachedSubscription: SubscriptionAccessSnapshot? = nil,
+        cachedAIParseUsage: AIParseUsageDTO? = nil
     ) {
         self.userId = userId
         self.email = email
@@ -35,6 +37,7 @@ struct UserProfileDefaults: Codable, Equatable, Sendable {
         self.currencyRate = currencyRate
         self.currencyRateUpdatedAt = currencyRateUpdatedAt
         self.cachedSubscription = cachedSubscription
+        self.cachedAIParseUsage = cachedAIParseUsage
     }
 }
 
@@ -95,7 +98,8 @@ extension UserProfileDefaults {
             language: language,
             currencyRate: rate,
             currencyRateUpdatedAt: updatedAt,
-            cachedSubscription: cachedSubscription
+            cachedSubscription: cachedSubscription,
+            cachedAIParseUsage: cachedAIParseUsage
         )
     }
 
@@ -110,7 +114,22 @@ extension UserProfileDefaults {
             language: language,
             currencyRate: currencyRate,
             currencyRateUpdatedAt: currencyRateUpdatedAt,
-            cachedSubscription: cachedSubscription
+            cachedSubscription: cachedSubscription,
+            cachedAIParseUsage: cachedAIParseUsage
+        )
+    }
+
+    func withCachedAIParseUsage(_ cachedAIParseUsage: AIParseUsageDTO?) -> UserProfileDefaults {
+        UserProfileDefaults(
+            userId: userId,
+            email: email,
+            name: name,
+            currency: currency,
+            language: language,
+            currencyRate: currencyRate,
+            currencyRateUpdatedAt: currencyRateUpdatedAt,
+            cachedSubscription: cachedSubscription,
+            cachedAIParseUsage: cachedAIParseUsage
         )
     }
 }

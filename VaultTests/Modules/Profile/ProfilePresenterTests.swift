@@ -22,6 +22,27 @@ final class ProfilePresenterTests: XCTestCase {
 }
 
 extension ProfilePresenterTests {
+    func testPresentFetchedDataWithAiParseUsageWithoutSubscriptionHidesPlanUsage() {
+        sut.presentFetchedData(
+            ProfileFetchData(
+                loadingState: .loaded,
+                aiParseUsage: .init(
+                    entriesUsed: 15,
+                    entriesLimit: 300,
+                    resetsAt: Date(timeIntervalSince1970: 1_775_001_600)
+                )
+            )
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        XCTAssertNil(content.plan.usage)
+    }
+}
+
+extension ProfilePresenterTests {
     func testPresentFetchedDataLoadingBuildsLoadingState() {
         sut.presentFetchedData(
             ProfileFetchData(
@@ -42,6 +63,40 @@ extension ProfilePresenterTests {
         XCTAssertEqual(content.logoutButton.title, L10n.profileLogout)
         XCTAssertEqual(content.deleteAccountButton.title, L10n.profileDeleteAccount)
         XCTAssertEqual(content.version.text, L10n.profileVersion("2.4.0", "302"))
+    }
+}
+
+extension ProfilePresenterTests {
+    func testPresentFetchedDataWithAiParseUsageAndSubscriptionShowsPlanUsage() {
+        sut.presentFetchedData(
+            ProfileFetchData(
+                loadingState: .loaded,
+                subscription: .init(
+                    tier: .premium,
+                    status: .active,
+                    paidAccessUntil: nil,
+                    capabilities: [],
+                    aiRequestsLimit: 300,
+                    aiRequestsRemaining: 285,
+                    statusVersion: 42,
+                    hasAiRequestsLimit: true
+                ),
+                aiParseUsage: .init(
+                    entriesUsed: 15,
+                    entriesLimit: 300,
+                    resetsAt: Date(timeIntervalSince1970: 1_775_001_600)
+                )
+            )
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        XCTAssertEqual(
+            content.plan.usage?.text,
+            L10n.profileAiRequestsUsage("15", "300")
+        )
     }
 }
 
@@ -68,6 +123,11 @@ extension ProfilePresenterTests {
                     aiRequestsRemaining: 285,
                     statusVersion: 42,
                     hasAiRequestsLimit: true
+                ),
+                aiParseUsage: .init(
+                    entriesUsed: 15,
+                    entriesLimit: 300,
+                    resetsAt: Date(timeIntervalSince1970: 1_775_001_600)
                 ),
                 appVersion: "2.4.0",
                 appBuild: "302"
@@ -100,7 +160,45 @@ extension ProfilePresenterTests {
 }
 
 extension ProfilePresenterTests {
-    func testPresentFetchedDataWithoutAiUsageHidesPlanUsageRow() {
+    func testPresentFetchedDataWithoutAiUsageFallsBackToSubscriptionUsage() {
+        sut.presentFetchedData(
+            ProfileFetchData(
+                loadingState: .loaded,
+                profile: .init(
+                    id: "user-1",
+                    email: "sarah@example.com",
+                    name: "Sarah Connor",
+                    currency: "GBP",
+                    preferredLanguage: "en-GB",
+                    tier: "ACTIVE",
+                    tierValidUntil: nil
+                ),
+                subscription: .init(
+                    tier: .premium,
+                    status: .active,
+                    paidAccessUntil: nil,
+                    capabilities: [],
+                    aiRequestsLimit: 300,
+                    aiRequestsRemaining: 285,
+                    statusVersion: 42,
+                    hasAiRequestsLimit: true
+                )
+            )
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        XCTAssertEqual(
+            content.plan.usage?.text,
+            L10n.profileAiRequestsUsage("15", "300")
+        )
+    }
+}
+
+extension ProfilePresenterTests {
+    func testPresentFetchedDataWithoutAiUsageAndSubscriptionLimitHidesPlanUsageRow() {
         sut.presentFetchedData(
             ProfileFetchData(
                 loadingState: .loaded,

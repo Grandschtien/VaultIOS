@@ -2,6 +2,7 @@
 
 import Foundation
 import UIKit
+import RevenueCat
 
 enum SubscriptionTierState: Equatable, Sendable {
     case resolved(SubscriptionTier)
@@ -87,11 +88,7 @@ extension SubscriptionAccessServicing {
     func startMonitoring() {}
 }
 
-final class SubscriptionAccessService: SubscriptionAccessServicing, @unchecked Sendable {
-    private enum Constants {
-        static let regularTier = "REGULAR"
-    }
-
+final class SubscriptionAccessService: NSObject, SubscriptionAccessServicing, @unchecked Sendable {
     private let subscriptionService: SubscriptionAccessContractServicing
     private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let notificationCenter: NotificationCenter
@@ -111,6 +108,7 @@ final class SubscriptionAccessService: SubscriptionAccessServicing, @unchecked S
         self.userProfileStorageService = userProfileStorageService
         self.notificationCenter = notificationCenter
         self.currentDate = currentDate
+        super.init()
 
         logoutObserver = notificationCenter.addObserver(
             forName: .authSessionDidLogout,
@@ -188,21 +186,26 @@ final class SubscriptionAccessService: SubscriptionAccessServicing, @unchecked S
 
     func startMonitoring() {
         Task { [weak self] in
-            guard let self,
-                  await monitoringState.beginMonitoringIfNeeded() else {
+            guard let self else {
                 return
             }
 
-            let notificationsTask = Task<Void, Never> { [weak self] in
-                guard let self else {
-                    return
+            if await monitoringState.beginMonitoringIfNeeded() {
+                let notificationsTask = Task<Void, Never> { [weak self] in
+                    guard let self else {
+                        return
+                    }
+
+                    await self.observeMonitoringNotifications()
                 }
-
-                await self.observeMonitoringNotifications()
+                await monitoringState.setNotificationsTask(notificationsTask)
             }
-            await monitoringState.setNotificationsTask(notificationsTask)
 
-            _ = await refreshCurrentTierSourceState()
+            if await monitoringState.beginRevenueCatMonitoringIfNeeded() {
+                Purchases.shared.delegate = self
+            }
+
+            await self.enqueueBackgroundRefresh()
         }
     }
 }
@@ -264,6 +267,10 @@ private extension SubscriptionAccessService {
         for context: UserContext,
         fallbackSnapshot: SubscriptionAccessSnapshot?
     ) async -> SubscriptionAccessRefreshState {
+        guard isSameCurrentUser(as: context) else {
+            return .unavailable
+        }
+
         do {
             let snapshot = try await subscriptionService.refreshSubscription()
             return await resolveAcceptedRefreshState(
@@ -272,6 +279,10 @@ private extension SubscriptionAccessService {
                 fallbackSnapshot: fallbackSnapshot
             )
         } catch {
+            guard isSameCurrentUser(as: context) else {
+                return .unavailable
+            }
+
             if let fallbackSnapshot {
                 await scheduleRefreshIfNeeded(for: fallbackSnapshot)
                 return .cache(fallbackSnapshot)
@@ -295,16 +306,27 @@ private extension SubscriptionAccessService {
 
         if let localSnapshot,
            snapshot.statusVersion < localSnapshot.statusVersion {
+            guard isSameCurrentUser(as: context) else {
+                return .unavailable
+            }
+
             await state.setSnapshot(localSnapshot, for: context.userID)
             await scheduleRefreshIfNeeded(for: localSnapshot)
             return .cache(localSnapshot)
+        }
+
+        guard isSameCurrentUser(as: context) else {
+            return .unavailable
         }
 
         await state.setSnapshot(snapshot, for: context.userID)
         persistSnapshot(snapshot, for: context)
         await scheduleRefreshIfNeeded(for: snapshot)
         if localSnapshot != snapshot {
-            await notifySubscriptionAccessDidChange(snapshot)
+            await notifySubscriptionAccessDidChange(
+                snapshot,
+                previousSnapshot: localSnapshot
+            )
         }
         return .network(snapshot)
     }
@@ -336,6 +358,10 @@ private extension SubscriptionAccessService {
         )
     }
 
+    func isSameCurrentUser(as context: UserContext) -> Bool {
+        currentUserContext()?.userID == context.userID
+    }
+
     func shouldRefresh(for snapshot: SubscriptionAccessSnapshot) -> Bool {
         guard let paidAccessUntil = snapshot.paidAccessUntil else {
             return false
@@ -364,7 +390,7 @@ private extension SubscriptionAccessService {
                 return
             }
 
-            _ = await self?.refreshCurrentTierSourceState()
+            await self?.enqueueBackgroundRefresh()
         }
 
         await monitoringState.setExpiryRefreshTask(refreshTask)
@@ -376,7 +402,19 @@ private extension SubscriptionAccessService {
                 return
             }
 
-            _ = await refreshCurrentTierSourceState()
+            await enqueueBackgroundRefresh()
+        }
+    }
+
+    func enqueueBackgroundRefresh() async {
+        await monitoringState.enqueueRefresh { [weak self] in
+            _ = await self?.refreshCurrentSubscriptionSnapshot()
+        }
+    }
+
+    func handleRevenueCatCustomerInfoUpdated() {
+        Task { [weak self] in
+            await self?.enqueueBackgroundRefresh()
         }
     }
 
@@ -386,12 +424,20 @@ private extension SubscriptionAccessService {
     }
 
     func notifySubscriptionAccessDidChange(
-        _ snapshot: SubscriptionAccessSnapshot
+        _ snapshot: SubscriptionAccessSnapshot,
+        previousSnapshot: SubscriptionAccessSnapshot?
     ) async {
         await MainActor.run {
+            let userInfo = previousSnapshot.map {
+                [
+                    SubscriptionAccessDidChangeNotificationUserInfoKey.previousSnapshot: $0
+                ]
+            }
+
             notificationCenter.post(
                 name: .subscriptionAccessDidChange,
-                object: snapshot
+                object: snapshot,
+                userInfo: userInfo
             )
         }
     }
@@ -423,8 +469,11 @@ private extension SubscriptionAccessService {
 
     actor MonitoringState {
         private var isMonitoringStarted = false
+        private var isRevenueCatMonitoringStarted = false
         private var notificationsTask: Task<Void, Never>?
         private var expiryRefreshTask: Task<Void, Never>?
+        private var refreshTask: Task<Void, Never>?
+        private var hasPendingRefresh = false
 
         func beginMonitoringIfNeeded() -> Bool {
             guard !isMonitoringStarted else {
@@ -432,6 +481,15 @@ private extension SubscriptionAccessService {
             }
 
             isMonitoringStarted = true
+            return true
+        }
+
+        func beginRevenueCatMonitoringIfNeeded() -> Bool {
+            guard !isRevenueCatMonitoringStarted else {
+                return false
+            }
+
+            isRevenueCatMonitoringStarted = true
             return true
         }
 
@@ -449,11 +507,61 @@ private extension SubscriptionAccessService {
             expiryRefreshTask = nil
         }
 
+        func enqueueRefresh(
+            _ operation: @escaping @Sendable () async -> Void
+        ) {
+            if refreshTask != nil {
+                hasPendingRefresh = true
+                return
+            }
+
+            refreshTask = Task { [weak self] in
+                while true {
+                    guard !Task.isCancelled else {
+                        break
+                    }
+
+                    await operation()
+
+                    let shouldContinue = await self?.consumePendingRefresh() ?? false
+                    guard shouldContinue else {
+                        break
+                    }
+                }
+
+                await self?.finishRefresh()
+            }
+        }
+
+        func consumePendingRefresh() -> Bool {
+            guard hasPendingRefresh else {
+                return false
+            }
+
+            hasPendingRefresh = false
+            return true
+        }
+
+        func finishRefresh() {
+            refreshTask = nil
+            hasPendingRefresh = false
+        }
+
         func cancelAll() {
             notificationsTask?.cancel()
             notificationsTask = nil
             cancelExpiryRefreshTask()
+            refreshTask?.cancel()
+            refreshTask = nil
+            hasPendingRefresh = false
             isMonitoringStarted = false
+            isRevenueCatMonitoringStarted = false
         }
+    }
+}
+
+extension SubscriptionAccessService: PurchasesDelegate {
+    func purchases(_ purchases: Purchases, receivedUpdated customerInfo: CustomerInfo) {
+        handleRevenueCatCustomerInfoUpdated()
     }
 }

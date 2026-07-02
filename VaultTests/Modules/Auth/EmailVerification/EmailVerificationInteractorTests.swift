@@ -78,12 +78,14 @@ final class EmailVerificationInteractorTests: XCTestCase {
             )
         )
         let subscriptionInitializer = SubscriptionInitializerSpy()
+        let widgetSnapshotSyncService = WidgetSnapshotSyncSpy()
         let sut = makeSut(
             service: service,
             router: router,
             tokenStorage: tokenStorage,
             profileStorage: profileStorage,
             subscriptionInitializer: subscriptionInitializer,
+            widgetSnapshotSyncService: widgetSnapshotSyncService,
             context: EmailVerificationContext(
                 source: .registration,
                 email: "jane@example.com",
@@ -116,6 +118,7 @@ final class EmailVerificationInteractorTests: XCTestCase {
             )
         )
         XCTAssertEqual(await subscriptionInitializer.capturedUserIds(), ["1"])
+        XCTAssertEqual(widgetSnapshotSyncService.syncSnapshotCallsCount, 0)
         XCTAssertEqual(await registrationStorage.loadDraft(), .init())
     }
 
@@ -183,6 +186,7 @@ private extension EmailVerificationInteractorTests {
         tokenStorage: TokenStorageServiceProtocol = TokenStorageSpy(),
         profileStorage: UserProfileStorageServiceProtocol = UserProfileStorageSpy(),
         subscriptionInitializer: SubscriptionInitializerLogic = SubscriptionInitializerSpy(),
+        widgetSnapshotSyncService: VylokWidgetSnapshotSyncing = WidgetSnapshotSyncSpy(),
         context: EmailVerificationContext = .init(
             source: .login,
             email: "jane@example.com",
@@ -198,7 +202,7 @@ private extension EmailVerificationInteractorTests {
             tokenStorageService: tokenStorage,
             userProfileStorageService: profileStorage,
             subscriptionInitializer: subscriptionInitializer,
-            widgetSnapshotSyncService: WidgetSnapshotSyncSpy(),
+            widgetSnapshotSyncService: widgetSnapshotSyncService,
             context: context,
             registrationStorage: registrationStorage
         )
@@ -249,7 +253,11 @@ private final class AuthVerificationContractServiceSpy: AuthVerificationContract
 }
 
 private final class WidgetSnapshotSyncSpy: VylokWidgetSnapshotSyncing, @unchecked Sendable {
-    func syncSnapshot() async {}
+    private(set) var syncSnapshotCallsCount = 0
+
+    func syncSnapshot() async {
+        syncSnapshotCallsCount += 1
+    }
 
     func clearSnapshot() {}
 }

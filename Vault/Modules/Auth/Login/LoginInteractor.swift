@@ -116,7 +116,6 @@ extension LoginInteractor: LoginHandler {
             )
 
             await subscriptionInitializerLogic.setUserId(result.user.id)
-            await widgetSnapshotSyncService.syncSnapshot()
             await presentFetchedData(.loaded)
             analytics?.trackLoginSuccess()
             await router.openMainFlow()

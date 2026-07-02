@@ -123,7 +123,6 @@ private extension EmailVerificationInteractor {
         )
         userProfileStorageService.saveProfile(UserProfileDefaults(user: response.user))
         await subscriptionInitializer.setUserId(response.user.id)
-        await widgetSnapshotSyncService.syncSnapshot()
     }
 
     func inlineErrorMessage(for error: AuthVerificationContractError) -> String? {

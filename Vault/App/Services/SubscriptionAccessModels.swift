@@ -97,6 +97,21 @@ struct SubscriptionAccessSnapshot: Codable, Equatable, Sendable {
     func hasCapability(_ capability: SubscriptionCapability) -> Bool {
         capabilities.contains(capability)
     }
+
+    var semanticStatus: SemanticStatus {
+        SemanticStatus(
+            tier: tier,
+            status: status,
+            paidAccessUntil: paidAccessUntil,
+            capabilities: Set(capabilities)
+        )
+    }
+
+    func hasSameSemanticStatus(
+        as other: SubscriptionAccessSnapshot?
+    ) -> Bool {
+        semanticStatus == other?.semanticStatus
+    }
 }
 
 struct SubscriptionAccessResponseDTO: Codable, Equatable, Sendable {
@@ -106,6 +121,15 @@ struct SubscriptionAccessResponseDTO: Codable, Equatable, Sendable {
     let capabilities: [SubscriptionCapability]
     let usageLimits: UsageLimitsDTO?
     let statusVersion: Int
+}
+
+extension SubscriptionAccessSnapshot {
+    struct SemanticStatus: Equatable, Sendable {
+        let tier: SubscriptionTier
+        let status: SubscriptionStatus
+        let paidAccessUntil: Date?
+        let capabilities: Set<SubscriptionCapability>
+    }
 }
 
 extension SubscriptionAccessResponseDTO {

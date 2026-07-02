@@ -281,9 +281,11 @@ private extension AppAssembly {
         
         container.register(SubscriptionInitializerLogic.self) { resolver in
             let profile = resolver.resolve(ProfileContractServicing.self)!
+            let subscriptionAccessService = resolver.resolve(SubscriptionAccessServicing.self)!
             return SubscriptionInitializer(
                 apiKey: resolvedRevenueCatAPIKey(),
-                profileService: profile
+                profileService: profile,
+                subscriptionAccessService: subscriptionAccessService
             )
         }
         .inObjectScope(.container)
@@ -296,11 +298,6 @@ private extension AppAssembly {
             return SubscriptionService(appLogService: appLogService)
         }
         .inObjectScope(.transient)
-        
-        container.register(SubscriptionUpdatesListenerLogic.self) { resolver in
-            return SubscriptionUpdatesListener()
-        }
-        .inObjectScope(.container)
         
         container.register(UserCurrencyConverting.self) { resolver in
             guard let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self) else {

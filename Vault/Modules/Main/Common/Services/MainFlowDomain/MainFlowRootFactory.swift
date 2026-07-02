@@ -15,6 +15,8 @@ final class MainFlowRootFactory: Screen {
         @SafeInject
         var pendingRouteStore: PendingVylokRouteStoring
         @SafeInject
+        var subscriptionInitializer: SubscriptionInitializerLogic
+        @SafeInject
         var widgetSnapshotSyncService: VylokWidgetSnapshotSyncing
         @SafeInject
         var widgetEntryDestinationResolver: VylokWidgetEntryDestinationResolving
@@ -50,6 +52,7 @@ final class MainFlowRootFactory: Screen {
         let interactor = MainFlowRootInteractor(
             context: context,
             pendingRouteStore: pendingRouteStore,
+            subscriptionInitializer: subscriptionInitializer,
             widgetEntryDestinationResolver: widgetEntryDestinationResolver,
             subscriptionAccessService: subscriptionAccessService,
             widgetSubscriptionOutput: widgetSubscriptionOutput,

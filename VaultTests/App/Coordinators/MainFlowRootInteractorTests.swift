@@ -5,8 +5,10 @@ final class MainFlowRootInteractorTests: XCTestCase {
     func testHandlePendingRouteIfNeededRoutesHome() async {
         let pendingRouteStore = PendingVaultRouteStoreSpy(route: .home)
         let router = await MainActor.run { MainFlowRootRouterSpy() }
+        let subscriptionInitializer = SubscriptionInitializerSpy()
         let sut = makeSut(
             pendingRouteStore: pendingRouteStore,
+            subscriptionInitializer: subscriptionInitializer,
             router: router
         )
 
@@ -15,6 +17,7 @@ final class MainFlowRootInteractorTests: XCTestCase {
         let routeToHomeCalls = await MainActor.run { router.routeToHomeCallsCount }
         XCTAssertEqual(routeToHomeCalls, 1)
         XCTAssertEqual(pendingRouteStore.consumeCallsCount, 1)
+        XCTAssertEqual(await subscriptionInitializer.initializeCallsCount(), 0)
     }
 
     func testHandlePendingRouteIfNeededRoutesResolvedWidgetEntry() async {
@@ -23,8 +26,10 @@ final class MainFlowRootInteractorTests: XCTestCase {
             destination: .manualEntry
         )
         let router = await MainActor.run { MainFlowRootRouterSpy() }
+        let subscriptionInitializer = SubscriptionInitializerSpy()
         let sut = makeSut(
             pendingRouteStore: pendingRouteStore,
+            subscriptionInitializer: subscriptionInitializer,
             widgetEntryDestinationResolver: resolver,
             router: router
         )
@@ -33,6 +38,7 @@ final class MainFlowRootInteractorTests: XCTestCase {
 
         let recordedDestination = await MainActor.run { router.recordedWidgetEntryDestination }
         XCTAssertEqual(recordedDestination, .manualEntry)
+        XCTAssertEqual(await subscriptionInitializer.initializeCallsCount(), 1)
         XCTAssertEqual(await resolver.resolveCallsCount(), 1)
     }
 
@@ -42,8 +48,10 @@ final class MainFlowRootInteractorTests: XCTestCase {
             currentTier: .premium
         )
         let router = await MainActor.run { MainFlowRootRouterSpy() }
+        let subscriptionInitializer = SubscriptionInitializerSpy()
         let sut = makeSut(
             pendingRouteStore: pendingRouteStore,
+            subscriptionInitializer: subscriptionInitializer,
             subscriptionAccessService: subscriptionAccessService,
             router: router
         )
@@ -52,14 +60,17 @@ final class MainFlowRootInteractorTests: XCTestCase {
 
         let recordedTier = await MainActor.run { router.recordedSubscriptionTier }
         XCTAssertEqual(recordedTier, .premium)
+        XCTAssertEqual(await subscriptionInitializer.initializeCallsCount(), 1)
         XCTAssertEqual(subscriptionAccessService.currentTierStateCallsCount, 1)
     }
 
     func testHandlePendingRouteIfNeededDoesNothingWhenViewIsNotVisible() async {
         let pendingRouteStore = PendingVaultRouteStoreSpy(route: .aiEntry)
         let router = await MainActor.run { MainFlowRootRouterSpy() }
+        let subscriptionInitializer = SubscriptionInitializerSpy()
         let sut = makeSut(
             pendingRouteStore: pendingRouteStore,
+            subscriptionInitializer: subscriptionInitializer,
             router: router
         )
 
@@ -73,12 +84,14 @@ final class MainFlowRootInteractorTests: XCTestCase {
         XCTAssertEqual(routeToHomeCalls, 0)
         XCTAssertEqual(widgetEntryCalls, 0)
         XCTAssertEqual(subscriptionCalls, 0)
+        XCTAssertEqual(await subscriptionInitializer.initializeCallsCount(), 0)
     }
 }
 
 private extension MainFlowRootInteractorTests {
     func makeSut(
         pendingRouteStore: PendingVylokRouteStoring = PendingVaultRouteStoreSpy(),
+        subscriptionInitializer: SubscriptionInitializerLogic = SubscriptionInitializerSpy(),
         widgetEntryDestinationResolver: VylokWidgetEntryDestinationResolving = WidgetEntryDestinationResolverSpy(
             destination: .aiEntry
         ),
@@ -88,6 +101,7 @@ private extension MainFlowRootInteractorTests {
         MainFlowRootInteractor(
             context: makeContext(),
             pendingRouteStore: pendingRouteStore,
+            subscriptionInitializer: subscriptionInitializer,
             widgetEntryDestinationResolver: widgetEntryDestinationResolver,
             subscriptionAccessService: subscriptionAccessService,
             widgetSubscriptionOutput: SubscriptionOutputSpy(),
@@ -102,6 +116,22 @@ private extension MainFlowRootInteractorTests {
             repository: MainFlowDomainRepositorySpy(),
             summaryPeriodProvider: MainSummaryPeriodProvider()
         )
+    }
+}
+
+private actor SubscriptionInitializerSpy: SubscriptionInitializerLogic {
+    private var recordedInitializeCallsCount: Int = .zero
+
+    func initialize() async {
+        recordedInitializeCallsCount += 1
+    }
+
+    func setUserId(_ id: String) async {}
+
+    func logout() async {}
+
+    func initializeCallsCount() -> Int {
+        recordedInitializeCallsCount
     }
 }
 

@@ -159,6 +159,12 @@ private extension AnalyticsInteractor {
                     continue
                 }
 
+                if snapshot.hasSameSemanticStatus(
+                    as: notification.previousSubscriptionAccessSnapshot
+                ) {
+                    continue
+                }
+
                 await self.handleSubscriptionAccessDidChange(snapshot)
             }
         }

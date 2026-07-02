@@ -7,6 +7,7 @@ struct ProfileFetchData: Sendable {
     let loadingState: LoadingStatus
     let profile: ProfileResponseDTO?
     let subscription: SubscriptionAccessSnapshot?
+    let aiParseUsage: AIParseUsageDTO?
     let selectedCurrencyCode: String?
     let isSavingCurrency: Bool
     let isLoggingOut: Bool
@@ -18,6 +19,7 @@ struct ProfileFetchData: Sendable {
         loadingState: LoadingStatus = .idle,
         profile: ProfileResponseDTO? = nil,
         subscription: SubscriptionAccessSnapshot? = nil,
+        aiParseUsage: AIParseUsageDTO? = nil,
         selectedCurrencyCode: String? = nil,
         isSavingCurrency: Bool = false,
         isLoggingOut: Bool = false,
@@ -28,6 +30,7 @@ struct ProfileFetchData: Sendable {
         self.loadingState = loadingState
         self.profile = profile
         self.subscription = subscription
+        self.aiParseUsage = aiParseUsage
         self.selectedCurrencyCode = selectedCurrencyCode
         self.isSavingCurrency = isSavingCurrency
         self.isLoggingOut = isLoggingOut

@@ -108,7 +108,10 @@ private extension ProfilePresenter {
                     textColor: Asset.Colors.textAndIconPrimaryInverted.color.withAlphaComponent(0.75),
                     alignment: .left
                 ),
-                usage: aiRequestsUsageViewModel(from: data.subscription),
+                usage: aiRequestsUsageViewModel(
+                    usage: data.aiParseUsage,
+                    subscription: data.subscription
+                ),
                 tapCommand: Command { [weak handler] in
                     await handler?.handleTapSubscription()
                 }
@@ -256,7 +259,8 @@ private extension ProfilePresenter {
     }
 
     func aiRequestsUsageViewModel(
-        from subscription: SubscriptionAccessSnapshot?
+        usage: AIParseUsageDTO?,
+        subscription: SubscriptionAccessSnapshot?
     ) -> Label.LabelViewModel? {
         guard let subscription,
               subscription.hasAiRequestsLimit,
@@ -264,11 +268,23 @@ private extension ProfilePresenter {
             return nil
         }
 
-        return .init(
-            text: L10n.profileAiRequestsUsage(
+        let usageText: String?
+
+        if let usage,
+           usage.entriesLimit > .zero {
+            usageText = L10n.profileAiRequestsUsage(
+                String(usage.entriesUsed),
+                String(usage.entriesLimit)
+            )
+        } else {
+            usageText = L10n.profileAiRequestsUsage(
                 String(subscription.aiRequestsUsed),
                 String(subscription.aiRequestsLimit)
-            ),
+            )
+        }
+
+        return .init(
+            text: usageText ?? "",
             font: Typography.typographyRegular14,
             textColor: Asset.Colors.textAndIconPrimaryInverted.color.withAlphaComponent(0.75),
             alignment: .left

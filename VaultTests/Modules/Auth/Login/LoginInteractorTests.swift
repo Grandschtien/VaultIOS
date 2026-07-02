@@ -27,12 +27,14 @@ final class LoginInteractorTests: XCTestCase {
         let router = LoginRouterSpy()
         let tokenStorage = TokenStorageSpy()
         let profileStorage = UserProfileStorageSpy()
+        let widgetSnapshotSyncService = WidgetSnapshotSyncSpy()
         let sut = makeSut(
             authVerificationService: authVerificationService,
             presenter: presenter,
             router: router,
             tokenStorage: tokenStorage,
-            profileStorage: profileStorage
+            profileStorage: profileStorage,
+            widgetSnapshotSyncService: widgetSnapshotSyncService
         )
 
         await sut.handleEmailDidChange("name@example.com")
@@ -71,6 +73,7 @@ final class LoginInteractorTests: XCTestCase {
         XCTAssertEqual(router.openedMainFlowCount, 1)
         XCTAssertTrue(router.presentedErrors.isEmpty)
         XCTAssertTrue(router.emailVerificationContexts.isEmpty)
+        XCTAssertEqual(widgetSnapshotSyncService.syncSnapshotCallsCount, 0)
 
         guard let lastData = presenter.presentedData.last else {
             return XCTFail("Expected presenter update")
@@ -221,7 +224,8 @@ private extension LoginInteractorTests {
         presenter: LoginPresentationLogic,
         router: LoginRoutingLogic,
         tokenStorage: TokenStorageServiceProtocol,
-        profileStorage: UserProfileStorageServiceProtocol
+        profileStorage: UserProfileStorageServiceProtocol,
+        widgetSnapshotSyncService: VylokWidgetSnapshotSyncing = WidgetSnapshotSyncSpy()
     ) -> LoginInteractor {
         LoginInteractor(
             authVerificationService: authVerificationService,
@@ -230,7 +234,7 @@ private extension LoginInteractorTests {
             tokenStorageService: tokenStorage,
             subscriptionInitializerLogic: SubscriptionInitializerSpy(),
             userProfileStorageService: profileStorage,
-            widgetSnapshotSyncService: WidgetSnapshotSyncSpy()
+            widgetSnapshotSyncService: widgetSnapshotSyncService
         )
     }
 
@@ -244,7 +248,11 @@ private extension LoginInteractorTests {
 }
 
 private final class WidgetSnapshotSyncSpy: VylokWidgetSnapshotSyncing, @unchecked Sendable {
-    func syncSnapshot() async {}
+    private(set) var syncSnapshotCallsCount = 0
+
+    func syncSnapshot() async {
+        syncSnapshotCallsCount += 1
+    }
 
     func clearSnapshot() {}
 }

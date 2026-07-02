@@ -1,4 +1,5 @@
 import XCTest
+@testable import NetworkClient
 @testable import Vylok
 
 @MainActor
@@ -168,12 +169,16 @@ extension ExpenseAIEntryInteractorTests {
                 ]
             )
         )
+        let userProfileStorageService = UserProfileStorageSpy(
+            profile: .init(userId: "1", email: "test@example.com", name: "Test", currency: "USD", language: "en")
+        )
         let sut = makeSUT(
             presenter: presenter,
             router: router,
             aiParseService: service,
             subscriptionAccessService: subscriptionAccessService,
-            observer: observer
+            observer: observer,
+            userProfileStorageService: userProfileStorageService
         )
 
         await sut.handleChangePrompt("Coffee 5")
@@ -186,6 +191,7 @@ extension ExpenseAIEntryInteractorTests {
         XCTAssertEqual(router.openedDrafts?.first?.amountText, "5")
         XCTAssertEqual(router.openedDrafts?.first?.currencyCode, "EUR")
         XCTAssertEqual(router.openedDrafts?.first?.selectedCategory?.id, "food")
+        XCTAssertEqual(userProfileStorageService.loadProfile()?.cachedAIParseUsage, usage)
         XCTAssertEqual(refreshCallsCount, 1)
         XCTAssertTrue(router.presentedErrors.isEmpty)
         XCTAssertEqual(presenter.presentedData.last?.loadingState, .loading)
@@ -214,6 +220,119 @@ extension ExpenseAIEntryInteractorTests {
         XCTAssertEqual(presenter.presentedData.last?.loadingState, .idle)
         XCTAssertTrue(presenter.presentedData.last?.isPromptEditable ?? false)
         XCTAssertTrue(presenter.presentedData.last?.isCloseEnabled ?? false)
+    }
+
+    func testHandleTapProcessFailureWithNon500StatusPersistsUsageFromRefreshedSubscription() async {
+        let presenter = ExpenseAIEntryPresenterSpy()
+        let router = ExpenseAIEntryRouterSpy()
+        let userProfileStorageService = UserProfileStorageSpy(
+            profile: .init(
+                userId: "1",
+                email: "test@example.com",
+                name: "Test",
+                currency: "USD",
+                language: "en",
+                cachedAIParseUsage: .init(
+                    entriesUsed: 2,
+                    entriesLimit: 300,
+                    resetsAt: Date(timeIntervalSince1970: 1_735_725_600)
+                )
+            )
+        )
+        let subscriptionAccessService = SubscriptionAccessServiceStub(
+            refreshedSnapshot: .init(
+                tier: .premium,
+                status: .active,
+                paidAccessUntil: nil,
+                capabilities: [.analytics, .customDateRange, .aiInput],
+                aiRequestsLimit: 300,
+                aiRequestsRemaining: 297,
+                statusVersion: 42
+            )
+        )
+        let service = AIParseServiceSpy(
+            result: .failure(
+                NetworkClientError.statusCode(
+                    code: 400,
+                    ResponseStub(statusCode: 400),
+                    ErrorMetadata(request: nil)
+                )
+            )
+        )
+        let sut = makeSUT(
+            presenter: presenter,
+            router: router,
+            aiParseService: service,
+            subscriptionAccessService: subscriptionAccessService,
+            userProfileStorageService: userProfileStorageService
+        )
+
+        await sut.handleChangePrompt("Coffee 5")
+        await sut.handleTapProcess()
+
+        XCTAssertEqual(
+            userProfileStorageService.loadProfile()?.cachedAIParseUsage,
+            .init(
+                entriesUsed: 3,
+                entriesLimit: 300,
+                resetsAt: Date(timeIntervalSince1970: 1_735_725_600)
+            )
+        )
+    }
+
+    func testHandleTapProcessFailureWith500StatusDoesNotPersistUsageFromRefreshedSubscription() async {
+        let presenter = ExpenseAIEntryPresenterSpy()
+        let router = ExpenseAIEntryRouterSpy()
+        let initialUsage = AIParseUsageDTO(
+            entriesUsed: 2,
+            entriesLimit: 300,
+            resetsAt: Date(timeIntervalSince1970: 1_735_725_600)
+        )
+        let userProfileStorageService = UserProfileStorageSpy(
+            profile: .init(
+                userId: "1",
+                email: "test@example.com",
+                name: "Test",
+                currency: "USD",
+                language: "en",
+                cachedAIParseUsage: initialUsage
+            )
+        )
+        let subscriptionAccessService = SubscriptionAccessServiceStub(
+            refreshedSnapshot: .init(
+                tier: .premium,
+                status: .active,
+                paidAccessUntil: nil,
+                capabilities: [.analytics, .customDateRange, .aiInput],
+                aiRequestsLimit: 300,
+                aiRequestsRemaining: 297,
+                statusVersion: 42
+            )
+        )
+        let service = AIParseServiceSpy(
+            result: .failure(
+                NetworkClientError.statusCode(
+                    code: 500,
+                    ResponseStub(statusCode: 500),
+                    ErrorMetadata(request: nil)
+                )
+            )
+        )
+        let sut = makeSUT(
+            presenter: presenter,
+            router: router,
+            aiParseService: service,
+            subscriptionAccessService: subscriptionAccessService,
+            userProfileStorageService: userProfileStorageService
+        )
+
+        await sut.handleChangePrompt("Coffee 5")
+        await sut.handleTapProcess()
+
+        XCTAssertEqual(
+            userProfileStorageService.loadProfile()?.cachedAIParseUsage,
+            initialUsage
+        )
     }
 
     func testHandleTapProcessSubscriptionLimitForFreeUserOpensPaywall() async {
@@ -380,6 +499,7 @@ private extension ExpenseAIEntryInteractorTests {
             router: resolvedRouter,
             aiParseService: resolvedAIParseService,
             subscriptionAccessService: subscriptionAccessService,
+            userProfileStorageService: userProfileStorageService,
             subscriptionLimitErrorResolver: subscriptionLimitErrorResolver,
             voiceRecordingService: resolvedVoiceRecordingService,
             observer: observer,
@@ -603,6 +723,15 @@ private final class MainFlowObserverStub: MainFlowDomainObserverProtocol, @unche
 
 private enum ExpenseAIEntryTestError: Error {
     case any
+}
+
+private struct ResponseStub: Response {
+    let statusCode: Int
+    let data: Data? = nil
+    let request: URLRequest? = nil
+    let response: HTTPURLResponse? = nil
+    let description: String = ""
+    let debugDescription: String = ""
 }
 
 private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {

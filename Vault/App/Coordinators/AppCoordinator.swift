@@ -33,13 +33,11 @@ final class AppCoordinator {
         AppLogBridge.log(category: .app, name: "start", source: "AppCoordinator")
         appAssebler.resolver.resolve(FirstRunKeychainCleanupServiceProtocol.self)?
             .clearKeychainIfNeeded()
-        appAssebler.resolver.resolve(SubscriptionAccessServicing.self)?.startMonitoring()
         observeLogoutEvents()
         observeSubscriptionAccessDidChange()
         
         Task {
             await appAssebler.resolver.resolve(SubscriptionInitializerLogic.self)!.initialize()
-            appAssebler.resolver.resolve(SubscriptionUpdatesListenerLogic.self)!.start()
         }
 
         Task { [weak self] in
@@ -109,7 +107,17 @@ private extension AppCoordinator {
             forName: .subscriptionAccessDidChange,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self] notification in
+            guard let currentSnapshot = notification.object as? SubscriptionAccessSnapshot else {
+                return
+            }
+
+            if currentSnapshot.hasSameSemanticStatus(
+                as: notification.previousSubscriptionAccessSnapshot
+            ) {
+                return
+            }
+
             Task { @MainActor [weak self] in
                 guard let widgetSnapshotSyncService = self?.resolveWidgetSnapshotSyncService() else {
                     return

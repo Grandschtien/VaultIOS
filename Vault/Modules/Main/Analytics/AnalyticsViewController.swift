@@ -38,13 +38,19 @@ final class AnalyticsViewController: UIHostingController<AnalyticsView> {
 
 private extension AnalyticsViewController {
     func render(with viewModel: AnalyticsViewModel) {
+        navigationItem.title = nil
+        navigationItem.leftBarButtonItem = nil
+
+        if case .locked = viewModel.state {
+            navigationItem.titleView = nil
+            return
+        }
+
         let shouldAnimatePeriodButton = navigationItem.titleView === periodBarButtonView
         periodBarButtonView.configure(
             with: viewModel.periodButton,
             animated: shouldAnimatePeriodButton
         )
-        navigationItem.title = nil
-        navigationItem.leftBarButtonItem = nil
         navigationItem.titleView = periodBarButtonView
     }
 }

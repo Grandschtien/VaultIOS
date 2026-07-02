@@ -66,12 +66,14 @@ extension SubscriptionAccessServiceTests {
 
         let expectation = expectation(description: "Subscription access changed")
         var receivedSnapshot: SubscriptionAccessSnapshot?
+        var previousSnapshot: SubscriptionAccessSnapshot?
         let token = notificationCenter.addObserver(
             forName: .subscriptionAccessDidChange,
             object: nil,
             queue: .main
         ) { notification in
             receivedSnapshot = notification.object as? SubscriptionAccessSnapshot
+            previousSnapshot = notification.previousSubscriptionAccessSnapshot
             expectation.fulfill()
         }
         defer {
@@ -84,6 +86,7 @@ extension SubscriptionAccessServiceTests {
 
         XCTAssertEqual(refreshedSnapshot?.aiRequestsRemaining, 272)
         XCTAssertEqual(receivedSnapshot?.aiRequestsRemaining, 272)
+        XCTAssertEqual(previousSnapshot?.aiRequestsRemaining, 273)
     }
 }
 
@@ -259,6 +262,53 @@ extension SubscriptionAccessServiceTests {
 }
 
 extension SubscriptionAccessServiceTests {
+    func testStartMonitoringEnqueuesBackgroundRefreshAndAttachesRevenueCatDelegate() async {
+        let subscriptionService = SubscriptionAccessContractServiceStub(
+            results: [.success(makeSnapshot(tier: "PREMIUM", statusVersion: 41))],
+            refreshResults: [.success(makeSnapshot(tier: "PREMIUM", statusVersion: 42))]
+        )
+        let sut = SubscriptionAccessService(
+            subscriptionService: subscriptionService,
+            userProfileStorageService: UserProfileStorageServiceSpy(
+                storedProfile: makeStoredProfile(userID: "user-1")
+            )
+        )
+        defer {
+            Purchases.shared.delegate = nil
+        }
+
+        sut.startMonitoring()
+        await waitUntilCallsCount(1, for: subscriptionService)
+
+        XCTAssertEqual(await subscriptionService.callsCount(), 1)
+        XCTAssertTrue(Purchases.shared.delegate === sut)
+    }
+
+    func testRevenueCatUpdateCoalescesBackgroundRefreshes() async {
+        let subscriptionService = BlockingSubscriptionAccessContractServiceStub(
+            snapshot: makeSnapshot(tier: "PREMIUM", statusVersion: 42)
+        )
+        let sut = SubscriptionAccessService(
+            subscriptionService: subscriptionService,
+            userProfileStorageService: UserProfileStorageServiceSpy(
+                storedProfile: makeStoredProfile(userID: "user-1")
+            )
+        )
+
+        sut.handleRevenueCatCustomerInfoUpdated()
+        await waitUntilRefreshStarted(1, for: subscriptionService)
+
+        sut.handleRevenueCatCustomerInfoUpdated()
+        sut.handleRevenueCatCustomerInfoUpdated()
+        await subscriptionService.resumeNextRefresh()
+        await waitUntilRefreshStarted(2, for: subscriptionService)
+        await subscriptionService.resumeNextRefresh()
+        await waitUntilRefreshCompleted(2, for: subscriptionService)
+
+        XCTAssertEqual(await subscriptionService.callsCount(), 2)
+        XCTAssertEqual(await subscriptionService.maxConcurrentRefreshes(), 1)
+    }
+
     func testStartMonitoringRefreshesOnLaunchAndForeground() async {
         let notificationCenter = NotificationCenter()
         let subscriptionService = SubscriptionAccessContractServiceStub(
@@ -468,6 +518,36 @@ private extension SubscriptionAccessServiceTests {
 
         XCTFail("Expected calls count to reach \(expectedCount)")
     }
+
+    func waitUntilRefreshStarted(
+        _ expectedCount: Int,
+        for subscriptionService: BlockingSubscriptionAccessContractServiceStub
+    ) async {
+        for _ in 0..<200 {
+            if await subscriptionService.callsCount() >= expectedCount {
+                return
+            }
+
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        XCTFail("Expected refresh count to reach \(expectedCount)")
+    }
+
+    func waitUntilRefreshCompleted(
+        _ expectedCount: Int,
+        for subscriptionService: BlockingSubscriptionAccessContractServiceStub
+    ) async {
+        for _ in 0..<200 {
+            if await subscriptionService.completedRefreshesCount() >= expectedCount {
+                return
+            }
+
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        XCTFail("Expected completed refresh count to reach \(expectedCount)")
+    }
 }
 
 private actor SubscriptionAccessContractServiceStub: SubscriptionAccessContractServicing {
@@ -498,6 +578,61 @@ private actor SubscriptionAccessContractServiceStub: SubscriptionAccessContractS
 
     func callsCount() -> Int {
         getSubscriptionCallsCount + refreshSubscriptionCallsCount
+    }
+}
+
+private actor BlockingSubscriptionAccessContractServiceStub: SubscriptionAccessContractServicing {
+    private let snapshot: SubscriptionAccessSnapshot
+    private var refreshSubscriptionCallsCount = 0
+    private var completedRefreshes = 0
+    private var currentConcurrentRefreshes = 0
+    private var maxConcurrentRefreshesValue = 0
+    private var queuedContinuations: [CheckedContinuation<Void, Never>] = []
+
+    init(snapshot: SubscriptionAccessSnapshot) {
+        self.snapshot = snapshot
+    }
+
+    func getSubscription() async throws -> SubscriptionAccessSnapshot {
+        try await refreshSubscription()
+    }
+
+    func refreshSubscription() async throws -> SubscriptionAccessSnapshot {
+        refreshSubscriptionCallsCount += 1
+        currentConcurrentRefreshes += 1
+        maxConcurrentRefreshesValue = max(
+            maxConcurrentRefreshesValue,
+            currentConcurrentRefreshes
+        )
+
+        await withCheckedContinuation { continuation in
+            queuedContinuations.append(continuation)
+        }
+
+        currentConcurrentRefreshes -= 1
+        completedRefreshes += 1
+        return snapshot
+    }
+
+    func resumeNextRefresh() {
+        guard !queuedContinuations.isEmpty else {
+            return
+        }
+
+        let continuation = queuedContinuations.removeFirst()
+        continuation.resume()
+    }
+
+    func callsCount() -> Int {
+        refreshSubscriptionCallsCount
+    }
+
+    func completedRefreshesCount() -> Int {
+        completedRefreshes
+    }
+
+    func maxConcurrentRefreshes() -> Int {
+        maxConcurrentRefreshesValue
     }
 }
 

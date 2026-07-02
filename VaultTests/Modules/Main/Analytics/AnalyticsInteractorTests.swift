@@ -410,6 +410,40 @@ extension AnalyticsInteractorTests {
         XCTAssertNil(presenter.presentedData.last?.data)
     }
 
+    func testUsageOnlyNotificationDoesNotLockScreenWhenSemanticStatusMatches() async {
+        let presenter = AnalyticsPresenterSpy()
+        let dataProvider = AnalyticsDataProviderStub(
+            results: [.success(makeData(monthStart: aprilStart, totalAmount: 120))]
+        )
+        let notificationCenter = NotificationCenter()
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
+            dataProvider: dataProvider,
+            observer: AnalyticsObserverStub(),
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM"),
+            notificationCenter: notificationCenter
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+
+        notificationCenter.post(
+            name: .subscriptionAccessDidChange,
+            object: makeSubscriptionSnapshot(tier: .regular, aiRequestsRemaining: 271),
+            userInfo: [
+                SubscriptionAccessDidChangeNotificationUserInfoKey.previousSnapshot:
+                    makeSubscriptionSnapshot(tier: .regular, aiRequestsRemaining: 272)
+            ]
+        )
+        await waitForUpdates()
+
+        XCTAssertEqual(presenter.presentedData.last?.isLocked, false)
+        XCTAssertEqual(await dataProvider.recordedFetchCalls(), [aprilCurrentPeriod])
+    }
+
     func testHandleSubscriptionDidSyncKeepsSelectedLocalPeriodAndLoadsAnalytics() async {
         let presenter = AnalyticsPresenterSpy()
         let dataProvider = AnalyticsDataProviderStub(
@@ -619,7 +653,8 @@ private extension AnalyticsInteractorTests {
     }
 
     func makeSubscriptionSnapshot(
-        tier: SubscriptionTier
+        tier: SubscriptionTier,
+        aiRequestsRemaining: Int? = nil
     ) -> SubscriptionAccessSnapshot {
         let capabilities: [SubscriptionCapability] = switch tier {
         case .premium:
@@ -634,7 +669,7 @@ private extension AnalyticsInteractorTests {
             paidAccessUntil: nil,
             capabilities: capabilities,
             aiRequestsLimit: capabilities.isEmpty ? 0 : 300,
-            aiRequestsRemaining: capabilities.isEmpty ? 0 : 300,
+            aiRequestsRemaining: aiRequestsRemaining ?? (capabilities.isEmpty ? 0 : 300),
             statusVersion: 42
         )
     }

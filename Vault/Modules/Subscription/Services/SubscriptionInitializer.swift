@@ -19,13 +19,16 @@ actor SubscriptionInitializer: SubscriptionInitializerLogic {
     private let apiKey: String
     private var isInitialized = false
     private let profileService: ProfileContractServicing
+    private let subscriptionAccessService: SubscriptionAccessServicing
 
     init(
         apiKey: String,
-        profileService: ProfileContractServicing
+        profileService: ProfileContractServicing,
+        subscriptionAccessService: SubscriptionAccessServicing
     ) {
         self.apiKey = apiKey
         self.profileService = profileService
+        self.subscriptionAccessService = subscriptionAccessService
     }
 
     func initialize() async {
@@ -43,12 +46,14 @@ actor SubscriptionInitializer: SubscriptionInitializerLogic {
         }
 
         isInitialized = true
+        subscriptionAccessService.startMonitoring()
     }
 
     func setUserId(_ id: String) async {
         if isInitialized {
             do {
                 _ = try await Purchases.shared.logIn(id)
+                subscriptionAccessService.startMonitoring()
             } catch {
                 assertionFailure("RevenueCat logIn failed: \(error)")
             }

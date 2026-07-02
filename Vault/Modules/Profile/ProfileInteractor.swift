@@ -35,6 +35,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
     private var hasTrackedScreenOpen: Bool = false
     private var profile: ProfileResponseDTO?
     private var subscription: SubscriptionAccessSnapshot?
+    private var aiParseUsage: AIParseUsageDTO?
     private var selectedCurrencyCode: String?
     private var subscriptionObservationTask: Task<Void, Never>?
 
@@ -78,6 +79,7 @@ actor ProfileInteractor: ProfileBusinessLogic {
         isDeletingAccount = false
         profile = nil
         subscription = nil
+        aiParseUsage = userProfileStorageService.loadProfile()?.cachedAIParseUsage
         let cachedCurrency = normalizedCurrencyCode(
             userProfileStorageService.loadProfile()?.currency
         )
@@ -166,6 +168,7 @@ private extension ProfileInteractor {
                 loadingState: loadingState,
                 profile: profile,
                 subscription: subscription,
+                aiParseUsage: aiParseUsage,
                 selectedCurrencyCode: selectedCurrencyCode,
                 isSavingCurrency: isSavingCurrency,
                 isLoggingOut: isLoggingOut,
@@ -250,7 +253,8 @@ private extension ProfileInteractor {
                 language: profile.preferredLanguage,
                 currencyRate: rateToUsd,
                 currencyRateUpdatedAt: Date(),
-                cachedSubscription: currentLocalProfile?.cachedSubscription
+                cachedSubscription: currentLocalProfile?.cachedSubscription,
+                cachedAIParseUsage: currentLocalProfile?.cachedAIParseUsage
             )
         )
     }

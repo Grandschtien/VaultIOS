@@ -1,4 +1,5 @@
 import Foundation
+import NetworkClient
 
 protocol ExpenseAIEntryBusinessLogic: Sendable {
     func fetchData() async
@@ -25,6 +26,7 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
     private let router: ExpenseAIEntryRoutingLogic
     private let aiParseService: MainAIParseContractServicing
     private let subscriptionAccessService: SubscriptionAccessServicing
+    private let userProfileStorageService: UserProfileStorageServiceProtocol
     private let subscriptionLimitErrorResolver: ExpenseAIEntrySubscriptionLimitErrorResolving
     private let voiceRecordingService: ExpenseAIEntryVoiceRecordingServicing
     private let observer: MainFlowDomainObserverProtocol
@@ -42,6 +44,7 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
         router: ExpenseAIEntryRoutingLogic,
         aiParseService: MainAIParseContractServicing,
         subscriptionAccessService: SubscriptionAccessServicing,
+        userProfileStorageService: UserProfileStorageServiceProtocol,
         subscriptionLimitErrorResolver: ExpenseAIEntrySubscriptionLimitErrorResolving,
         voiceRecordingService: ExpenseAIEntryVoiceRecordingServicing,
         observer: MainFlowDomainObserverProtocol,
@@ -53,6 +56,7 @@ actor ExpenseAIEntryInteractor: ExpenseAIEntryBusinessLogic {
         self.router = router
         self.aiParseService = aiParseService
         self.subscriptionAccessService = subscriptionAccessService
+        self.userProfileStorageService = userProfileStorageService
         self.subscriptionLimitErrorResolver = subscriptionLimitErrorResolver
         self.voiceRecordingService = voiceRecordingService
         self.observer = observer
@@ -161,8 +165,57 @@ private extension ExpenseAIEntryInteractor {
             _ = await subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
             return response
         } catch {
-            _ = await subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
+            let refreshedSubscription = await subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
+
+            if shouldPersistUsageOnFailure(for: error),
+               let refreshedSubscription {
+                persistUsage(from: refreshedSubscription)
+            }
+
             throw error
+        }
+    }
+
+    func persistUsage(_ usage: AIParseUsageDTO) {
+        guard let profile = userProfileStorageService.loadProfile() else {
+            return
+        }
+
+        userProfileStorageService.saveProfile(profile.withCachedAIParseUsage(usage))
+    }
+
+    func persistUsage(from subscription: SubscriptionAccessSnapshot) {
+        guard subscription.aiRequestsLimit > .zero,
+              let profile = userProfileStorageService.loadProfile() else {
+            return
+        }
+
+        let resetsAt = profile.cachedAIParseUsage?.resetsAt ?? Date()
+        let usage = AIParseUsageDTO(
+            entriesUsed: subscription.aiRequestsUsed,
+            entriesLimit: subscription.aiRequestsLimit,
+            resetsAt: resetsAt
+        )
+
+        userProfileStorageService.saveProfile(profile.withCachedAIParseUsage(usage))
+    }
+
+    func shouldPersistUsageOnFailure(for error: Error) -> Bool {
+        guard let statusCode = statusCode(from: error) else {
+            return false
+        }
+
+        return statusCode != 500
+    }
+
+    func statusCode(from error: Error) -> Int? {
+        switch error {
+        case let NetworkClientError.statusCode(code, _, _):
+            return code
+        case let NetworkClientError.underlying(_, response, _):
+            return response?.statusCode
+        default:
+            return nil
         }
     }
 }
@@ -242,6 +295,7 @@ extension ExpenseAIEntryInteractor: ExpenseAIEntryHandler {
                     currencyHint: currentCurrencyCode()
                 )
             )
+            persistUsage(response.usage)
 
             loadingState = .idle
 

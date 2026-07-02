@@ -37,6 +37,7 @@ struct ExpenseAIEntryFactory: Screen {
             router: router,
             aiParseService: aiParseService,
             subscriptionAccessService: subscriptionAccessService,
+            userProfileStorageService: userProfileStorageService,
             subscriptionLimitErrorResolver: ExpenseAIEntrySubscriptionLimitErrorResolver(),
             voiceRecordingService: voiceRecordingService,
             observer: context.observer,
