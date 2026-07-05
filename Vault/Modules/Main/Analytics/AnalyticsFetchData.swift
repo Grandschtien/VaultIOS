@@ -7,6 +7,7 @@ struct AnalyticsFetchData: Equatable {
     let loadingState: LoadingStatus
     let data: AnalyticsDataModel?
     let showsContentShell: Bool
+    let isBodyLoading: Bool
 
     init(
         selectedPeriod: MainSummaryPeriod,
@@ -14,7 +15,8 @@ struct AnalyticsFetchData: Equatable {
         isLocked: Bool = false,
         loadingState: LoadingStatus = .idle,
         data: AnalyticsDataModel? = nil,
-        showsContentShell: Bool = false
+        showsContentShell: Bool = false,
+        isBodyLoading: Bool = false
     ) {
         self.selectedPeriod = selectedPeriod
         self.selectedPreset = selectedPreset
@@ -22,5 +24,6 @@ struct AnalyticsFetchData: Equatable {
         self.loadingState = loadingState
         self.data = data
         self.showsContentShell = showsContentShell
+        self.isBodyLoading = isBodyLoading
     }
 }

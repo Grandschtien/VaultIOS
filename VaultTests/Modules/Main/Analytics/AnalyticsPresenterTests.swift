@@ -70,7 +70,7 @@ extension AnalyticsPresenterTests {
 }
 
 extension AnalyticsPresenterTests {
-    func testPresentFetchedDataLoadedBuildsChartAndRows() {
+    func testPresentFetchedDataLoadedBuildsContentStateWithChartAndRows() {
         sut.presentFetchedData(
             .init(
                 selectedPeriod: .init(
@@ -93,26 +93,60 @@ extension AnalyticsPresenterTests {
             )
         )
 
-        guard case let .loaded(content) = sut.viewModel.state else {
-            return XCTFail("Expected loaded state")
+        guard case let .content(content) = sut.viewModel.state else {
+            return XCTFail("Expected content state")
+        }
+
+        guard case let .loaded(body) = content.body else {
+            return XCTFail("Expected loaded body state")
         }
 
         XCTAssertEqual(sut.viewModel.periodButton.title, "month")
-        XCTAssertEqual(content.periodTitle.text, "01.04.2026 - 06.04.2026")
-        XCTAssertEqual(content.totalAmount.text, "amount-240.0-USD")
-        XCTAssertEqual(content.chart.legendItems.map(\.title), ["food", "shopping", "transport", "fun"])
-        XCTAssertEqual(content.chart.slices.count, 4)
-        XCTAssertEqual(content.chart.centerValue.text, "amount-240.0-USD")
-        XCTAssertEqual(content.topCategoriesTitle.text, L10n.mainOverviewCategories)
-        XCTAssertEqual(content.rows.count, 4)
-        XCTAssertEqual(content.rows[0].amount.text, "amount-100.0-USD")
-        XCTAssertEqual(content.rows[0].share.text, "share-0.4")
-        XCTAssertNotEqual(content.rows[0].tapCommand, .nope)
+        XCTAssertEqual(body.totalAmount.text, "amount-240.0-USD")
+        XCTAssertEqual(body.chart.legendItems.map(\.title), ["food", "shopping", "transport", "fun"])
+        XCTAssertEqual(body.chart.slices.count, 4)
+        XCTAssertEqual(body.chart.centerValue.text, "amount-240.0-USD")
+        XCTAssertEqual(body.topCategoriesTitle.text, L10n.mainOverviewCategories)
+        XCTAssertEqual(body.rows.count, 4)
+        XCTAssertEqual(body.rows[0].amount.text, "amount-100.0-USD")
+        XCTAssertEqual(body.rows[0].share.text, "share-0.4")
+        XCTAssertNotEqual(body.rows[0].tapCommand, .nope)
+        XCTAssertTrue(content.isPeriodSwipeEnabled)
+    }
+
+    func testPresentFetchedDataBodyLoadingBuildsContentStateWithLoadingBody() {
+        sut.presentFetchedData(
+            .init(
+                selectedPeriod: .init(
+                    from: Date(timeIntervalSince1970: 1_774_396_800),
+                    to: Date(timeIntervalSince1970: 1_774_915_199)
+                ),
+                selectedPreset: .week,
+                loadingState: .loading,
+                data: AnalyticsDataModel(
+                    monthStart: Date(timeIntervalSince1970: 1_775_001_600),
+                    totalAmount: 240,
+                    currency: "USD",
+                    categories: [makeCategory(id: "food", amount: 240, share: 1)]
+                ),
+                showsContentShell: true,
+                isBodyLoading: true
+            )
+        )
+
+        guard case let .content(content) = sut.viewModel.state else {
+            return XCTFail("Expected content state")
+        }
+
+        XCTAssertEqual(content.body, .loading)
+        XCTAssertTrue(content.isPeriodSwipeEnabled)
+        XCTAssertNotEqual(content.swipeToPreviousPeriodCommand, .nope)
+        XCTAssertNotEqual(content.swipeToNextPeriodCommand, .nope)
     }
 }
 
 extension AnalyticsPresenterTests {
-    func testPresentFetchedDataLoadedEmptyBuildsEmptyState() {
+    func testPresentFetchedDataLoadedEmptyBuildsContentStateWithEmptyBody() {
         sut.presentFetchedData(
             .init(
                 selectedPeriod: .init(
@@ -129,11 +163,47 @@ extension AnalyticsPresenterTests {
             )
         )
 
-        guard case let .empty(label) = sut.viewModel.state else {
-            return XCTFail("Expected empty state")
+        guard case let .content(content) = sut.viewModel.state else {
+            return XCTFail("Expected content state")
+        }
+
+        guard case let .empty(label) = content.body else {
+            return XCTFail("Expected empty body state")
         }
 
         XCTAssertEqual(label.text, L10n.analyticsEmpty)
+        XCTAssertFalse(content.isPeriodSwipeEnabled)
+    }
+
+    func testPresentFetchedDataLoadedEmptyWithPresetKeepsSwipeEnabled() {
+        sut.presentFetchedData(
+            .init(
+                selectedPeriod: .init(
+                    from: Date(timeIntervalSince1970: 1_775_001_600),
+                    to: Date(timeIntervalSince1970: 1_775_433_600)
+                ),
+                selectedPreset: .month,
+                loadingState: .loaded,
+                data: AnalyticsDataModel(
+                    monthStart: Date(timeIntervalSince1970: 1_775_001_600),
+                    totalAmount: 0,
+                    currency: "USD",
+                    categories: []
+                )
+            )
+        )
+
+        guard case let .content(content) = sut.viewModel.state else {
+            return XCTFail("Expected content state")
+        }
+
+        guard case .empty = content.body else {
+            return XCTFail("Expected empty body state")
+        }
+
+        XCTAssertTrue(content.isPeriodSwipeEnabled)
+        XCTAssertNotEqual(content.swipeToPreviousPeriodCommand, .nope)
+        XCTAssertNotEqual(content.swipeToNextPeriodCommand, .nope)
     }
 }
 

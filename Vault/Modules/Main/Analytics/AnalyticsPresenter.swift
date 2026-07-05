@@ -96,8 +96,11 @@ private extension AnalyticsPresenter {
     }
 
     func makeContentViewModel(from data: AnalyticsFetchData) -> AnalyticsViewModel.ContentViewModel {
-        return AnalyticsViewModel.ContentViewModel(
+        AnalyticsViewModel.ContentViewModel(
             presetPills: makePresetPillViewModels(selectedPreset: data.selectedPreset),
+            isPeriodSwipeEnabled: data.selectedPreset != nil,
+            swipeToPreviousPeriodCommand: makeSwipeToPreviousPeriodCommand(from: data),
+            swipeToNextPeriodCommand: makeSwipeToNextPeriodCommand(from: data),
             body: makeBodyState(from: data)
         )
     }
@@ -127,6 +130,10 @@ private extension AnalyticsPresenter {
     }
 
     func makeBodyState(from data: AnalyticsFetchData) -> AnalyticsViewModel.BodyState {
+        if data.isBodyLoading {
+            return .loading
+        }
+
         if let model = data.data, model.isEmpty == false {
             return .loaded(makeLoadedBodyViewModel(from: model))
         }
@@ -136,6 +143,26 @@ private extension AnalyticsPresenter {
             return .error(makeErrorViewModel())
         case .idle, .loading, .loaded:
             return .empty(makeEmptyViewModel())
+        }
+    }
+
+    func makeSwipeToPreviousPeriodCommand(from data: AnalyticsFetchData) -> Command {
+        guard data.selectedPreset != nil else {
+            return .nope
+        }
+
+        return Command { [weak handler] in
+            await handler?.handleSwipeToPreviousPeriod()
+        }
+    }
+
+    func makeSwipeToNextPeriodCommand(from data: AnalyticsFetchData) -> Command {
+        guard data.selectedPreset != nil else {
+            return .nope
+        }
+
+        return Command { [weak handler] in
+            await handler?.handleSwipeToNextPeriod()
         }
     }
 

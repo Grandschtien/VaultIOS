@@ -39,6 +39,20 @@ final class AnalyticsPeriodResolverTests: XCTestCase {
         XCTAssertEqual(sut.previousPeriod(for: .init(period: currentWeek, preset: .week)), .init(period: previousWeek, preset: .week))
         XCTAssertEqual(sut.previousPeriod(for: .init(period: currentMonth, preset: .month)), .init(period: previousMonth, preset: .month))
     }
+
+    func testNextPeriodReturnsNextCalendarRangeWithoutGoingIntoFuture() {
+        let sut = makeSut()
+        XCTAssertEqual(sut.nextPeriod(for: .init(period: previousDay, preset: .day)), .init(period: currentDay, preset: .day))
+        XCTAssertEqual(sut.nextPeriod(for: .init(period: previousWeek, preset: .week)), .init(period: currentWeek, preset: .week))
+        XCTAssertEqual(sut.nextPeriod(for: .init(period: previousMonth, preset: .month)), .init(period: currentMonth, preset: .month))
+    }
+
+    func testNextPeriodKeepsCurrentPresetRangeWhenAlreadyAtCurrentPeriod() {
+        let sut = makeSut()
+        XCTAssertEqual(sut.nextPeriod(for: .init(period: currentDay, preset: .day)), .init(period: currentDay, preset: .day))
+        XCTAssertEqual(sut.nextPeriod(for: .init(period: currentWeek, preset: .week)), .init(period: currentWeek, preset: .week))
+        XCTAssertEqual(sut.nextPeriod(for: .init(period: currentMonth, preset: .month)), .init(period: currentMonth, preset: .month))
+    }
 }
 
 private extension AnalyticsPeriodResolverTests {

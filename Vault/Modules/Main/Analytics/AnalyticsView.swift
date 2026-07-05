@@ -80,7 +80,10 @@ struct AnalyticsView: View {
         ScrollView {
             VStack(spacing: metrics.spaceM) {
                 presetPillsView(viewModel.presetPills)
-                bodyView(viewModel.body)
+                bodyView(
+                    viewModel.body,
+                    contentViewModel: viewModel
+                )
             }
             .padding(.vertical, metrics.spaceS)
             .padding(.horizontal, metrics.spaceS)
@@ -90,29 +93,82 @@ struct AnalyticsView: View {
     }
 
     @ViewBuilder
-    private func bodyView(_ viewModel: AnalyticsViewModel.BodyState) -> some View {
+    private func bodyView(
+        _ viewModel: AnalyticsViewModel.BodyState,
+        contentViewModel: AnalyticsViewModel.ContentViewModel
+    ) -> some View {
         switch viewModel {
+        case .loading:
+            bodyLoadingView(contentViewModel)
+                .transition(.opacity)
         case let .error(viewModel):
             bodyErrorView(viewModel)
                 .transition(.opacity)
         case let .empty(viewModel):
-            bodyEmptyView(viewModel)
+            bodyEmptyView(
+                viewModel,
+                contentViewModel: contentViewModel
+            )
                 .transition(.opacity)
         case let .loaded(viewModel):
-            loadedBodyView(viewModel)
+            loadedBodyView(
+                viewModel,
+                contentViewModel: contentViewModel
+            )
                 .transition(.opacity)
         }
     }
 
-    private func loadedBodyView(_ viewModel: AnalyticsViewModel.LoadedBodyViewModel) -> some View {
+    private func loadedBodyView(
+        _ viewModel: AnalyticsViewModel.LoadedBodyViewModel,
+        contentViewModel: AnalyticsViewModel.ContentViewModel
+    ) -> some View {
         VStack(spacing: metrics.spaceM) {
-            chartView(viewModel.chart)
+            swipeableChartContainer(contentViewModel) {
+                VStack(spacing: metrics.spaceS) {
+                    fakePagerView
+                    chartView(viewModel.chart)
+                }
+            }
             text(viewModel.topCategoriesTitle)
             VStack(spacing: metrics.spaceXS) {
                 ForEach(viewModel.rows, id: \.id) { rowView($0) }
             }
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.rows.count)
+    }
+
+    private func bodyLoadingView(
+        _ contentViewModel: AnalyticsViewModel.ContentViewModel
+    ) -> some View {
+        VStack(spacing: metrics.spaceM) {
+            swipeableChartContainer(contentViewModel) {
+                VStack(spacing: metrics.spaceS) {
+                    fakePagerView
+
+                    ZStack {
+                        CircleSkeletonPlaceholderView()
+                            .aspectRatio(1, contentMode: .fit)
+
+                        Circle()
+                            .fill(Color(uiColor: Asset.Colors.backgroundPrimary.color))
+                            .frame(
+                                width: metrics.sizeXXL,
+                                height: metrics.sizeXXL
+                            )
+                    }
+                }
+            }
+
+            VStack(spacing: metrics.spaceXS) {
+                ForEach(0..<3, id: \.self) { _ in
+                    placeholder(
+                        height: metrics.sizeXL,
+                        radius: metrics.sizeM
+                    )
+                }
+            }
+        }
     }
 
     private func presetPillsView(_ viewModels: [AnalyticsViewModel.PresetPillViewModel]) -> some View {
@@ -161,10 +217,36 @@ struct AnalyticsView: View {
         .buttonStyle(.plain)
     }
 
-    private func bodyEmptyView(_ viewModel: Label.LabelViewModel) -> some View {
-        text(viewModel)
-            .padding(.horizontal, metrics.spaceL)
-            .padding(.vertical, metrics.spaceXL)
+    private func bodyEmptyView(
+        _ viewModel: Label.LabelViewModel,
+        contentViewModel: AnalyticsViewModel.ContentViewModel
+    ) -> some View {
+        swipeableChartContainer(contentViewModel) {
+            VStack(spacing: metrics.spaceM) {
+                fakePagerView
+                text(viewModel)
+                    .padding(.horizontal, metrics.spaceL)
+                    .padding(.vertical, metrics.spaceXL)
+            }
+        }
+    }
+
+    private var fakePagerView: some View {
+        HStack(spacing: metrics.spaceXS) {
+            Capsule()
+                .fill(Color(uiColor: Asset.Colors.textAndIconSecondary.color))
+                .frame(width: metrics.sizeM, height: metrics.sizeXS)
+
+            ForEach(0..<2, id: \.self) { _ in
+                Circle()
+                    .fill(
+                        Color(uiColor: Asset.Colors.textAndIconSecondary.color)
+                            .opacity(0.32)
+                    )
+                    .frame(width: metrics.sizeXS, height: metrics.sizeXS)
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func chartView(_ viewModel: AnalyticsChartSectionView.ViewModel) -> some View {
@@ -201,6 +283,39 @@ struct AnalyticsView: View {
                 }
             }
         }
+    }
+
+    private func swipeableChartContainer<Content: View>(
+        _ contentViewModel: AnalyticsViewModel.ContentViewModel,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        content()
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                DragGesture(minimumDistance: metrics.sizeS)
+                    .onEnded { value in
+                        guard contentViewModel.isPeriodSwipeEnabled else {
+                            return
+                        }
+
+                        let horizontalTranslation = value.translation.width
+                        let verticalTranslation = value.translation.height
+
+                        guard abs(horizontalTranslation) >= metrics.sizeS else {
+                            return
+                        }
+
+                        guard abs(horizontalTranslation) > abs(verticalTranslation) else {
+                            return
+                        }
+
+                        if horizontalTranslation > 0 {
+                            contentViewModel.swipeToPreviousPeriodCommand.execute()
+                        } else {
+                            contentViewModel.swipeToNextPeriodCommand.execute()
+                        }
+                    }
+            )
     }
 
     @ViewBuilder
@@ -286,18 +401,25 @@ struct AnalyticsView: View {
 
     private func bodyStateID(_ state: AnalyticsViewModel.BodyState) -> Int {
         switch state {
-        case .error:
+        case .loading:
             return 0
-        case .empty:
+        case .error:
             return 1
-        case .loaded:
+        case .empty:
             return 2
+        case .loaded:
+            return 3
         }
     }
 }
 
 private struct Metrics: LayoutScaleProviding {}
 private struct AnalyticsImages: ImageProviding {}
+private enum AnalyticsSkeletonStyle {
+    static let gradient = SkeletonGradient(
+        baseColor: Asset.Colors.interactiveInputBackground.color
+    )
+}
 
 private struct SkeletonPlaceholderView: UIViewRepresentable {
     let radius: CGFloat
@@ -306,14 +428,18 @@ private struct SkeletonPlaceholderView: UIViewRepresentable {
         let view = UIView()
         view.isUserInteractionEnabled = false
         configure(view)
-        view.showAnimatedGradientSkeleton()
+        view.showAnimatedGradientSkeleton(
+            usingGradient: AnalyticsSkeletonStyle.gradient
+        )
         return view
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
         configure(uiView)
         if uiView.sk.isSkeletonActive == false {
-            uiView.showAnimatedGradientSkeleton()
+            uiView.showAnimatedGradientSkeleton(
+                usingGradient: AnalyticsSkeletonStyle.gradient
+            )
         }
     }
 
@@ -326,6 +452,47 @@ private struct SkeletonPlaceholderView: UIViewRepresentable {
         view.backgroundColor = Asset.Colors.interactiveInputBackground.color
         view.layer.cornerRadius = radius
         view.skeletonCornerRadius = Float(radius)
+    }
+}
+
+private struct CircleSkeletonPlaceholderView: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = CircleSkeletonView()
+        view.isUserInteractionEnabled = false
+        configure(view)
+        view.showAnimatedGradientSkeleton(
+            usingGradient: AnalyticsSkeletonStyle.gradient
+        )
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        configure(uiView)
+        if uiView.sk.isSkeletonActive == false {
+            uiView.showAnimatedGradientSkeleton(
+                usingGradient: AnalyticsSkeletonStyle.gradient
+            )
+        }
+    }
+
+    static func dismantleUIView(_ uiView: UIView, coordinator: ()) {
+        uiView.hideSkeleton()
+    }
+
+    private func configure(_ view: UIView) {
+        view.isSkeletonable = true
+        view.backgroundColor = Asset.Colors.interactiveInputBackground.color
+        view.clipsToBounds = true
+    }
+}
+
+private final class CircleSkeletonView: UIView {
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        let radius = min(bounds.width, bounds.height) / 2
+        layer.cornerRadius = radius
+        skeletonCornerRadius = Float(radius)
     }
 }
 

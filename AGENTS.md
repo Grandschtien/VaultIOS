@@ -54,7 +54,11 @@
 - Do not repeat multi-step fallback chains inline for resolved values such as currency. Extract them into a dedicated resolver/helper and reuse it from factories/interactors.
 - if it is loading state of element with some content (like label, cell or image) use SkeletonView for loading state, but if it button of on the design can be seen obviously that it is loader - use spinner
 - use LoadingStatus for loading states
-- Use final class by default instead of actors, the exception is interactors and services with container DI object type
+- Use final class by default instead of actors
+- Interactors stay actors
+- Do not introduce actors in services when their mutable state is already fully owned and serialized by an interactor or another actor
+- Use Swift actors for thread safety only when mutable state is truly shared across concurrent owners and cannot be isolated by design
+- Never use locks in this application (`NSLock`, `os_unfair_lock`, `pthread_mutex`, or similar)
 - Use transient object type in Swinject by default, contaianer have to be used only if it is really neccasery or if I ask you to do so
 - use adapters when you use table or collection view. adapters have to incupsulate logic with datasource and delegation for collection or table view. do not add adapters to DI
 - use diffable data source as default datasourcing if any other instruction did not give to you

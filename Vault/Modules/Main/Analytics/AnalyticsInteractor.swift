@@ -8,6 +8,8 @@ protocol AnalyticsHandler: AnyObject, Sendable {
     func handleTapRetry() async
     func handleTapMonthFilter() async
     func handleSelectPreset(_ preset: AnalyticsPeriodPreset) async
+    func handleSwipeToPreviousPeriod() async
+    func handleSwipeToNextPeriod() async
     func handleTapCategory(id: String, name: String) async
     func handleTapSubscribe() async
 }
@@ -18,9 +20,9 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
         case silent
     }
 
-    private struct CachedPresetData {
-        let resolution: AnalyticsPeriodResolution
-        let data: AnalyticsDataModel
+    private enum DataSource {
+        case repository
+        case network
     }
 
     private enum LocalError: LocalizedError {
@@ -34,6 +36,7 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
     private let presenter: AnalyticsPresentationLogic
     private let router: AnalyticsRoutingLogic
     private let repository: MainFlowDomainRepositoryProtocol
+    private let analyticsIntervalRepository: AnalyticsIntervalRepositoryProtocol
     private let dataProvider: AnalyticsDataProviding
     private let observer: MainFlowDomainObserverProtocol
     private let periodResolver: AnalyticsPeriodResolving
@@ -43,9 +46,9 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
 
     private var loadingState: LoadingStatus = .idle
     private var data: AnalyticsDataModel?
-    private var presetDataCache: [AnalyticsPeriodPreset: CachedPresetData] = [:]
     private var canPresentAnalyticsContent = false
     private var currentPeriodResolution: AnalyticsPeriodResolution?
+    private var pendingResolution: AnalyticsPeriodResolution?
     private var observationTask: Task<Void, Never>?
     private var subscriptionObservationTask: Task<Void, Never>?
     private var didReceiveInitialObserverEvent = false
@@ -56,6 +59,7 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
         presenter: AnalyticsPresentationLogic,
         router: AnalyticsRoutingLogic,
         repository: MainFlowDomainRepositoryProtocol,
+        analyticsIntervalRepository: AnalyticsIntervalRepositoryProtocol = AnalyticsIntervalRepository(),
         dataProvider: AnalyticsDataProviding,
         observer: MainFlowDomainObserverProtocol,
         periodResolver: AnalyticsPeriodResolving,
@@ -66,6 +70,7 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
         self.presenter = presenter
         self.router = router
         self.repository = repository
+        self.analyticsIntervalRepository = analyticsIntervalRepository
         self.dataProvider = dataProvider
         self.observer = observer
         self.periodResolver = periodResolver
@@ -106,17 +111,14 @@ actor AnalyticsInteractor: AnalyticsBusinessLogic {
             await loadData(
                 for: resolution,
                 presentation: .initial,
-                trackScreenResult: true
+                trackScreenResult: true,
+                source: .repository
             )
         }
     }
 }
 
 private extension AnalyticsInteractor {
-    var cacheComparisonCalendar: Calendar {
-        .current
-    }
-
     func resolveCurrentSubscriptionSnapshot(forceRefresh: Bool) async -> SubscriptionAccessSnapshot? {
         if forceRefresh {
             return await subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
@@ -127,6 +129,7 @@ private extension AnalyticsInteractor {
 
     func presentUnavailableTierError() async {
         canPresentAnalyticsContent = false
+        pendingResolution = nil
         data = nil
         loadingState = .failed(.undelinedError(description: L10n.mainOverviewError))
         await presentFetchedData(resolution: resolvedCurrentPeriod())
@@ -141,6 +144,10 @@ private extension AnalyticsInteractor {
         let resolution = periodResolver.defaultPeriod()
         currentPeriodResolution = resolution
         return resolution
+    }
+
+    func displayedCurrentPeriod() -> AnalyticsPeriodResolution {
+        pendingResolution ?? resolvedCurrentPeriod()
     }
 
     func startObservingSubscriptionChangesIfNeeded() {
@@ -219,6 +226,7 @@ private extension AnalyticsInteractor {
     func presentLockedState(resolution: AnalyticsPeriodResolution) async {
         canPresentAnalyticsContent = false
         stopObservingOverview()
+        pendingResolution = nil
         data = nil
         loadingState = .idle
         hasShownContentShell = false
@@ -231,10 +239,26 @@ private extension AnalyticsInteractor {
     private func loadData(
         for resolution: AnalyticsPeriodResolution,
         presentation: LoadPresentation,
-        trackScreenResult: Bool
+        trackScreenResult: Bool,
+        source: DataSource
     ) async {
+        if case .repository = source,
+           let cachedData = await analyticsIntervalRepository.cachedData(for: resolution) {
+            pendingResolution = nil
+            currentPeriodResolution = resolution
+            data = cachedData
+            loadingState = .loaded
+            hasShownContentShell = true
+            await presentFetchedData(resolution: resolution)
+            if trackScreenResult {
+                analytics?.trackScreenSuccess()
+            }
+            return
+        }
+
         switch presentation {
         case .initial:
+            pendingResolution = nil
             data = nil
             loadingState = .loading
             await presentFetchedData(resolution: resolution)
@@ -242,114 +266,28 @@ private extension AnalyticsInteractor {
             break
         }
 
-        if case .initial = presentation {
-            await loadInitialPresetData(
-                for: resolution,
-                trackScreenResult: trackScreenResult
-            )
-            return
-        }
-
         do {
             let fetchedData = try await dataProvider.fetchData(for: resolution.period)
             guard canPresentAnalyticsContent else {
                 return
             }
 
-            cache(fetchedData, for: resolution)
+            await analyticsIntervalRepository.save(data: fetchedData, for: resolution)
+            pendingResolution = nil
             currentPeriodResolution = resolution
             data = fetchedData
             loadingState = .loaded
             hasShownContentShell = true
             await presentFetchedData(resolution: resolution)
+            if trackScreenResult {
+                analytics?.trackScreenSuccess()
+            }
         } catch {
             if data == nil {
+                pendingResolution = nil
                 loadingState = .failed(.undelinedError(description: error.localizedDescription))
                 await presentFetchedData(resolution: resolution)
             }
-        }
-    }
-
-    func loadInitialPresetData(
-        for resolution: AnalyticsPeriodResolution,
-        trackScreenResult: Bool
-    ) async {
-        let presetResolutions = currentPresetResolutions()
-        let results = await fetchPresetData(for: presetResolutions)
-
-        for (preset, result) in results {
-            if
-                case let .success(model) = result,
-                let cachedResolution = presetResolutions[preset]
-            {
-                presetDataCache[preset] = .init(
-                    resolution: cachedResolution,
-                    data: model
-                )
-            }
-        }
-
-        guard let selectedPreset = resolution.preset else {
-            await loadInitialCustomData(
-                for: resolution,
-                trackScreenResult: trackScreenResult
-            )
-            return
-        }
-
-        guard canPresentAnalyticsContent else {
-            return
-        }
-
-        switch results[selectedPreset] {
-        case let .success(model):
-            currentPeriodResolution = resolution
-            data = model
-            loadingState = .loaded
-            hasShownContentShell = true
-            await presentFetchedData(resolution: resolution)
-            if trackScreenResult {
-                analytics?.trackScreenSuccess()
-            }
-        case let .failure(error):
-            data = nil
-            loadingState = .failed(.undelinedError(description: error.localizedDescription))
-            await presentFetchedData(resolution: resolution)
-            if trackScreenResult {
-                analytics?.trackScreenFailure(error)
-            }
-        case .none:
-            data = nil
-            loadingState = .failed(.undelinedError(description: L10n.mainOverviewError))
-            await presentFetchedData(resolution: resolution)
-            if trackScreenResult {
-                analytics?.trackScreenFailure(LocalError.unavailableTier)
-            }
-        }
-    }
-
-    func loadInitialCustomData(
-        for resolution: AnalyticsPeriodResolution,
-        trackScreenResult: Bool
-    ) async {
-        do {
-            let fetchedData = try await dataProvider.fetchData(for: resolution.period)
-            guard canPresentAnalyticsContent else {
-                return
-            }
-
-            currentPeriodResolution = resolution
-            data = fetchedData
-            loadingState = .loaded
-            hasShownContentShell = true
-            await presentFetchedData(resolution: resolution)
-            if trackScreenResult {
-                analytics?.trackScreenSuccess()
-            }
-        } catch {
-            data = nil
-            loadingState = .failed(.undelinedError(description: error.localizedDescription))
-            await presentFetchedData(resolution: resolution)
             if trackScreenResult {
                 analytics?.trackScreenFailure(error)
             }
@@ -357,119 +295,70 @@ private extension AnalyticsInteractor {
     }
 
     func refreshCurrentDataSilently(for resolution: AnalyticsPeriodResolution) async {
-        if resolution.preset != nil {
-            await refreshPresetCacheSilently(selecting: resolution)
-            return
-        }
-
         await loadData(
             for: resolution,
             presentation: .silent,
-            trackScreenResult: false
-        )
-    }
-
-    func refreshPresetCacheSilently(selecting resolution: AnalyticsPeriodResolution) async {
-        guard let selectedPreset = resolution.preset else {
-            return
-        }
-
-        let presetResolutions = currentPresetResolutions()
-        let results = await fetchPresetData(for: presetResolutions)
-
-        for (preset, result) in results {
-            if
-                case let .success(model) = result,
-                let cachedResolution = presetResolutions[preset]
-            {
-                presetDataCache[preset] = .init(
-                    resolution: cachedResolution,
-                    data: model
-                )
-            }
-        }
-
-        guard
-            canPresentAnalyticsContent,
-            let updatedResolution = presetResolutions[selectedPreset],
-            case let .success(model) = results[selectedPreset]
-        else {
-            return
-        }
-
-        currentPeriodResolution = updatedResolution
-        data = model
-        loadingState = .loaded
-        await presentFetchedData(resolution: updatedResolution)
-    }
-
-    func fetchPresetData(
-        for resolutions: [AnalyticsPeriodPreset: AnalyticsPeriodResolution]
-    ) async -> [AnalyticsPeriodPreset: Result<AnalyticsDataModel, Error>] {
-        let dataProvider = self.dataProvider
-
-        return await withTaskGroup(
-            of: (AnalyticsPeriodPreset, Result<AnalyticsDataModel, Error>).self,
-            returning: [AnalyticsPeriodPreset: Result<AnalyticsDataModel, Error>].self
-        ) { group in
-            for (preset, resolution) in resolutions {
-                group.addTask {
-                    do {
-                        return (preset, .success(try await dataProvider.fetchData(for: resolution.period)))
-                    } catch {
-                        return (preset, .failure(error))
-                    }
-                }
-            }
-
-            var results: [AnalyticsPeriodPreset: Result<AnalyticsDataModel, Error>] = [:]
-            for await (preset, result) in group {
-                results[preset] = result
-            }
-            return results
-        }
-    }
-
-    func currentPresetResolutions() -> [AnalyticsPeriodPreset: AnalyticsPeriodResolution] {
-        Dictionary(
-            uniqueKeysWithValues: AnalyticsPeriodPreset.allCases.map { preset in
-                (preset, periodResolver.resolveCurrentPeriod(for: preset))
-            }
-        )
-    }
-
-    func cache(_ data: AnalyticsDataModel, for resolution: AnalyticsPeriodResolution) {
-        guard let preset = resolution.preset else {
-            return
-        }
-
-        presetDataCache[preset] = .init(
-            resolution: resolution,
-            data: data
+            trackScreenResult: false,
+            source: .network
         )
     }
 
     func changePeriod(to resolution: AnalyticsPeriodResolution) async {
-        if
-            let preset = resolution.preset,
-            let cachedData = presetDataCache[preset],
-            matchesCachedPresetResolution(
-                cachedData.resolution,
-                requestedResolution: resolution
-            )
-        {
-            currentPeriodResolution = cachedData.resolution
-            data = cachedData.data
-            loadingState = .loaded
-            await presentFetchedData(resolution: cachedData.resolution)
-            return
-        }
-
         await loadData(
             for: resolution,
             presentation: hasShownContentShell ? .silent : .initial,
-            trackScreenResult: false
+            trackScreenResult: false,
+            source: .repository
         )
+    }
+
+    func changePeriodBySwipe(to resolution: AnalyticsPeriodResolution) async {
+        let previousResolution = resolvedCurrentPeriod()
+
+        if let cachedData = await analyticsIntervalRepository.cachedData(for: resolution) {
+            pendingResolution = nil
+            currentPeriodResolution = resolution
+            data = cachedData
+            loadingState = .loaded
+            hasShownContentShell = true
+            await presentFetchedData(resolution: resolution)
+            return
+        }
+
+        pendingResolution = resolution
+        loadingState = .loading
+        await presentFetchedData(resolution: resolution)
+
+        do {
+            let fetchedData = try await dataProvider.fetchData(for: resolution.period)
+            guard canPresentAnalyticsContent else {
+                pendingResolution = nil
+                return
+            }
+
+            await analyticsIntervalRepository.save(data: fetchedData, for: resolution)
+            pendingResolution = nil
+            currentPeriodResolution = resolution
+            data = fetchedData
+            loadingState = .loaded
+            hasShownContentShell = true
+            await presentFetchedData(resolution: resolution)
+        } catch {
+            guard canPresentAnalyticsContent else {
+                pendingResolution = nil
+                return
+            }
+
+            pendingResolution = nil
+            if data == nil {
+                loadingState = .failed(.undelinedError(description: error.localizedDescription))
+                await presentFetchedData(resolution: previousResolution)
+                return
+            }
+
+            loadingState = .loaded
+            await presentFetchedData(resolution: previousResolution)
+        }
     }
 
     func presentFetchedData(
@@ -483,29 +372,12 @@ private extension AnalyticsInteractor {
                 isLocked: isLocked,
                 loadingState: loadingState,
                 data: data,
-                showsContentShell: hasShownContentShell
+                showsContentShell: hasShownContentShell,
+                isBodyLoading: pendingResolution != nil && loadingState == .loading
             )
         )
     }
 
-    func matchesCachedPresetResolution(
-        _ cachedResolution: AnalyticsPeriodResolution,
-        requestedResolution: AnalyticsPeriodResolution
-    ) -> Bool {
-        guard let cachedPreset = cachedResolution.preset,
-              cachedPreset == requestedResolution.preset else {
-            return cachedResolution == requestedResolution
-        }
-
-        guard cachedResolution.period.from == requestedResolution.period.from else {
-            return false
-        }
-
-        return cacheComparisonCalendar.isDate(
-            cachedResolution.period.to,
-            inSameDayAs: requestedResolution.period.to
-        )
-    }
 }
 
 extension AnalyticsInteractor: AnalyticsHandler {
@@ -528,7 +400,8 @@ extension AnalyticsInteractor: AnalyticsHandler {
             await loadData(
                 for: resolution,
                 presentation: .initial,
-                trackScreenResult: true
+                trackScreenResult: true,
+                source: .repository
             )
         }
     }
@@ -547,7 +420,7 @@ extension AnalyticsInteractor: AnalyticsHandler {
             return
         }
 
-        let period = resolvedCurrentPeriod().period
+        let period = displayedCurrentPeriod().period
         await router.openPeriodPicker(
             selectedFromDate: period.from,
             selectedToDate: period.to,
@@ -556,7 +429,8 @@ extension AnalyticsInteractor: AnalyticsHandler {
     }
 
     func handleSelectPreset(_ preset: AnalyticsPeriodPreset) async {
-        guard canPresentAnalyticsContent else {
+        guard canPresentAnalyticsContent,
+              pendingResolution == nil else {
             return
         }
 
@@ -580,6 +454,44 @@ extension AnalyticsInteractor: AnalyticsHandler {
         )
     }
 
+    func handleSwipeToPreviousPeriod() async {
+        guard canPresentAnalyticsContent,
+              pendingResolution == nil else {
+            return
+        }
+
+        let currentResolution = resolvedCurrentPeriod()
+        guard currentResolution.preset != nil else {
+            return
+        }
+
+        let updatedResolution = periodResolver.previousPeriod(for: currentResolution)
+        guard updatedResolution != currentResolution else {
+            return
+        }
+
+        await changePeriodBySwipe(to: updatedResolution)
+    }
+
+    func handleSwipeToNextPeriod() async {
+        guard canPresentAnalyticsContent,
+              pendingResolution == nil else {
+            return
+        }
+
+        let currentResolution = resolvedCurrentPeriod()
+        guard currentResolution.preset != nil else {
+            return
+        }
+
+        let updatedResolution = periodResolver.nextPeriod(for: currentResolution)
+        guard updatedResolution != currentResolution else {
+            return
+        }
+
+        await changePeriodBySwipe(to: updatedResolution)
+    }
+
     func handleTapSubscribe() async {
         let currentTier = await resolveCurrentSubscriptionSnapshot(forceRefresh: false)?.tier ?? .regular
         await router.openSubscription(
@@ -591,6 +503,10 @@ extension AnalyticsInteractor: AnalyticsHandler {
 
 extension AnalyticsInteractor: CategoryPeriodPickerOutput {
     func handleDidConfirmCategoryPeriod(fromDate: Date, to date: Date) async {
+        guard pendingResolution == nil else {
+            return
+        }
+
         let updatedResolution = periodResolver.resolvePeriod(
             from: fromDate,
             to: date
@@ -624,7 +540,8 @@ extension AnalyticsInteractor: SubscriptionOutput {
             await loadData(
                 for: resolution,
                 presentation: .initial,
-                trackScreenResult: false
+                trackScreenResult: false,
+                source: .repository
             )
         }
     }

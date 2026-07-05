@@ -33,6 +33,7 @@ final class AnalyticsFactory: Screen {
             presenter: presenter,
             router: router,
             repository: context.repository,
+            analyticsIntervalRepository: context.analyticsIntervalRepository,
             dataProvider: AnalyticsDataProvider(
                 categoriesService: categoriesService
             ),

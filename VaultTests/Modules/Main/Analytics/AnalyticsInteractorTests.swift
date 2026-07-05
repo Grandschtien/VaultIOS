@@ -284,71 +284,198 @@ extension AnalyticsInteractorTests {
 }
 
 extension AnalyticsInteractorTests {
-    func testHandleSelectPresetDoesNotRefetchSubscriptionOrAnalyticsDataWithinSameDay() async {
+    func testHandleSwipeToPreviousPeriodUsesCachedIntervalWithoutNetwork() async {
         let presenter = AnalyticsPresenterSpy()
         let dataProvider = AnalyticsDataProviderStub(
             results: [.success(makeData(monthStart: aprilStart, totalAmount: 120))]
         )
-        let subscriptionAccessService = SubscriptionAccessServiceStub(currentTier: "PREMIUM")
-        var currentDate = makeDate(
-            year: 2026,
-            month: 4,
-            day: 6,
-            hour: 10,
-            minute: 0,
-            second: 0
+        let analyticsIntervalRepository = makeIntervalRepository()
+        await analyticsIntervalRepository.save(
+            data: makeData(monthStart: marchStart, totalAmount: 80),
+            for: marchMonthResolution
         )
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
             repository: AnalyticsRepositorySpy(),
+            analyticsIntervalRepository: analyticsIntervalRepository,
             dataProvider: dataProvider,
             observer: AnalyticsObserverStub(),
-            periodResolver: AnalyticsPeriodResolver(
-                calendar: calendar,
-                now: { currentDate }
-            ),
-            subscriptionAccessService: subscriptionAccessService
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
 
         await sut.fetchData()
         await waitForUpdates()
-        let fetchCallsCountBeforeSwitch = await dataProvider.recordedFetchCalls().count
-
-        currentDate = makeDate(
-            year: 2026,
-            month: 4,
-            day: 6,
-            hour: 10,
-            minute: 1,
-            second: 30
-        )
-        await sut.handleSelectPreset(.week)
+        await sut.handleSwipeToPreviousPeriod()
         await waitForUpdates()
 
-        let fetchCallsCountAfterSwitch = await dataProvider.recordedFetchCalls().count
-        let currentSnapshotCallsCount = await subscriptionAccessService.currentSubscriptionSnapshotCallsCount()
-        XCTAssertEqual(fetchCallsCountAfterSwitch, fetchCallsCountBeforeSwitch)
-        XCTAssertEqual(currentSnapshotCallsCount, 1)
-        XCTAssertEqual(presenter.presentedData.last?.selectedPreset, .week)
+        XCTAssertEqual(await dataProvider.recordedFetchCalls(), [aprilCurrentPeriod])
+        XCTAssertFalse(
+            presenter.presentedData.contains { presentedData in
+                presentedData.isBodyLoading
+            }
+        )
+        XCTAssertEqual(presenter.presentedData.last?.selectedPeriod, marchMonthPeriod)
+        XCTAssertEqual(presenter.presentedData.last?.selectedPreset, .month)
+        XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 80)
     }
 
-    func testObserverInvalidationRefreshesCurrentLocalPeriod() async {
+    func testHandleSwipeToPreviousPeriodShowsLocalLoadingAndLoadsTargetInterval() async {
         let presenter = AnalyticsPresenterSpy()
         let dataProvider = AnalyticsDataProviderStub(
             results: [
                 .success(makeData(monthStart: aprilStart, totalAmount: 120)),
-                .success(makeData(monthStart: marchStart, totalAmount: 80)),
-                .success(makeData(monthStart: marchStart, totalAmount: 140))
+                .success(makeData(monthStart: marchStart, totalAmount: 80))
             ]
         )
-        let observer = AnalyticsObserverStub()
         let sut = AnalyticsInteractor(
             presenter: presenter,
             router: AnalyticsRouterSpy(),
             repository: AnalyticsRepositorySpy(),
+            analyticsIntervalRepository: makeIntervalRepository(),
             dataProvider: dataProvider,
-            observer: observer,
+            observer: AnalyticsObserverStub(),
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+        await sut.handleSwipeToPreviousPeriod()
+        await waitForUpdates()
+
+        let localLoadingState = presenter.presentedData.last {
+            $0.isBodyLoading && $0.selectedPeriod == marchMonthPeriod
+        }
+
+        XCTAssertEqual(
+            await dataProvider.recordedFetchCalls(),
+            [aprilCurrentPeriod, marchMonthPeriod]
+        )
+        XCTAssertEqual(localLoadingState?.selectedPreset, .month)
+        XCTAssertEqual(localLoadingState?.data?.totalAmount, 120)
+        XCTAssertEqual(presenter.presentedData.last?.selectedPeriod, marchMonthPeriod)
+        XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 80)
+        XCTAssertEqual(presenter.presentedData.last?.loadingState, .loaded)
+    }
+
+    func testHandleSwipeToPreviousPeriodOnFailureReturnsPreviousLoadedContent() async {
+        let presenter = AnalyticsPresenterSpy()
+        let dataProvider = AnalyticsDataProviderStub(
+            results: [
+                .success(makeData(monthStart: aprilStart, totalAmount: 120)),
+                .failure(StubError.any)
+            ]
+        )
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
+            analyticsIntervalRepository: makeIntervalRepository(),
+            dataProvider: dataProvider,
+            observer: AnalyticsObserverStub(),
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+        await sut.handleSwipeToPreviousPeriod()
+        await waitForUpdates()
+
+        XCTAssertEqual(
+            await dataProvider.recordedFetchCalls(),
+            [aprilCurrentPeriod, marchMonthPeriod]
+        )
+        XCTAssertTrue(
+            presenter.presentedData.contains {
+                $0.isBodyLoading && $0.selectedPeriod == marchMonthPeriod
+            }
+        )
+        XCTAssertEqual(presenter.presentedData.last?.selectedPeriod, aprilCurrentPeriod)
+        XCTAssertEqual(presenter.presentedData.last?.selectedPreset, .month)
+        XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 120)
+        XCTAssertEqual(presenter.presentedData.last?.loadingState, .loaded)
+        XCTAssertFalse(presenter.presentedData.last?.isBodyLoading ?? true)
+    }
+
+    func testHandleSwipeToPreviousPeriodWithEmptyMonthOpensItAndAllowsFurtherSwipe() async {
+        let presenter = AnalyticsPresenterSpy()
+        let februaryMonthPeriod = makePeriodResolver().previousPeriod(
+            for: marchMonthResolution
+        ).period
+        let dataProvider = AnalyticsDataProviderStub(
+            results: [
+                .success(makeData(monthStart: aprilStart, totalAmount: 120)),
+                .success(
+                    AnalyticsDataModel(
+                        monthStart: marchStart,
+                        totalAmount: 0,
+                        currency: "USD",
+                        categories: []
+                    )
+                ),
+                .success(
+                    makeData(
+                        monthStart: februaryMonthPeriod.from,
+                        totalAmount: 80
+                    )
+                )
+            ]
+        )
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
+            analyticsIntervalRepository: makeIntervalRepository(),
+            dataProvider: dataProvider,
+            observer: AnalyticsObserverStub(),
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+        await sut.handleSwipeToPreviousPeriod()
+        await waitForUpdates()
+        await sut.handleSwipeToPreviousPeriod()
+        await waitForUpdates()
+
+        XCTAssertEqual(
+            await dataProvider.recordedFetchCalls(),
+            [aprilCurrentPeriod, marchMonthPeriod, februaryMonthPeriod]
+        )
+        XCTAssertTrue(
+            presenter.presentedData.contains {
+                $0.selectedPeriod == marchMonthPeriod
+                    && $0.selectedPreset == .month
+                    && $0.data?.isEmpty == true
+                    && $0.loadingState == .loaded
+            }
+        )
+        XCTAssertEqual(presenter.presentedData.last?.selectedPeriod, februaryMonthPeriod)
+        XCTAssertEqual(presenter.presentedData.last?.selectedPreset, .month)
+        XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 80)
+        XCTAssertEqual(presenter.presentedData.last?.loadingState, .loaded)
+        XCTAssertFalse(presenter.presentedData.last?.isBodyLoading ?? true)
+    }
+
+    func testHandleSwipeToPreviousAndNextPeriodDoNothingForCustomRange() async {
+        let presenter = AnalyticsPresenterSpy()
+        let dataProvider = AnalyticsDataProviderStub(
+            results: [
+                .success(makeData(monthStart: aprilStart, totalAmount: 120)),
+                .success(makeData(monthStart: marchStart, totalAmount: 80))
+            ]
+        )
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
+            analyticsIntervalRepository: makeIntervalRepository(),
+            dataProvider: dataProvider,
+            observer: AnalyticsObserverStub(),
             periodResolver: makePeriodResolver(),
             subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
         )
@@ -360,16 +487,133 @@ extension AnalyticsInteractorTests {
             to: marchCustomPeriod.to
         )
         await waitForUpdates()
+        await sut.handleSwipeToPreviousPeriod()
+        await sut.handleSwipeToNextPeriod()
+        await waitForUpdates()
+
+        XCTAssertEqual(
+            await dataProvider.recordedFetchCalls(),
+            [aprilCurrentPeriod, marchCustomPeriod]
+        )
+        XCTAssertEqual(presenter.presentedData.last?.selectedPeriod, marchCustomPeriod)
+        XCTAssertNil(presenter.presentedData.last?.selectedPreset)
+        XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 80)
+    }
+
+    func testHandleSelectPresetCacheMissSavesFetchedIntervalForLaterReuse() async {
+        let presenter = AnalyticsPresenterSpy()
+        let dataProvider = AnalyticsDataProviderStub(
+            results: [
+                .success(makeData(monthStart: aprilStart, totalAmount: 120)),
+                .success(makeData(monthStart: aprilStart, totalAmount: 80))
+            ]
+        )
+        let analyticsIntervalRepository = makeIntervalRepository()
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
+            analyticsIntervalRepository: analyticsIntervalRepository,
+            dataProvider: dataProvider,
+            observer: AnalyticsObserverStub(),
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+        await sut.handleSelectPreset(.week)
+        await waitForUpdates()
+        await sut.handleSelectPreset(.month)
+        await waitForUpdates()
+        await sut.handleSelectPreset(.week)
+        await waitForUpdates()
+
+        XCTAssertEqual(
+            await dataProvider.recordedFetchCalls(),
+            [aprilCurrentPeriod, aprilCurrentWeekPeriod]
+        )
+        XCTAssertEqual(
+            await analyticsIntervalRepository.cachedData(for: aprilCurrentWeekResolution),
+            makeData(monthStart: aprilStart, totalAmount: 80)
+        )
+        XCTAssertEqual(presenter.presentedData.last?.selectedPreset, .week)
+        XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 80)
+    }
+
+    func testObserverInvalidationRefreshesCurrentLocalPeriod() async {
+        let presenter = AnalyticsPresenterSpy()
+        let dataProvider = AnalyticsDataProviderStub(
+            results: [
+                .success(makeData(monthStart: aprilStart, totalAmount: 140))
+            ]
+        )
+        let observer = AnalyticsObserverStub()
+        let analyticsIntervalRepository = makeIntervalRepository()
+        await analyticsIntervalRepository.save(
+            data: makeData(monthStart: aprilStart, totalAmount: 120),
+            for: aprilCurrentResolution
+        )
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
+            analyticsIntervalRepository: analyticsIntervalRepository,
+            dataProvider: dataProvider,
+            observer: observer,
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
         observer.publishOverview()
         await waitForUpdates()
 
-        let fetchCalls = await dataProvider.recordedFetchCalls()
+        XCTAssertEqual(await dataProvider.recordedFetchCalls(), [aprilCurrentPeriod])
         XCTAssertEqual(
-            fetchCalls,
-            [aprilCurrentPeriod, marchCustomPeriod, marchCustomPeriod]
+            await analyticsIntervalRepository.cachedData(for: aprilCurrentResolution)?.totalAmount,
+            140
         )
         XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 140)
+        XCTAssertEqual(presenter.presentedData.last?.selectedPeriod, aprilCurrentPeriod)
+    }
+
+    func testHandleDidConfirmCategoryPeriodUsesCachedCustomIntervalWithoutNetwork() async {
+        let presenter = AnalyticsPresenterSpy()
+        let dataProvider = AnalyticsDataProviderStub(results: [])
+        let analyticsIntervalRepository = makeIntervalRepository()
+        await analyticsIntervalRepository.save(
+            data: makeData(monthStart: aprilStart, totalAmount: 120),
+            for: aprilCurrentResolution
+        )
+        await analyticsIntervalRepository.save(
+            data: makeData(monthStart: marchStart, totalAmount: 80),
+            for: marchCustomResolution
+        )
+        let sut = AnalyticsInteractor(
+            presenter: presenter,
+            router: AnalyticsRouterSpy(),
+            repository: AnalyticsRepositorySpy(),
+            analyticsIntervalRepository: analyticsIntervalRepository,
+            dataProvider: dataProvider,
+            observer: AnalyticsObserverStub(),
+            periodResolver: makePeriodResolver(),
+            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM")
+        )
+
+        await sut.fetchData()
+        await waitForUpdates()
+        await sut.handleDidConfirmCategoryPeriod(
+            fromDate: marchCustomPeriod.from,
+            to: marchCustomPeriod.to
+        )
+        await waitForUpdates()
+
+        XCTAssertEqual(await dataProvider.recordedFetchCalls(), [])
         XCTAssertEqual(presenter.presentedData.last?.selectedPeriod, marchCustomPeriod)
+        XCTAssertNil(presenter.presentedData.last?.selectedPreset)
+        XCTAssertEqual(presenter.presentedData.last?.data?.totalAmount, 80)
     }
 
     func testSubscriptionAccessDowngradeLocksScreenAndStopsOverviewRefresh() async {
@@ -578,6 +822,24 @@ private extension AnalyticsInteractorTests {
         )
     }
 
+    var aprilCurrentResolution: AnalyticsPeriodResolution {
+        .init(
+            period: aprilCurrentPeriod,
+            preset: .month
+        )
+    }
+
+    var aprilCurrentWeekPeriod: MainSummaryPeriod {
+        makePeriodResolver().resolveCurrentPeriod(for: .week).period
+    }
+
+    var aprilCurrentWeekResolution: AnalyticsPeriodResolution {
+        .init(
+            period: aprilCurrentWeekPeriod,
+            preset: .week
+        )
+    }
+
     var aprilCustomPeriod: MainSummaryPeriod {
         .init(
             from: makeDate(year: 2026, month: 4, day: 2),
@@ -593,6 +855,27 @@ private extension AnalyticsInteractorTests {
         .init(
             from: makeDate(year: 2026, month: 3, day: 18),
             to: marchEnd
+        )
+    }
+
+    var marchCustomResolution: AnalyticsPeriodResolution {
+        .init(
+            period: marchCustomPeriod,
+            preset: nil
+        )
+    }
+
+    var marchMonthPeriod: MainSummaryPeriod {
+        .init(
+            from: marchStart,
+            to: marchEnd
+        )
+    }
+
+    var marchMonthResolution: AnalyticsPeriodResolution {
+        .init(
+            period: marchMonthPeriod,
+            preset: .month
         )
     }
 
@@ -650,6 +933,10 @@ private extension AnalyticsInteractorTests {
                 )
             ]
         )
+    }
+
+    func makeIntervalRepository() -> AnalyticsIntervalRepository {
+        AnalyticsIntervalRepository(calendar: calendar)
     }
 
     func makeSubscriptionSnapshot(

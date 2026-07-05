@@ -1295,6 +1295,17 @@ extension MainFlowDomainRepositoryTests {
     func testAddExpenseSuccessReplacesOptimisticExpensesWithResponse() async throws {
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+        let analyticsIntervalRepository = makeAnalyticsIntervalRepository()
+        let affectedResolution = makeAnalyticsResolution(
+            from: Date(timeIntervalSince1970: 86_400 * 30),
+            to: Date(timeIntervalSince1970: 86_400 * 34 + 1_800),
+            preset: .month
+        )
+        let unaffectedResolution = makeAnalyticsResolution(
+            from: Date(timeIntervalSince1970: 86_400 * 60),
+            to: Date(timeIntervalSince1970: 86_400 * 64 + 1_800),
+            preset: nil
+        )
         let category = MainCategoryCardModel(
             id: "cat-1",
             name: "Food",
@@ -1302,6 +1313,15 @@ extension MainFlowDomainRepositoryTests {
             color: "light_orange",
             amount: 10,
             currency: "USD"
+        )
+
+        await analyticsIntervalRepository.save(
+            data: makeAnalyticsData(totalAmount: 120),
+            for: affectedResolution
+        )
+        await analyticsIntervalRepository.save(
+            data: makeAnalyticsData(totalAmount: 80),
+            for: unaffectedResolution
         )
 
         store.update { state in
@@ -1351,7 +1371,8 @@ extension MainFlowDomainRepositoryTests {
             expensesService: expensesService,
             currencyConversionService: CurrencyConverterStub(),
             store: store,
-            observer: observer
+            observer: observer,
+            analyticsIntervalRepository: analyticsIntervalRepository
         )
 
         try await repository.addExpense(
@@ -1379,6 +1400,11 @@ extension MainFlowDomainRepositoryTests {
         let categoriesListCallCount = await categoriesService.listCallsCount()
         XCTAssertEqual(expensesListCallCount, 0)
         XCTAssertEqual(categoriesListCallCount, 1)
+        XCTAssertNil(await analyticsIntervalRepository.cachedData(for: affectedResolution))
+        XCTAssertEqual(
+            await analyticsIntervalRepository.cachedData(for: unaffectedResolution)?.totalAmount,
+            80
+        )
     }
 }
 
@@ -1436,6 +1462,7 @@ extension MainFlowDomainRepositoryTests {
             XCTAssertTrue(observer.currentCategorySnapshot(id: "cat-1").expenseGroups.isEmpty)
         }
     }
+
 }
 
 private enum RepositoryTestError: Error {
@@ -1596,4 +1623,48 @@ private struct MainSummaryPeriodProviderStub: MainSummaryPeriodProviding {
     func currentMonthPeriod() -> MainSummaryPeriod {
         period
     }
+}
+
+private func makeAnalyticsIntervalRepository() -> AnalyticsIntervalRepository {
+    AnalyticsIntervalRepository(calendar: makeCalendar())
+}
+
+private func makeAnalyticsResolution(
+    from: Date,
+    to: Date,
+    preset: AnalyticsPeriodPreset?
+) -> AnalyticsPeriodResolution {
+    AnalyticsPeriodResolution(
+        period: .init(
+            from: from,
+            to: to
+        ),
+        preset: preset
+    )
+}
+
+private func makeAnalyticsData(totalAmount: Double) -> AnalyticsDataModel {
+    AnalyticsDataModel(
+        monthStart: Date(timeIntervalSince1970: 0),
+        totalAmount: totalAmount,
+        currency: "USD",
+        categories: [
+            .init(
+                id: "food",
+                name: "Food",
+                icon: "🍴",
+                colorValue: "light_orange",
+                amount: totalAmount,
+                currency: "USD",
+                share: 1,
+                isInteractive: true
+            )
+        ]
+    )
+}
+
+private func makeCalendar() -> Calendar {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
+    return calendar
 }

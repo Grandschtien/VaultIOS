@@ -16,6 +16,7 @@ protocol AnalyticsPeriodResolving: Sendable {
     func resolveCurrentPeriod(for preset: AnalyticsPeriodPreset) -> AnalyticsPeriodResolution
     func resolvePeriod(from: Date, to: Date) -> AnalyticsPeriodResolution
     func previousPeriod(for resolution: AnalyticsPeriodResolution) -> AnalyticsPeriodResolution
+    func nextPeriod(for resolution: AnalyticsPeriodResolution) -> AnalyticsPeriodResolution
 }
 
 final class AnalyticsPeriodResolver: AnalyticsPeriodResolving {
@@ -66,21 +67,82 @@ final class AnalyticsPeriodResolver: AnalyticsPeriodResolving {
             return resolution
         }
 
-        let anchorDate: Date
-        switch preset {
-        case .day:
-            anchorDate = weekCalendar.date(byAdding: .day, value: -1, to: resolution.period.from) ?? resolution.period.from
-        case .week:
-            anchorDate = weekCalendar.date(byAdding: .weekOfYear, value: -1, to: resolution.period.from) ?? resolution.period.from
-        case .month:
-            anchorDate = weekCalendar.date(byAdding: .month, value: -1, to: resolution.period.from) ?? resolution.period.from
+        let anchorDate = anchorDate(
+            for: preset,
+            from: resolution.period.from,
+            offset: -1
+        )
+
+        return .init(
+            period: makePresetPeriod(
+                preset,
+                anchorDate: anchorDate,
+                currentDate: now()
+            ),
+            preset: preset
+        )
+    }
+
+    func nextPeriod(for resolution: AnalyticsPeriodResolution) -> AnalyticsPeriodResolution {
+        guard let preset = resolution.preset else {
+            return resolution
         }
 
-        return .init(period: makePresetPeriod(preset, anchorDate: anchorDate, currentDate: now()), preset: preset)
+        let currentResolution = resolveCurrentPeriod(for: preset)
+        guard resolution.period.from < currentResolution.period.from else {
+            return currentResolution
+        }
+
+        let anchorDate = anchorDate(
+            for: preset,
+            from: resolution.period.from,
+            offset: 1
+        )
+        let candidate = AnalyticsPeriodResolution(
+            period: makePresetPeriod(
+                preset,
+                anchorDate: anchorDate,
+                currentDate: now()
+            ),
+            preset: preset
+        )
+
+        guard candidate.period.from < currentResolution.period.from else {
+            return currentResolution
+        }
+
+        return candidate
     }
 }
 
 private extension AnalyticsPeriodResolver {
+    func anchorDate(
+        for preset: AnalyticsPeriodPreset,
+        from date: Date,
+        offset: Int
+    ) -> Date {
+        switch preset {
+        case .day:
+            return weekCalendar.date(
+                byAdding: .day,
+                value: offset,
+                to: date
+            ) ?? date
+        case .week:
+            return weekCalendar.date(
+                byAdding: .weekOfYear,
+                value: offset,
+                to: date
+            ) ?? date
+        case .month:
+            return weekCalendar.date(
+                byAdding: .month,
+                value: offset,
+                to: date
+            ) ?? date
+        }
+    }
+
     func makePresetPeriod(_ preset: AnalyticsPeriodPreset, anchorDate: Date, currentDate: Date) -> MainSummaryPeriod {
         switch preset {
         case .day:

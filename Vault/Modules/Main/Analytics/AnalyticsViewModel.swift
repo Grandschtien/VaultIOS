@@ -34,6 +34,7 @@ extension AnalyticsViewModel {
     }
 
     enum BodyState: Equatable {
+        case loading
         case error(FullScreenCommonErrorView.ViewModel)
         case empty(Label.LabelViewModel)
         case loaded(LoadedBodyViewModel)
@@ -48,6 +49,23 @@ extension AnalyticsViewModel {
 
     struct ContentViewModel: Equatable {
         let presetPills: [PresetPillViewModel]
+        let isPeriodSwipeEnabled: Bool
+        let swipeToPreviousPeriodCommand: Command
+        let swipeToNextPeriodCommand: Command
         let body: BodyState
+
+        init(
+            presetPills: [PresetPillViewModel] = [],
+            isPeriodSwipeEnabled: Bool = false,
+            swipeToPreviousPeriodCommand: Command = .nope,
+            swipeToNextPeriodCommand: Command = .nope,
+            body: BodyState = .loading
+        ) {
+            self.presetPills = presetPills
+            self.isPeriodSwipeEnabled = isPeriodSwipeEnabled
+            self.swipeToPreviousPeriodCommand = swipeToPreviousPeriodCommand
+            self.swipeToNextPeriodCommand = swipeToNextPeriodCommand
+            self.body = body
+        }
     }
 }

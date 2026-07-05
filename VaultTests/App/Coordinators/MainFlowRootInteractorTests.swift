@@ -114,6 +114,7 @@ private extension MainFlowRootInteractorTests {
             store: MainFlowDomainStore(),
             observer: MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping()),
             repository: MainFlowDomainRepositorySpy(),
+            analyticsIntervalRepository: AnalyticsIntervalRepository(),
             summaryPeriodProvider: MainSummaryPeriodProvider()
         )
     }

@@ -78,6 +78,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
     private let currencyConversionService: UserCurrencyConverting
     private let store: MainFlowDomainStoreProtocol
     private let observer: MainFlowDomainObserverProtocol
+    private let analyticsIntervalRepository: AnalyticsIntervalRepositoryProtocol?
     private let widgetSnapshotSyncService: VylokWidgetSnapshotSyncing?
     private let now: @Sendable () -> Date
     private let periodResolver: MainPeriodRangeResolver
@@ -90,6 +91,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         currencyConversionService: UserCurrencyConverting,
         store: MainFlowDomainStoreProtocol,
         observer: MainFlowDomainObserverProtocol,
+        analyticsIntervalRepository: AnalyticsIntervalRepositoryProtocol? = nil,
         widgetSnapshotSyncService: VylokWidgetSnapshotSyncing? = nil,
         calendar: Calendar = .current,
         now: @escaping @Sendable () -> Date = Date.init
@@ -101,6 +103,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
         self.currencyConversionService = currencyConversionService
         self.store = store
         self.observer = observer
+        self.analyticsIntervalRepository = analyticsIntervalRepository
         self.widgetSnapshotSyncService = widgetSnapshotSyncService
         self.now = now
         periodResolver = MainPeriodRangeResolver(calendar: calendar)
@@ -406,6 +409,9 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
                 applyCategoryAmountDelta(for: responseExpenses, multiplier: 1, state: &state)
                 pruneUnreferencedExpenses(in: &state)
             }
+            await analyticsIntervalRepository?.invalidateIntersecting(
+                with: request.expenses.map(\.timeOfAdd)
+            )
             observer.publishAll(from: store)
 
             try? await refreshCategories()
@@ -573,6 +579,7 @@ final class MainFlowDomainRepository: MainFlowDomainRepositoryProtocol, @uncheck
 
     func clearSession() async {
         store.clear()
+        await analyticsIntervalRepository?.clear()
         observer.finishAll()
         widgetSnapshotSyncService?.clearSnapshot()
     }

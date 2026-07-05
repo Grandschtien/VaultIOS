@@ -28,6 +28,7 @@ final class MainFlowRootFactory: Screen {
             expenseGrouping: MainExpenseDateGrouping()
         )
         let summaryPeriodProvider = MainSummaryPeriodProvider()
+        let analyticsIntervalRepository = AnalyticsIntervalRepository()
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
             expensesService: expensesService,
@@ -36,12 +37,14 @@ final class MainFlowRootFactory: Screen {
             currencyConversionService: currencyConversionService,
             store: store,
             observer: observer,
+            analyticsIntervalRepository: analyticsIntervalRepository,
             widgetSnapshotSyncService: widgetSnapshotSyncService
         )
         let context = MainFlowContext(
             store: store,
             observer: observer,
             repository: repository,
+            analyticsIntervalRepository: analyticsIntervalRepository,
             summaryPeriodProvider: summaryPeriodProvider
         )
 
