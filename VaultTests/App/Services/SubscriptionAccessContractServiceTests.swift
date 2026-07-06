@@ -42,6 +42,32 @@ final class SubscriptionAccessContractServiceTests: XCTestCase {
 }
 
 extension SubscriptionAccessContractServiceTests {
+    func testGetSubscriptionDecodesTrialStatusAsActiveSubscription() async throws {
+        let spy = AsyncNetworkClientContractSpy()
+        spy.setResponse(
+            json: #"{"tier":"PREMIUM","status":"trial","paid_access_until":"2026-07-06T13:21:40Z","capabilities":["analytics","custom_date_range","ai_input"],"usage_limits":{"ai_requests":{"limit":80,"remaining":80}},"status_version":57}"#
+        )
+
+        let sut = SubscriptionAccessContractService(networkClient: spy)
+        let response = try await sut.getSubscription()
+
+        XCTAssertEqual(response.tier, .premium)
+        XCTAssertEqual(response.status, .trial)
+        XCTAssertEqual(
+            response.paidAccessUntil,
+            Date(timeIntervalSince1970: 1_783_344_100)
+        )
+        XCTAssertEqual(response.aiRequestsLimit, 80)
+        XCTAssertEqual(response.aiRequestsRemaining, 80)
+        XCTAssertEqual(response.statusVersion, 57)
+        XCTAssertTrue(response.hasActiveSubscription)
+        XCTAssertTrue(response.hasAnalyticsAccess)
+        XCTAssertTrue(response.hasCustomDateRangeAccess)
+        XCTAssertTrue(response.hasAiInputAccess)
+    }
+}
+
+extension SubscriptionAccessContractServiceTests {
     func testGetSubscriptionDoesNotReuseSessionCacheBetweenCalls() async throws {
         let spy = AsyncNetworkClientContractSpy()
         spy.setResponse(

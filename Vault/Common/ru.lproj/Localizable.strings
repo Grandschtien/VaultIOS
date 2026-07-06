@@ -202,4 +202,13 @@
 "subscription_reload_required" = "Пожалуйста, перезагрузите приложение, чтобы получить доступ к контенту";
 "subscription_account_token_unavailable" = "Не удалось определить ваш аккаунт для покупки";
 "subscription_purchase_processing" = "Покупка обрабатывается, пожалуйста, не закрывайте экран";
+"subscription_trial_free_for" = "Бесплатный период: %@";
+"subscription_trial_period_day" = "%d дн.";
+"subscription_trial_period_days" = "%d дн.";
+"subscription_trial_period_week" = "%d нед.";
+"subscription_trial_period_weeks" = "%d нед.";
+"subscription_trial_period_month" = "%d мес.";
+"subscription_trial_period_months" = "%d мес.";
+"subscription_trial_period_year" = "%d г.";
+"subscription_trial_period_years" = "%d г.";
 "expense_ai_entry_subscription_limit_reached" = "Вы достигли лимита подписки, пожалуйста, дождитесь его обновления";

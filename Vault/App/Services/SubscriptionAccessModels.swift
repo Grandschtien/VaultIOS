@@ -15,6 +15,7 @@ enum SubscriptionTier: String, Sendable, Codable {
 
 enum SubscriptionStatus: String, Sendable, Codable {
     case active
+    case trial
     case cancelPending = "cancel_pending"
     case expired
     case revoked
@@ -58,7 +59,12 @@ struct SubscriptionAccessSnapshot: Codable, Equatable, Sendable {
     }
 
     var hasActiveSubscription: Bool {
-        status == .active
+        switch status {
+        case .active, .trial:
+            true
+        case .cancelPending, .expired, .revoked:
+            false
+        }
     }
 
     init(

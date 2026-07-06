@@ -70,8 +70,11 @@ private final class SubscriptionPlanCell: UITableViewCell, Reusable, LayoutScale
     private let cardView = UIView()
     private let titleLabel = Label()
     private let descriptionLabel = Label()
+    private let trialLabel = Label()
     private let priceLabel = Label()
     private let button = Button()
+    private var priceTopToDescriptionConstraint: Constraint?
+    private var priceTopToTrialConstraint: Constraint?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -87,6 +90,15 @@ private final class SubscriptionPlanCell: UITableViewCell, Reusable, LayoutScale
     func configure(with viewModel: SubscriptionViewModel.PlanCard) {
         titleLabel.apply(viewModel.title)
         descriptionLabel.apply(viewModel.description)
+        trialLabel.isHidden = viewModel.trial == nil
+        if let trial = viewModel.trial {
+            trialLabel.apply(trial)
+            priceTopToDescriptionConstraint?.deactivate()
+            priceTopToTrialConstraint?.activate()
+        } else {
+            priceTopToTrialConstraint?.deactivate()
+            priceTopToDescriptionConstraint?.activate()
+        }
         priceLabel.apply(viewModel.price)
         button.apply(viewModel.button)
     }
@@ -104,12 +116,14 @@ private extension SubscriptionPlanCell {
         cardView.layer.borderColor = Asset.Colors.textAndIconPlaceseholder.color
             .withAlphaComponent(0.15)
             .cgColor
+        trialLabel.isHidden = true
     }
 
     func setupLayout() {
         contentView.addSubview(cardView)
         cardView.addSubview(titleLabel)
         cardView.addSubview(descriptionLabel)
+        cardView.addSubview(trialLabel)
         cardView.addSubview(priceLabel)
         cardView.addSubview(button)
 
@@ -129,10 +143,17 @@ private extension SubscriptionPlanCell {
             make.horizontalEdges.equalToSuperview().inset(spaceS)
         }
 
-        priceLabel.snp.makeConstraints { make in
-            make.top.equalTo(descriptionLabel.snp.bottom).offset(spaceS)
+        trialLabel.snp.makeConstraints { make in
+            make.top.equalTo(descriptionLabel.snp.bottom).offset(spaceXS)
             make.horizontalEdges.equalToSuperview().inset(spaceS)
         }
+
+        priceLabel.snp.makeConstraints { make in
+            priceTopToDescriptionConstraint = make.top.equalTo(descriptionLabel.snp.bottom).offset(spaceS).constraint
+            priceTopToTrialConstraint = make.top.equalTo(trialLabel.snp.bottom).offset(spaceS).constraint
+            make.horizontalEdges.equalToSuperview().inset(spaceS)
+        }
+        priceTopToTrialConstraint?.deactivate()
 
         button.snp.makeConstraints { make in
             make.top.equalTo(priceLabel.snp.bottom).offset(spaceS)

@@ -24,39 +24,43 @@ final class SubscriptionService: SubscriptionServiceLogic {
     private let plusEntitlementID: String
     private let premiumEntitlementID: String
     private let appLogService: AppLogServiceProtocol?
-    private var packagesByProductID: [String: Package] = [:]
+    private let revenueCatClient: SubscriptionRevenueCatClientProtocol
+    private var packagesByProductID: [String: SubscriptionRevenueCatPackage] = [:]
 
     init(
         plusEntitlementID: String = "plus_access",
         premiumEntitlementID: String = "premium_access",
+        revenueCatClient: SubscriptionRevenueCatClientProtocol = SubscriptionRevenueCatClient(),
         appLogService: AppLogServiceProtocol? = nil
     ) {
         self.plusEntitlementID = plusEntitlementID
         self.premiumEntitlementID = premiumEntitlementID
+        self.revenueCatClient = revenueCatClient
         self.appLogService = appLogService
     }
 
     @discardableResult
     func loadPlans() async throws -> [SubscriptionFetchData.SubscriptionStorePlan] {
         do {
-            async let offerings = fetchOfferings()
-            async let customerInfo = fetchCustomerInfo()
+            async let packages = revenueCatClient.fetchPackages()
+            async let customerInfo = revenueCatClient.fetchCustomerInfo()
 
-            let (resolvedOfferings, resolvedCustomerInfo) = try await (offerings, customerInfo)
-
-            guard let packages = resolvedOfferings.current?.availablePackages, !packages.isEmpty else {
+            let (resolvedPackages, resolvedCustomerInfo) = try await (packages, customerInfo)
+            guard !resolvedPackages.isEmpty else {
                 throw SubscriptionServiceError.emptyOfferings
             }
 
-            let filteredPackages = packages.filter { package in
+            let filteredPackages = resolvedPackages.filter { package in
                 SubscriptionCatalog.orderedPlans.contains {
-                    $0.id == package.storeProduct.productIdentifier
+                    $0.id == package.productIdentifier
                 }
             }
+            let eligibilityByProductID = await revenueCatClient
+                .checkTrialOrIntroDiscountEligibility(packages: filteredPackages)
 
             packagesByProductID = Dictionary(
                 uniqueKeysWithValues: filteredPackages.map {
-                    ($0.storeProduct.productIdentifier, $0)
+                    ($0.productIdentifier, $0)
                 }
             )
 
@@ -66,7 +70,11 @@ final class SubscriptionService: SubscriptionServiceLogic {
                 return SubscriptionFetchData.SubscriptionStorePlan(
                     id: plan.id,
                     title: plan.title,
-                    price: package.storeProduct.localizedPriceString
+                    price: package.localizedPriceString,
+                    trialText: SubscriptionTrialResolver.resolveTrialText(
+                        from: package.introductoryDiscount,
+                        eligibility: eligibilityByProductID[plan.id] ?? .unknown
+                    )
                 )
             }
 
@@ -105,30 +113,30 @@ final class SubscriptionService: SubscriptionServiceLogic {
             throw SubscriptionServiceError.packageNotFound(planID)
         }
 
-        let customerInfo = try await purchase(package: package)
+        let customerInfo = try await revenueCatClient.purchase(package: package)
         currentTier = resolveTier(from: customerInfo)
     }
 
     func restore() async throws {
-        let customerInfo = try await restorePurchases()
+        let customerInfo = try await revenueCatClient.restorePurchases()
         currentTier = resolveTier(from: customerInfo)
     }
 
     func refreshCurrentTier() async throws {
-        let customerInfo = try await fetchCustomerInfo()
+        let customerInfo = try await revenueCatClient.fetchCustomerInfo()
         currentTier = resolveTier(from: customerInfo)
     }
 
     func manualSync() async throws {
-        let customerInfo = try await syncPurchases()
+        let customerInfo = try await revenueCatClient.syncPurchases()
         currentTier = resolveTier(from: customerInfo)
     }
 }
 
 private extension SubscriptionService {
-    func resolveTier(from customerInfo: CustomerInfo) -> SubscriptionTier {
-        let hasPremium = customerInfo.entitlements[premiumEntitlementID]?.isActive == true
-        let hasPlus = customerInfo.entitlements[plusEntitlementID]?.isActive == true
+    func resolveTier(from customerInfo: SubscriptionRevenueCatCustomerInfo) -> SubscriptionTier {
+        let hasPremium = customerInfo.hasActiveEntitlement(premiumEntitlementID)
+        let hasPlus = customerInfo.hasActiveEntitlement(plusEntitlementID)
         if hasPremium || hasPlus {
             return .premium
         }
@@ -137,9 +145,78 @@ private extension SubscriptionService {
     }
 }
 
-private extension SubscriptionService {
-    func fetchOfferings() async throws -> Offerings {
-        try await withCheckedThrowingContinuation { continuation in
+protocol SubscriptionRevenueCatClientProtocol: AnyObject {
+    func fetchPackages() async throws -> [SubscriptionRevenueCatPackage]
+    func fetchCustomerInfo() async throws -> SubscriptionRevenueCatCustomerInfo
+    func checkTrialOrIntroDiscountEligibility(
+        packages: [SubscriptionRevenueCatPackage]
+    ) async -> [String: IntroEligibilityStatus]
+    func purchase(package: SubscriptionRevenueCatPackage) async throws -> SubscriptionRevenueCatCustomerInfo
+    func restorePurchases() async throws -> SubscriptionRevenueCatCustomerInfo
+    func syncPurchases() async throws -> SubscriptionRevenueCatCustomerInfo
+}
+
+struct SubscriptionRevenueCatPackage {
+    let productIdentifier: String
+    let localizedPriceString: String
+    let introductoryDiscount: SubscriptionRevenueCatDiscount?
+    fileprivate let sourcePackage: Package?
+
+    init(
+        productIdentifier: String,
+        localizedPriceString: String,
+        introductoryDiscount: SubscriptionRevenueCatDiscount? = nil,
+        sourcePackage: Package? = nil
+    ) {
+        self.productIdentifier = productIdentifier
+        self.localizedPriceString = localizedPriceString
+        self.introductoryDiscount = introductoryDiscount
+        self.sourcePackage = sourcePackage
+    }
+
+    init(package: Package) {
+        self.init(
+            productIdentifier: package.storeProduct.productIdentifier,
+            localizedPriceString: package.storeProduct.localizedPriceString,
+            introductoryDiscount: package.storeProduct.introductoryDiscount.map(SubscriptionRevenueCatDiscount.init),
+            sourcePackage: package
+        )
+    }
+}
+
+struct SubscriptionRevenueCatDiscount {
+    let paymentMode: StoreProductDiscount.PaymentMode
+    let subscriptionPeriod: SubscriptionPeriod
+
+    init(
+        paymentMode: StoreProductDiscount.PaymentMode,
+        subscriptionPeriod: SubscriptionPeriod
+    ) {
+        self.paymentMode = paymentMode
+        self.subscriptionPeriod = subscriptionPeriod
+    }
+
+    init(discount: StoreProductDiscount) {
+        self.init(
+            paymentMode: discount.paymentMode,
+            subscriptionPeriod: discount.subscriptionPeriod
+        )
+    }
+}
+
+struct SubscriptionRevenueCatCustomerInfo {
+    let activeEntitlementIDs: Set<String>
+
+    func hasActiveEntitlement(_ id: String) -> Bool {
+        activeEntitlementIDs.contains(id)
+    }
+}
+
+final class SubscriptionRevenueCatClient: SubscriptionRevenueCatClientProtocol {
+    func fetchPackages() async throws -> [SubscriptionRevenueCatPackage] {
+        try await withCheckedThrowingContinuation { (
+            continuation: CheckedContinuation<[SubscriptionRevenueCatPackage], Error>
+        ) in
             Purchases.shared.getOfferings { offerings, error in
                 if let error {
                     continuation.resume(throwing: error)
@@ -151,14 +228,18 @@ private extension SubscriptionService {
                     return
                 }
 
-                continuation.resume(returning: offerings)
+                let packages = offerings.current?.availablePackages.map(SubscriptionRevenueCatPackage.init) ?? []
+                continuation.resume(returning: packages)
             }
         }
     }
 
-    func fetchCustomerInfo() async throws -> CustomerInfo {
-        try await withCheckedThrowingContinuation { continuation in
-            Purchases.shared.getCustomerInfo { customerInfo, error in
+    func fetchCustomerInfo() async throws -> SubscriptionRevenueCatCustomerInfo {
+        try await withCheckedThrowingContinuation { (
+            continuation: CheckedContinuation<SubscriptionRevenueCatCustomerInfo, Error>
+        ) in
+            Purchases.shared.getCustomerInfo { [weak self] customerInfo, error in
+                guard let self else { return }
                 if let error {
                     continuation.resume(throwing: error)
                     return
@@ -169,14 +250,43 @@ private extension SubscriptionService {
                     return
                 }
 
-                continuation.resume(returning: customerInfo)
+                continuation.resume(returning: makeCustomerInfo(from: customerInfo))
             }
         }
     }
 
-    func purchase(package: Package) async throws -> CustomerInfo {
-        try await withCheckedThrowingContinuation { continuation in
-            Purchases.shared.purchase(package: package) { _, customerInfo, error, userCancelled in
+    func checkTrialOrIntroDiscountEligibility(
+        packages: [SubscriptionRevenueCatPackage]
+    ) async -> [String: IntroEligibilityStatus] {
+        let sourcePackages = packages.compactMap(\.sourcePackage)
+        guard sourcePackages.count == packages.count else {
+            return Dictionary(
+                uniqueKeysWithValues: packages.map { ($0.productIdentifier, .unknown) }
+            )
+        }
+
+        let eligibilityByPackage = await Purchases.shared
+            .checkTrialOrIntroDiscountEligibility(packages: sourcePackages)
+
+        return Dictionary(
+            uniqueKeysWithValues: packages.map { package in
+                let sourcePackage = package.sourcePackage
+                let status = sourcePackage.flatMap { eligibilityByPackage[$0]?.status } ?? .unknown
+                return (package.productIdentifier, status)
+            }
+        )
+    }
+
+    func purchase(package: SubscriptionRevenueCatPackage) async throws -> SubscriptionRevenueCatCustomerInfo {
+        guard let sourcePackage = package.sourcePackage else {
+            throw SubscriptionServiceError.packageNotFound(package.productIdentifier)
+        }
+
+        return try await withCheckedThrowingContinuation { (
+            continuation: CheckedContinuation<SubscriptionRevenueCatCustomerInfo, Error>
+        ) in
+            Purchases.shared.purchase(package: sourcePackage) { [weak self] _, customerInfo, error, userCancelled in
+                guard let self else { return }
                 if userCancelled {
                     continuation.resume(throwing: SubscriptionServiceError.purchaseCancelled)
                     return
@@ -192,14 +302,17 @@ private extension SubscriptionService {
                     return
                 }
 
-                continuation.resume(returning: customerInfo)
+                continuation.resume(returning: makeCustomerInfo(from: customerInfo))
             }
         }
     }
 
-    func restorePurchases() async throws -> CustomerInfo {
-        try await withCheckedThrowingContinuation { continuation in
-            Purchases.shared.restorePurchases { customerInfo, error in
+    func restorePurchases() async throws -> SubscriptionRevenueCatCustomerInfo {
+        try await withCheckedThrowingContinuation { (
+            continuation: CheckedContinuation<SubscriptionRevenueCatCustomerInfo, Error>
+        ) in
+            Purchases.shared.restorePurchases { [weak self] customerInfo, error in
+                guard let self else { return }
                 if let error {
                     continuation.resume(throwing: error)
                     return
@@ -210,14 +323,18 @@ private extension SubscriptionService {
                     return
                 }
 
-                continuation.resume(returning: customerInfo)
+                continuation.resume(returning: makeCustomerInfo(from: customerInfo))
             }
         }
     }
 
-    func syncPurchases() async throws -> CustomerInfo {
-        try await withCheckedThrowingContinuation { continuation in
-            Purchases.shared.syncPurchases { customerInfo, error in
+    func syncPurchases() async throws -> SubscriptionRevenueCatCustomerInfo {
+        try await withCheckedThrowingContinuation { (
+            continuation: CheckedContinuation<SubscriptionRevenueCatCustomerInfo, Error>
+        ) in
+            Purchases.shared.syncPurchases { [weak self] customerInfo, error in
+                guard let self else { return }
+    
                 if let error {
                     continuation.resume(throwing: error)
                     return
@@ -228,8 +345,16 @@ private extension SubscriptionService {
                     return
                 }
 
-                continuation.resume(returning: customerInfo)
+                continuation.resume(returning: makeCustomerInfo(from: customerInfo))
             }
         }
+    }
+}
+
+private extension SubscriptionRevenueCatClient {
+    func makeCustomerInfo(from customerInfo: CustomerInfo) -> SubscriptionRevenueCatCustomerInfo {
+        return SubscriptionRevenueCatCustomerInfo(
+            activeEntitlementIDs: Set(customerInfo.entitlements.active.keys)
+        )
     }
 }

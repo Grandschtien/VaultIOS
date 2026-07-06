@@ -15,6 +15,19 @@ struct SubscriptionFetchData: Sendable {
         let id: String
         let title: String
         let price: String
+        let trialText: String?
+
+        init(
+            id: String,
+            title: String,
+            price: String,
+            trialText: String? = nil
+        ) {
+            self.id = id
+            self.title = title
+            self.price = price
+            self.trialText = trialText
+        }
     }
 
     init(

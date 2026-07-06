@@ -172,6 +172,7 @@ private extension SubscriptionPresenter {
                 alignment: .left,
                 numberOfLines: 0
             ),
+            trial: makeTrialViewModel(from: plan.trialText),
             price: .init(
                 text: L10n.subscriptionPerMonth(plan.price),
                 font: Typography.typographyBold28,
@@ -190,6 +191,21 @@ private extension SubscriptionPresenter {
                 },
                 trackingName: "subscription_buy_\(plan.id)"
             )
+        )
+    }
+
+    func makeTrialViewModel(from trialText: String?) -> Label.LabelViewModel? {
+        guard let trialText,
+              !trialText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+
+        return .init(
+            text: trialText,
+            font: Typography.typographySemibold14,
+            textColor: Asset.Colors.interactiveElemetsPrimary.color,
+            alignment: .left,
+            numberOfLines: 0
         )
     }
 

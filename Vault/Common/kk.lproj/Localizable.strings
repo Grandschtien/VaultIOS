@@ -201,4 +201,13 @@
 "subscription_reload_required" = "Контентке қол жеткізу үшін қолданбаны қайта іске қосыңыз";
 "subscription_account_token_unavailable" = "Сатып алу үшін тіркелгіңізді анықтау мүмкін болмады";
 "subscription_purchase_processing" = "Сатып алу өңделуде, экранды жаппаңыз";
+"subscription_trial_free_for" = "Тегін кезең: %@";
+"subscription_trial_period_day" = "%d күн";
+"subscription_trial_period_days" = "%d күн";
+"subscription_trial_period_week" = "%d апта";
+"subscription_trial_period_weeks" = "%d апта";
+"subscription_trial_period_month" = "%d ай";
+"subscription_trial_period_months" = "%d ай";
+"subscription_trial_period_year" = "%d жыл";
+"subscription_trial_period_years" = "%d жыл";
 "expense_ai_entry_subscription_limit_reached" = "Жазылым лимитіне жеттіңіз, жаңарғанын күтіңіз";

@@ -93,6 +93,60 @@ extension SubscriptionPresenterTests {
 }
 
 extension SubscriptionPresenterTests {
+    func testPresentFetchedDataWithTrialBuildsTrialLabel() {
+        sut.presentFetchedData(
+            .init(
+                loadingState: .loaded,
+                currentTier: "REGULAR",
+                plans: [
+                    .init(
+                        id: SubscriptionCatalog.premium.id,
+                        title: L10n.subscriptionPremium,
+                        price: "$2.99",
+                        trialText: L10n.subscriptionTrialFreeFor(
+                            L10n.subscriptionTrialPeriodDays(7)
+                        )
+                    )
+                ]
+            )
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        XCTAssertEqual(
+            content.plans[0].trial?.text,
+            L10n.subscriptionTrialFreeFor(
+                L10n.subscriptionTrialPeriodDays(7)
+            )
+        )
+    }
+
+    func testPresentFetchedDataWithoutTrialKeepsTrialLabelHidden() {
+        sut.presentFetchedData(
+            .init(
+                loadingState: .loaded,
+                currentTier: "REGULAR",
+                plans: [
+                    .init(
+                        id: SubscriptionCatalog.premium.id,
+                        title: L10n.subscriptionPremium,
+                        price: "$2.99"
+                    )
+                ]
+            )
+        )
+
+        guard case let .loaded(content) = sut.viewModel.state else {
+            return XCTFail("Expected loaded state")
+        }
+
+        XCTAssertNil(content.plans[0].trial)
+    }
+}
+
+extension SubscriptionPresenterTests {
     func testPresentFetchedDataPurchasingDisablesCloseAndShowsOverlayImmediately() {
         sut.presentFetchedData(
             .init(

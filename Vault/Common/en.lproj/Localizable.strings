@@ -203,4 +203,13 @@
 "subscription_reload_required" = "Please Restart The App To Get Access To Content";
 "subscription_account_token_unavailable" = "Unable to identify your account for purchase";
 "subscription_purchase_processing" = "Purchase is being processed, please do not close this screen";
+"subscription_trial_free_for" = "Free for %@";
+"subscription_trial_period_day" = "%d day";
+"subscription_trial_period_days" = "%d days";
+"subscription_trial_period_week" = "%d week";
+"subscription_trial_period_weeks" = "%d weeks";
+"subscription_trial_period_month" = "%d month";
+"subscription_trial_period_months" = "%d months";
+"subscription_trial_period_year" = "%d year";
+"subscription_trial_period_years" = "%d years";
 "expense_ai_entry_subscription_limit_reached" = "You reached your subscription limits, please, wait for renew them";

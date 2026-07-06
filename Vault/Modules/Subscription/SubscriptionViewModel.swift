@@ -81,6 +81,7 @@ extension SubscriptionViewModel {
         let id: String
         let title: Label.LabelViewModel
         let description: Label.LabelViewModel
+        let trial: Label.LabelViewModel?
         let price: Label.LabelViewModel
         let button: Button.ButtonViewModel
 
@@ -88,12 +89,14 @@ extension SubscriptionViewModel {
             id: String = "",
             title: Label.LabelViewModel = .init(),
             description: Label.LabelViewModel = .init(),
+            trial: Label.LabelViewModel? = nil,
             price: Label.LabelViewModel = .init(),
             button: Button.ButtonViewModel = .init()
         ) {
             self.id = id
             self.title = title
             self.description = description
+            self.trial = trial
             self.price = price
             self.button = button
         }
