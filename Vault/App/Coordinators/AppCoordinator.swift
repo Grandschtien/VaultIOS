@@ -33,6 +33,8 @@ final class AppCoordinator {
         AppLogBridge.log(category: .app, name: "start", source: "AppCoordinator")
         appAssebler.resolver.resolve(FirstRunKeychainCleanupServiceProtocol.self)?
             .clearKeychainIfNeeded()
+        appAssebler.resolver.resolve(QASessionSeedingServiceProtocol.self)?
+            .seedSessionIfNeeded()
         observeLogoutEvents()
         observeSubscriptionAccessDidChange()
         

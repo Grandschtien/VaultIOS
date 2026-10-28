@@ -5,6 +5,7 @@
 //  Created by Егор Шкарин on 01.02.2026.
 //
 
+import FirebaseAnalytics
 import FirebaseCore
 import UIKit
 
@@ -15,6 +16,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         FirebaseApp.configure()
+
+        if LaunchEnvironmentProvider.shared.isQAMode {
+            Analytics.setAnalyticsCollectionEnabled(false)
+        }
 
         return true
     }

@@ -35,3 +35,8 @@ fastlane/test_output/
 
 Vault/GoogleService-Info.plist
 Vault/Configuration/LocalSecrets.xcconfig
+
+# QA agent local state
+QA/.env.qa.local
+QA/.run/
+QA/reports/

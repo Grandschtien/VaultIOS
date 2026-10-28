@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scripts/qa/*)",
+      "mcp__xcode__XcodeListWorkspaces",
+      "mcp__xcode__DeviceInteractionStartWorkspaceSession",
+      "mcp__xcode__DeviceInteractionInstallAndRun",
+      "mcp__xcode__DeviceInteractionSynthesize",
+      "mcp__xcode__DeviceInteractionEndSession",
+      "mcp__xcode__GetConsoleOutput",
+      "mcp__xcode__GetBuildLog"
+    ]
+  }
+}

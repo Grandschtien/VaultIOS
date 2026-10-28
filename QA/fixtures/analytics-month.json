@@ -1,0 +1,15 @@
+{
+  "categories": [
+    { "name": "Food", "icon": "🍔", "color": "light_orange" },
+    { "name": "Transport", "icon": "🚕", "color": "light_blue" },
+    { "name": "Home", "icon": "🏠", "color": "light_green" }
+  ],
+  "expenses": [
+    { "title": "Groceries", "amount": 54.2, "currency": "USD", "category": "Food", "days_ago": 1 },
+    { "title": "Coffee", "amount": 4.5, "currency": "USD", "category": "Food", "days_ago": 2 },
+    { "title": "Taxi", "amount": 18, "currency": "USD", "category": "Transport", "days_ago": 3 },
+    { "title": "Metro card", "amount": 30, "currency": "USD", "category": "Transport", "days_ago": 6 },
+    { "title": "Rent", "amount": 900, "currency": "USD", "category": "Home", "days_ago": 10 },
+    { "title": "Lamp", "amount": 35, "currency": "USD", "category": "Home", "days_ago": 14 }
+  ]
+}

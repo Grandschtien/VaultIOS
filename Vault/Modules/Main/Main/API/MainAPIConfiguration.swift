@@ -4,14 +4,18 @@ import Foundation
 import Alamofire
 
 enum MainAPIConfiguration {
-    static let host = "moneyvaultapp.com"
-    static let scheme = "https"
+    private static let baseURL = LaunchEnvironmentProvider.shared.apiBaseURL
+
+    static let host = baseURL?.host ?? "moneyvaultapp.com"
+    static let scheme = baseURL?.scheme ?? "https"
+    static let port = baseURL?.port
     static let timeoutInterval: TimeInterval = 30
 
     static func url(path: String) -> URL {
         var components = URLComponents()
         components.host = host
         components.scheme = scheme
+        components.port = port
         components.path = path
 
         guard let url = components.url else {

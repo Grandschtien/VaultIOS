@@ -64,6 +64,19 @@ private extension AppAssembly {
         }
         .inObjectScope(.transient)
 
+        container.register(QASessionSeedingServiceProtocol.self) { resolver in
+            guard let tokenStorageService = resolver.resolve(TokenStorageServiceProtocol.self),
+                  let userProfileStorageService = resolver.resolve(UserProfileStorageServiceProtocol.self) else {
+                fatalError("Failed to resolve dependencies for QASessionSeedingService")
+            }
+
+            return QASessionSeedingService(
+                tokenStorageService: tokenStorageService,
+                userProfileStorageService: userProfileStorageService
+            )
+        }
+        .inObjectScope(.transient)
+
         container.register(VylokRouteParsing.self) { _ in
             VylokRouteParser()
         }
