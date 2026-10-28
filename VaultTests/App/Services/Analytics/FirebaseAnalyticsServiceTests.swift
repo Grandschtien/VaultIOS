@@ -25,8 +25,23 @@ final class FirebaseAnalyticsServiceTests: XCTestCase {
         let loggedEventName = await spy.loggedEventName()
         let loggedPayload = await spy.loggedPayload()
         XCTAssertEqual(configureCallsCount, 1)
-        XCTAssertEqual(loggedEventName, AnalyticsEvent.screenOpen(.login).name)
+        XCTAssertEqual(loggedEventName, "login_open")
         XCTAssertEqual(loggedPayload, AnalyticsPayload(rawPayload: ["title": "Coffee", "amount": 5]))
+    }
+
+    func testSendReplacesAllDotsInEventNameWithUnderscores() async {
+        let spy = FirebaseAnalyticsServiceSpy()
+        let sut = FirebaseAnalyticsService(
+            configureIfNeededHandler: {},
+            logEventHandler: { name, parameters in
+                await spy.recordLog(name: name, parameters: parameters)
+            }
+        )
+
+        await sut.send(event: .tap(.manualTapPrimaryConfirm), payload: AnalyticsPayload(rawPayload: [:]))
+
+        let loggedEventName = await spy.loggedEventName()
+        XCTAssertEqual(loggedEventName, "expense_manual_entry_primary_confirm_tap")
     }
 
     func testSendMapsSubscriptionPurchaseSuccessToFirebasePurchaseEvent() async {

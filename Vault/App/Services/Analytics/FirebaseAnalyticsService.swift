@@ -65,9 +65,14 @@ private extension FirebaseAnalyticsService {
 
         default:
             return FirebaseEvent(
-                name: event.name,
+                name: makeFirebaseEventName(from: event.name),
                 parameters: parameters.isEmpty ? nil : parameters
             )
         }
+    }
+
+    // Firebase accepts only letters, numbers and underscores in event names.
+    private func makeFirebaseEventName(from name: String) -> String {
+        name.replacingOccurrences(of: ".", with: "_")
     }
 }
