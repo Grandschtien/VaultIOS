@@ -22,6 +22,8 @@ final class MainFactory: Screen {
         var subscriptionAccessService: SubscriptionAccessServicing
         @SafeInject
         var widgetSnapshotSyncService: VylokWidgetSnapshotSyncing
+        @SafeInject
+        var analyticsCoreManager: AnalyticsCoreManaging
 
         let currencyRateProvider = MainCurrencyRateProvider(
             currencyRateService: currencyRateService,
@@ -55,7 +57,8 @@ final class MainFactory: Screen {
             subscriptionAccessService: subscriptionAccessService,
             repository: context.repository,
             observer: context.observer,
-            widgetSnapshotSyncService: widgetSnapshotSyncService
+            widgetSnapshotSyncService: widgetSnapshotSyncService,
+            analytics: MainAnalyticsTracker(analyticsCoreManager: analyticsCoreManager)
         )
 
         let viewModelStore = ViewModelStore(

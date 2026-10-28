@@ -59,6 +59,7 @@ enum AnalyticsScreen: String, Equatable, Sendable {
     case expenseCategoryPicker = "expense_category_picker"
     case expenseManualEntry = "expense_manual_entry"
     case categoryCreate = "category_create"
+    case main = "main_screen"
 }
 
 enum AnalyticsAction: String, Equatable, Sendable {

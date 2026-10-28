@@ -76,6 +76,40 @@ final class SubscriptionServiceTests: XCTestCase {
 
         XCTAssertNil(trialText)
     }
+
+    func testPurchaseTracksFirebaseTransactionWhenRevenueCatReturnsTransaction() async throws {
+        let firebaseTransactionLogger = FirebaseTransactionLoggingSpy()
+        let transaction = StoreTransaction(
+            productIdentifier: SubscriptionCatalog.premium.id,
+            purchaseDate: Date(timeIntervalSince1970: 10),
+            transactionIdentifier: "transaction-1"
+        )
+        let client = SubscriptionRevenueCatClientStub(
+            packages: [
+                .init(
+                    productIdentifier: SubscriptionCatalog.premium.id,
+                    localizedPriceString: "$2.99"
+                )
+            ],
+            customerInfo: .init(activeEntitlementIDs: ["premium_access"]),
+            purchaseResult: .init(
+                transaction: transaction,
+                customerInfo: .init(activeEntitlementIDs: ["premium_access"])
+            )
+        )
+        let sut = SubscriptionService(
+            revenueCatClient: client,
+            appLogService: AppLogServiceSpy(),
+            firebaseTransactionLogger: firebaseTransactionLogger
+        )
+
+        _ = try await sut.loadPlans()
+        try await sut.purchase(planID: SubscriptionCatalog.premium.id)
+
+        let trackedTransaction = await firebaseTransactionLogger.trackedTransaction()
+        XCTAssertEqual(trackedTransaction?.productIdentifier, SubscriptionCatalog.premium.id)
+        XCTAssertEqual(sut.currentTier, .premium)
+    }
 }
 
 private extension SubscriptionServiceTests {
@@ -106,15 +140,21 @@ private extension SubscriptionServiceTests {
 private final class SubscriptionRevenueCatClientStub: SubscriptionRevenueCatClientProtocol, @unchecked Sendable {
     private let packages: [SubscriptionRevenueCatPackage]
     private let customerInfo: SubscriptionRevenueCatCustomerInfo
+    private let purchaseResult: SubscriptionRevenueCatPurchaseResult
 
     var eligibilityByProductID: [String: IntroEligibilityStatus] = [:]
 
     init(
         packages: [SubscriptionRevenueCatPackage],
-        customerInfo: SubscriptionRevenueCatCustomerInfo
+        customerInfo: SubscriptionRevenueCatCustomerInfo,
+        purchaseResult: SubscriptionRevenueCatPurchaseResult? = nil
     ) {
         self.packages = packages
         self.customerInfo = customerInfo
+        self.purchaseResult = purchaseResult ?? .init(
+            transaction: nil,
+            customerInfo: customerInfo
+        )
     }
 
     func fetchPackages() async throws -> [SubscriptionRevenueCatPackage] {
@@ -135,8 +175,8 @@ private final class SubscriptionRevenueCatClientStub: SubscriptionRevenueCatClie
         )
     }
 
-    func purchase(package: SubscriptionRevenueCatPackage) async throws -> SubscriptionRevenueCatCustomerInfo {
-        customerInfo
+    func purchase(package: SubscriptionRevenueCatPackage) async throws -> SubscriptionRevenueCatPurchaseResult {
+        purchaseResult
     }
 
     func restorePurchases() async throws -> SubscriptionRevenueCatCustomerInfo {
@@ -145,5 +185,17 @@ private final class SubscriptionRevenueCatClientStub: SubscriptionRevenueCatClie
 
     func syncPurchases() async throws -> SubscriptionRevenueCatCustomerInfo {
         customerInfo
+    }
+}
+
+private actor FirebaseTransactionLoggingSpy: FirebaseTransactionLogging {
+    private var storedTransaction: StoreTransaction?
+
+    func trackTransactionIfNeeded(_ transaction: StoreTransaction?) async {
+        storedTransaction = transaction
+    }
+
+    func trackedTransaction() -> StoreTransaction? {
+        storedTransaction
     }
 }

@@ -1,4 +1,5 @@
 import XCTest
+import FirebaseAnalytics
 @testable import Vylok
 
 final class FirebaseAnalyticsServiceTests: XCTestCase {
@@ -26,6 +27,61 @@ final class FirebaseAnalyticsServiceTests: XCTestCase {
         XCTAssertEqual(configureCallsCount, 1)
         XCTAssertEqual(loggedEventName, AnalyticsEvent.screenOpen(.login).name)
         XCTAssertEqual(loggedPayload, AnalyticsPayload(rawPayload: ["title": "Coffee", "amount": 5]))
+    }
+
+    func testSendMapsSubscriptionPurchaseSuccessToFirebasePurchaseEvent() async {
+        let spy = FirebaseAnalyticsServiceSpy()
+        let sut = FirebaseAnalyticsService(
+            configureIfNeededHandler: {
+                await spy.recordConfigure()
+            },
+            logEventHandler: { name, parameters in
+                await spy.recordLog(name: name, parameters: parameters)
+            }
+        )
+
+        await sut.send(
+            event: .subscriptionPurchaseSuccess,
+            payload: AnalyticsPayload(
+                rawPayload: [
+                    "plan_id": "premium.monthly",
+                    "plan_title": "Premium Monthly"
+                ]
+            )
+        )
+
+        let loggedEventName = await spy.loggedEventName()
+        let loggedPayload = await spy.loggedPayload()
+
+        XCTAssertEqual(loggedEventName, AnalyticsEventPurchase)
+        XCTAssertEqual(loggedPayload?.values["plan_id"], .string("premium.monthly"))
+        XCTAssertEqual(loggedPayload?.values["plan_title"], .string("Premium Monthly"))
+        XCTAssertEqual(loggedPayload?.values[AnalyticsParameterItemID], .string("premium.monthly"))
+        XCTAssertEqual(loggedPayload?.values[AnalyticsParameterItemName], .string("Premium Monthly"))
+    }
+
+    func testSendMapsMainScreenOpenToFirebaseScreenViewEvent() async {
+        let spy = FirebaseAnalyticsServiceSpy()
+        let sut = FirebaseAnalyticsService(
+            configureIfNeededHandler: {
+                await spy.recordConfigure()
+            },
+            logEventHandler: { name, parameters in
+                await spy.recordLog(name: name, parameters: parameters)
+            }
+        )
+
+        await sut.send(
+            event: .screenOpen(.main),
+            payload: AnalyticsPayload(rawPayload: [:])
+        )
+
+        let loggedEventName = await spy.loggedEventName()
+        let loggedPayload = await spy.loggedPayload()
+
+        XCTAssertEqual(loggedEventName, AnalyticsEventScreenView)
+        XCTAssertEqual(loggedPayload?.values[AnalyticsParameterScreenName], .string(AnalyticsScreen.main.rawValue))
+        XCTAssertEqual(loggedPayload?.values[AnalyticsParameterScreenClass], .string("MainViewController"))
     }
 }
 

@@ -28,6 +28,7 @@ actor MainInteractor: MainBusinessLogic {
     private let repository: MainFlowDomainRepositoryProtocol
     private let observer: MainFlowDomainObserverProtocol
     private let widgetSnapshotSyncService: VylokWidgetSnapshotSyncing?
+    private let analytics: MainAnalyticsTracking?
 
     private var blockingErrorDescription: String?
     private var isRefreshing: Bool = false
@@ -35,6 +36,7 @@ actor MainInteractor: MainBusinessLogic {
     private var categoriesState: LoadingStatus = .idle
     private var expensesState: LoadingStatus = .idle
     private var currentTier: SubscriptionTier = .regular
+    private var hasTrackedScreenOpen: Bool = false
 
     private var summary: MainSummaryModel?
     private var categories: [MainCategoryCardModel] = []
@@ -51,7 +53,8 @@ actor MainInteractor: MainBusinessLogic {
         subscriptionAccessService: SubscriptionAccessServicing,
         repository: MainFlowDomainRepositoryProtocol,
         observer: MainFlowDomainObserverProtocol,
-        widgetSnapshotSyncService: VylokWidgetSnapshotSyncing? = nil
+        widgetSnapshotSyncService: VylokWidgetSnapshotSyncing? = nil,
+        analytics: MainAnalyticsTracking? = nil
     ) {
         self.presenter = presenter
         self.router = router
@@ -62,6 +65,7 @@ actor MainInteractor: MainBusinessLogic {
         self.repository = repository
         self.observer = observer
         self.widgetSnapshotSyncService = widgetSnapshotSyncService
+        self.analytics = analytics
     }
 
     deinit {
@@ -70,6 +74,11 @@ actor MainInteractor: MainBusinessLogic {
     }
 
     func fetchData() async {
+        if !hasTrackedScreenOpen {
+            analytics?.trackScreenOpen()
+            hasTrackedScreenOpen = true
+        }
+
         cancelPullToRefresh()
 
         guard await validateLaunchCurrencyRate() else {

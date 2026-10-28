@@ -37,6 +37,32 @@ final class MainInteractorTests: XCTestCase {
         XCTAssertEqual(last.categories.count, 1)
         XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 1)
     }
+
+    func testFetchDataTracksMainScreenOpenOnlyOnce() async {
+        let analytics = MainAnalyticsTrackingSpy()
+        let repository = MainRepositoryStub(
+            categoriesResults: [.success([]), .success([])],
+            recentExpensesResults: [.success([]), .success([])]
+        )
+        let sut = makeSut(
+            presenter: MainPresenterSpy(),
+            router: MainRouterSpy(),
+            summaryProvider: MainSummaryProviderStub(
+                results: [
+                    .success(.init(totalAmount: 0, currency: "USD", changePercent: 0)),
+                    .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
+                ]
+            ),
+            repository: repository,
+            observer: repository.observer,
+            analytics: analytics
+        )
+
+        await sut.fetchData()
+        await sut.fetchData()
+
+        XCTAssertEqual(analytics.trackScreenOpenCallsCount, 1)
+    }
 }
 
 extension MainInteractorTests {
@@ -615,7 +641,8 @@ private extension MainInteractorTests {
         summaryPeriodProvider: MainSummaryPeriodServicing = MainSummaryPeriodServiceStub(),
         subscriptionAccessService: SubscriptionAccessServicing = SubscriptionAccessServiceStub(currentTier: "PREMIUM"),
         repository: MainFlowDomainRepositoryProtocol,
-        observer: MainFlowDomainObserverProtocol
+        observer: MainFlowDomainObserverProtocol,
+        analytics: MainAnalyticsTracking? = nil
     ) -> MainInteractor {
         MainInteractor(
             presenter: presenter,
@@ -625,7 +652,8 @@ private extension MainInteractorTests {
             summaryPeriodProvider: summaryPeriodProvider,
             subscriptionAccessService: subscriptionAccessService,
             repository: repository,
-            observer: observer
+            observer: observer,
+            analytics: analytics
         )
     }
 
@@ -687,6 +715,14 @@ private final class MainPresenterSpy: MainPresentationLogic, @unchecked Sendable
 
     func presentFetchedData(_ data: MainFetchData) {
         presentedData.append(data)
+    }
+}
+
+private final class MainAnalyticsTrackingSpy: MainAnalyticsTracking, @unchecked Sendable {
+    private(set) var trackScreenOpenCallsCount = 0
+
+    func trackScreenOpen() {
+        trackScreenOpenCallsCount += 1
     }
 }
 

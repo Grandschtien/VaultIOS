@@ -7,6 +7,11 @@ struct AnalyticsAssembly: Assembly {
         }
         .inObjectScope(.container)
 
+        container.register(FirebaseTransactionLogging.self) { _ in
+            FirebaseTransactionLogger()
+        }
+        .inObjectScope(.container)
+
         container.register(AppLogSinkProtocol.self) { _ in
             RotatingFileAppLogSink()
         }

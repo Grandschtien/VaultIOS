@@ -76,6 +76,10 @@ final class ModuleAnalyticsTrackingTests: XCTestCase {
         let analyticsCoreManager = AnalyticsCoreManagingSpy()
         let failurePayloadResolver = AnalyticsFailurePayloadResolverSpy()
 
+        MainAnalyticsTracker(
+            analyticsCoreManager: analyticsCoreManager
+        )
+            .trackScreenOpen()
         CategoryAnalyticsTracker(
             analyticsCoreManager: analyticsCoreManager,
             failurePayloadResolver: failurePayloadResolver
@@ -103,6 +107,7 @@ final class ModuleAnalyticsTrackingTests: XCTestCase {
             .trackScreenOpen()
 
         XCTAssertEqual(analyticsCoreManager.calls.map(\.event), [
+            .screenOpen(.main),
             .screenOpen(.category),
             .screenOpen(.expenseCategoryPicker),
             .screenOpen(.categoriesList),

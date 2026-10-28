@@ -41,4 +41,17 @@ final class AppAssemblyTests: XCTestCase {
         XCTAssertNotNil(firstManager)
         XCTAssertTrue(firstManager === secondManager)
     }
+
+    func testAnalyticsAssemblyResolvesSharedFirebaseTransactionLogger() {
+        let container = Container()
+        let sut = AnalyticsAssembly()
+
+        sut.assemble(container: container)
+
+        let firstLogger = container.resolve(FirebaseTransactionLogging.self) as AnyObject?
+        let secondLogger = container.resolve(FirebaseTransactionLogging.self) as AnyObject?
+
+        XCTAssertNotNil(firstLogger)
+        XCTAssertTrue(firstLogger === secondLogger)
+    }
 }

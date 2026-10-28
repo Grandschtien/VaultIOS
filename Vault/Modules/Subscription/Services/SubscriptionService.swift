@@ -24,6 +24,7 @@ final class SubscriptionService: SubscriptionServiceLogic {
     private let plusEntitlementID: String
     private let premiumEntitlementID: String
     private let appLogService: AppLogServiceProtocol?
+    private let firebaseTransactionLogger: FirebaseTransactionLogging?
     private let revenueCatClient: SubscriptionRevenueCatClientProtocol
     private var packagesByProductID: [String: SubscriptionRevenueCatPackage] = [:]
 
@@ -31,12 +32,14 @@ final class SubscriptionService: SubscriptionServiceLogic {
         plusEntitlementID: String = "plus_access",
         premiumEntitlementID: String = "premium_access",
         revenueCatClient: SubscriptionRevenueCatClientProtocol = SubscriptionRevenueCatClient(),
-        appLogService: AppLogServiceProtocol? = nil
+        appLogService: AppLogServiceProtocol? = nil,
+        firebaseTransactionLogger: FirebaseTransactionLogging? = nil
     ) {
         self.plusEntitlementID = plusEntitlementID
         self.premiumEntitlementID = premiumEntitlementID
         self.revenueCatClient = revenueCatClient
         self.appLogService = appLogService
+        self.firebaseTransactionLogger = firebaseTransactionLogger
     }
 
     @discardableResult
@@ -113,8 +116,9 @@ final class SubscriptionService: SubscriptionServiceLogic {
             throw SubscriptionServiceError.packageNotFound(planID)
         }
 
-        let customerInfo = try await revenueCatClient.purchase(package: package)
-        currentTier = resolveTier(from: customerInfo)
+        let purchaseResult = try await revenueCatClient.purchase(package: package)
+        await firebaseTransactionLogger?.trackTransactionIfNeeded(purchaseResult.transaction)
+        currentTier = resolveTier(from: purchaseResult.customerInfo)
     }
 
     func restore() async throws {
@@ -151,9 +155,14 @@ protocol SubscriptionRevenueCatClientProtocol: AnyObject {
     func checkTrialOrIntroDiscountEligibility(
         packages: [SubscriptionRevenueCatPackage]
     ) async -> [String: IntroEligibilityStatus]
-    func purchase(package: SubscriptionRevenueCatPackage) async throws -> SubscriptionRevenueCatCustomerInfo
+    func purchase(package: SubscriptionRevenueCatPackage) async throws -> SubscriptionRevenueCatPurchaseResult
     func restorePurchases() async throws -> SubscriptionRevenueCatCustomerInfo
     func syncPurchases() async throws -> SubscriptionRevenueCatCustomerInfo
+}
+
+struct SubscriptionRevenueCatPurchaseResult {
+    let transaction: StoreTransaction?
+    let customerInfo: SubscriptionRevenueCatCustomerInfo
 }
 
 struct SubscriptionRevenueCatPackage {
@@ -277,34 +286,20 @@ final class SubscriptionRevenueCatClient: SubscriptionRevenueCatClientProtocol {
         )
     }
 
-    func purchase(package: SubscriptionRevenueCatPackage) async throws -> SubscriptionRevenueCatCustomerInfo {
+    func purchase(package: SubscriptionRevenueCatPackage) async throws -> SubscriptionRevenueCatPurchaseResult {
         guard let sourcePackage = package.sourcePackage else {
             throw SubscriptionServiceError.packageNotFound(package.productIdentifier)
         }
 
-        return try await withCheckedThrowingContinuation { (
-            continuation: CheckedContinuation<SubscriptionRevenueCatCustomerInfo, Error>
-        ) in
-            Purchases.shared.purchase(package: sourcePackage) { [weak self] _, customerInfo, error, userCancelled in
-                guard let self else { return }
-                if userCancelled {
-                    continuation.resume(throwing: SubscriptionServiceError.purchaseCancelled)
-                    return
-                }
-
-                if let error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-
-                guard let customerInfo else {
-                    continuation.resume(throwing: SubscriptionServiceError.failedToResolveTier)
-                    return
-                }
-
-                continuation.resume(returning: makeCustomerInfo(from: customerInfo))
-            }
+        let purchaseResult = try await Purchases.shared.purchase(package: sourcePackage)
+        if purchaseResult.userCancelled {
+            throw SubscriptionServiceError.purchaseCancelled
         }
+
+        return SubscriptionRevenueCatPurchaseResult(
+            transaction: purchaseResult.transaction,
+            customerInfo: makeCustomerInfo(from: purchaseResult.customerInfo)
+        )
     }
 
     func restorePurchases() async throws -> SubscriptionRevenueCatCustomerInfo {

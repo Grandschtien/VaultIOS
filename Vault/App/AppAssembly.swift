@@ -291,11 +291,15 @@ private extension AppAssembly {
         .inObjectScope(.container)
         
         container.register(SubscriptionServiceLogic.self) { resolver in
-            guard let appLogService = resolver.resolve(AppLogServiceProtocol.self) else {
-                fatalError("Failed to resolve AppLogService for SubscriptionService")
+            guard let appLogService = resolver.resolve(AppLogServiceProtocol.self),
+                  let firebaseTransactionLogger = resolver.resolve(FirebaseTransactionLogging.self) else {
+                fatalError("Failed to resolve dependencies for SubscriptionService")
             }
 
-            return SubscriptionService(appLogService: appLogService)
+            return SubscriptionService(
+                appLogService: appLogService,
+                firebaseTransactionLogger: firebaseTransactionLogger
+            )
         }
         .inObjectScope(.transient)
         
