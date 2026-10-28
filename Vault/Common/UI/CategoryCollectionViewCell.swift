@@ -60,6 +60,10 @@ private extension CategoryCollectionViewCell {
 
         cardView.isSkeletonable = true
 
+        iconLabel.accessibilityIdentifier = AccessibilityIdentifier.CategoryItem.icon
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.CategoryItem.title
+        amountLabel.accessibilityIdentifier = AccessibilityIdentifier.CategoryItem.amount
+
         cardView.backgroundColor = Asset.Colors.interactiveInputBackground.color
         cardView.layer.cornerRadius = sizeL
         cardView.layer.shadowColor = UIColor.black.cgColor

@@ -72,6 +72,12 @@ private extension LoginView {
         footerStackView.alignment = .center
         footerStackView.distribution = .fillProportionally
 
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Login.title
+        subtitleLabel.accessibilityIdentifier = AccessibilityIdentifier.Login.subtitle
+        emailTextField.accessibilityIdentifier = AccessibilityIdentifier.Login.emailField
+        passwordTextField.accessibilityIdentifier = AccessibilityIdentifier.Login.passwordField
+        signInButton.accessibilityIdentifier = AccessibilityIdentifier.Login.signInButton
+
 //        [privacyLabel, termsLabel, supportLabel].forEach {
 //            footerStackView.addArrangedSubview($0)
 //            $0.setContentCompressionResistancePriority(.required, for: .horizontal)

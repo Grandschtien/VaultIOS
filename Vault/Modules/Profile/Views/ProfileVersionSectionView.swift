@@ -39,6 +39,8 @@ private extension ProfileVersionSectionView {
         placeholderView.isSkeletonable = true
         placeholderView.skeletonCornerRadius = Float(sizeS)
         placeholderView.isHidden = true
+
+        label.accessibilityIdentifier = AccessibilityIdentifier.Profile.version
     }
 
     func setupLayout() {

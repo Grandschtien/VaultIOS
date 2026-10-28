@@ -38,6 +38,11 @@ private extension MainBlockingErrorView {
         stackView.alignment = .fill
 
         subtitleLabel.numberOfLines = 0
+
+        accessibilityIdentifier = AccessibilityIdentifier.Main.BlockingError.view
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Main.BlockingError.title
+        subtitleLabel.accessibilityIdentifier = AccessibilityIdentifier.Main.BlockingError.subtitle
+        retryButton.accessibilityIdentifier = AccessibilityIdentifier.Main.BlockingError.retryButton
     }
 
     func setupLayout() {

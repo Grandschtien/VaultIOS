@@ -60,6 +60,7 @@ private extension ProfileViewController {
             target: self,
             action: #selector(sendLogs)
         )
+        navigationItem.rightBarButtonItem?.accessibilityIdentifier = AccessibilityIdentifier.Profile.sendLogsButton
     }
     
     @objc

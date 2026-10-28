@@ -36,6 +36,12 @@ private extension RegistrationAccountStepView {
     func setupViews() {
         stackView.axis = .vertical
         stackView.spacing = spaceS
+
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Registration.Account.title
+        subtitleLabel.accessibilityIdentifier = AccessibilityIdentifier.Registration.Account.subtitle
+        emailField.accessibilityIdentifier = AccessibilityIdentifier.Registration.Account.emailField
+        passwordField.accessibilityIdentifier = AccessibilityIdentifier.Registration.Account.passwordField
+        confirmPasswordField.accessibilityIdentifier = AccessibilityIdentifier.Registration.Account.confirmPasswordField
     }
 
     func setupLayout() {

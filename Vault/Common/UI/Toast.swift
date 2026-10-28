@@ -94,6 +94,10 @@ private extension Toast {
         actionButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         actionButton.addTarget(self, action: #selector(handleActionButtonTap), for: .touchUpInside)
 
+        accessibilityIdentifier = AccessibilityIdentifier.Toast.view
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Toast.title
+        actionButton.accessibilityIdentifier = AccessibilityIdentifier.Toast.actionButton
+
         tapGestureRecognizer.addTarget(self, action: #selector(handleToastTap))
         tapGestureRecognizer.delegate = self
         tapGestureRecognizer.cancelsTouchesInView = false

@@ -38,6 +38,9 @@ private extension ExpenseAIEntryView {
         scrollView.showsVerticalScrollIndicator = false
         scrollView.keyboardDismissMode = .interactive
         scrollView.alwaysBounceVertical = true
+
+        promptInputView.accessibilityIdentifier = AccessibilityIdentifier.AIEntry.promptInput
+        processButton.accessibilityIdentifier = AccessibilityIdentifier.AIEntry.processButton
     }
 
     func setupLayout() {

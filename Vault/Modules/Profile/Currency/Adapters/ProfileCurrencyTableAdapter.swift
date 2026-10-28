@@ -29,6 +29,7 @@ final class ProfileCurrencyTableAdapter: NSObject, LayoutScaleProviding {
 
                 let cell = tableView.dequeueReusableCell(ProfileCurrencyCell.self, for: indexPath)
                 cell.configure(with: row)
+                cell.accessibilityIdentifier = AccessibilityIdentifier.ProfileCurrency.cell(code: row.code)
                 return cell
             }
         )

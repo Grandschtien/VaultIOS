@@ -10,6 +10,7 @@ final class RegistrationNameStepView: UIView, LayoutScaleProviding {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+        setupViews()
         setupLayout()
     }
 
@@ -26,6 +27,12 @@ final class RegistrationNameStepView: UIView, LayoutScaleProviding {
 }
 
 private extension RegistrationNameStepView {
+    func setupViews() {
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Registration.Name.title
+        subtitleLabel.accessibilityIdentifier = AccessibilityIdentifier.Registration.Name.subtitle
+        nameField.accessibilityIdentifier = AccessibilityIdentifier.Registration.Name.nameField
+    }
+
     func setupLayout() {
         [titleLabel, subtitleLabel, nameField].forEach {
             addSubview($0)

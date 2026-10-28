@@ -60,6 +60,10 @@ final class CategoryExpensesCollectionViewAdapter: NSObject, LayoutScaleProvidin
                             deleteViewModel: self.makeDeleteViewModel(from: expenseViewModel)
                         )
                     )
+                    cell.accessibilityIdentifier = AccessibilityIdentifier.Category.expenseCell(
+                        section: indexPath.section,
+                        row: indexPath.row
+                    )
                     return cell
                 }
             }
@@ -214,6 +218,7 @@ extension CategoryExpensesCollectionViewAdapter: UITableViewDelegate {
 
         let headerView = CategoryTableSectionHeaderView()
         headerView.configure(with: sectionTitles[sectionID] ?? .init())
+        headerView.accessibilityIdentifier = AccessibilityIdentifier.Category.sectionHeader(at: section)
         return headerView
     }
 

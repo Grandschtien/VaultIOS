@@ -92,6 +92,7 @@ private extension ExpenseAIEntryVoiceButtonView {
         titleLabel.isUserInteractionEnabled = false
         iconImageView.isUserInteractionEnabled = false
 
+        button.accessibilityIdentifier = AccessibilityIdentifier.AIEntry.voiceButton
         button.addTarget(self, action: #selector(handleTouchDown), for: .touchDown)
         button.addTarget(self, action: #selector(handleTouchUp), for: .touchUpInside)
         button.addTarget(self, action: #selector(handleTouchUp), for: .touchUpOutside)

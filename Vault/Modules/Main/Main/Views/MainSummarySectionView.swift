@@ -72,6 +72,12 @@ private extension MainSummarySectionView {
         cardView.layer.shadowOpacity = 0.2
         cardView.layer.shadowOffset = CGSize(width: .zero, height: spaceXS)
         cardView.layer.shadowRadius = sizeS
+
+        cardView.accessibilityIdentifier = AccessibilityIdentifier.Main.Summary.card
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Main.Summary.title
+        amountLabel.accessibilityIdentifier = AccessibilityIdentifier.Main.Summary.amount
+        periodDescriptionLabel.accessibilityIdentifier = AccessibilityIdentifier.Main.Summary.periodDescription
+        errorView.accessibilityIdentifier = AccessibilityIdentifier.Main.Summary.errorView
     }
 
     func setupLayout() {

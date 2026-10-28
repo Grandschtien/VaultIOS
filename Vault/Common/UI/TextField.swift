@@ -31,6 +31,12 @@ final class TextField: UIView, LayoutScaleProviding {
     private var textFieldTrailingConstraint: Constraint?
     private var isSecureModeEnabled = false
 
+    override var accessibilityIdentifier: String? {
+        didSet {
+            updateInnerAccessibilityIdentifiers()
+        }
+    }
+
     init() {
         super.init(frame: .zero)
         setupViews()
@@ -70,6 +76,20 @@ final class TextField: UIView, LayoutScaleProviding {
 }
 
 private extension TextField {
+    func updateInnerAccessibilityIdentifiers() {
+        guard let identifier = accessibilityIdentifier else {
+            [textField, additionalLabel, rightAccessoryContainer, helpLabel].forEach {
+                $0.accessibilityIdentifier = nil
+            }
+            return
+        }
+
+        textField.accessibilityIdentifier = AccessibilityIdentifier.TextFieldParts.input(of: identifier)
+        additionalLabel.accessibilityIdentifier = AccessibilityIdentifier.TextFieldParts.additionalLabel(of: identifier)
+        rightAccessoryContainer.accessibilityIdentifier = AccessibilityIdentifier.TextFieldParts.rightAccessory(of: identifier)
+        helpLabel.accessibilityIdentifier = AccessibilityIdentifier.TextFieldParts.helpText(of: identifier)
+    }
+
     func setupViews() {
         contentStackView.axis = .vertical
         contentStackView.spacing = 0

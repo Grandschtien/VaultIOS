@@ -33,6 +33,9 @@ private extension AddExpenseSheetHeaderView {
         closeButton.tintColor = Asset.Colors.textAndIconSecondary.color
         closeButton.setImage(xmarkImage, for: .normal)
         closeButton.addTarget(self, action: #selector(handleTapClose), for: .touchUpInside)
+
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.SheetHeader.title
+        closeButton.accessibilityIdentifier = AccessibilityIdentifier.SheetHeader.closeButton
     }
 
     func setupLayout() {

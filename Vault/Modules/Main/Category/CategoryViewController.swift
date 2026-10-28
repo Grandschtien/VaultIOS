@@ -19,6 +19,7 @@ final class CategoryViewController: UIViewController, HasContentView {
         self.viewModelStore = viewModelStore
         self.collectionAdapter = collectionAdapter
         super.init(nibName: nil, bundle: nil)
+        editBarButtonView.accessibilityIdentifier = AccessibilityIdentifier.Category.editButton
     }
 
     override func loadView() {

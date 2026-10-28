@@ -46,6 +46,12 @@ private extension CommonConfirmationView {
 
         buttonStackView.axis = .vertical
         buttonStackView.spacing = spaceS
+
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Confirmation.title
+        subtitleLabel.accessibilityIdentifier = AccessibilityIdentifier.Confirmation.subtitle
+        closeButton.accessibilityIdentifier = AccessibilityIdentifier.Confirmation.closeButton
+        confirmButton.accessibilityIdentifier = AccessibilityIdentifier.Confirmation.confirmButton
+        cancelButton.accessibilityIdentifier = AccessibilityIdentifier.Confirmation.cancelButton
     }
 
     func setupLayout() {

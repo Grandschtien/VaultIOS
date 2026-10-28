@@ -31,6 +31,9 @@ private extension CategoryEditorHeaderView {
         backButton.tintColor = Asset.Colors.interactiveElemetsPrimary.color
         backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
         backButton.addTarget(self, action: #selector(handleTapBack), for: .touchUpInside)
+
+        backButton.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.backButton
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.title
     }
 
     func setupLayout() {

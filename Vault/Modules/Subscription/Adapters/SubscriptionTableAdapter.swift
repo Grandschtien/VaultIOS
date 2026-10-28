@@ -101,6 +101,13 @@ private final class SubscriptionPlanCell: UITableViewCell, Reusable, LayoutScale
         }
         priceLabel.apply(viewModel.price)
         button.apply(viewModel.button)
+
+        accessibilityIdentifier = AccessibilityIdentifier.Subscription.Plan.cell(id: viewModel.id)
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Subscription.Plan.title(id: viewModel.id)
+        descriptionLabel.accessibilityIdentifier = AccessibilityIdentifier.Subscription.Plan.description(id: viewModel.id)
+        trialLabel.accessibilityIdentifier = AccessibilityIdentifier.Subscription.Plan.trial(id: viewModel.id)
+        priceLabel.accessibilityIdentifier = AccessibilityIdentifier.Subscription.Plan.price(id: viewModel.id)
+        button.accessibilityIdentifier = AccessibilityIdentifier.Subscription.Plan.button(id: viewModel.id)
     }
 }
 

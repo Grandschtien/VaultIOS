@@ -34,6 +34,7 @@ private extension CategoryPeriodPickerConfirmBarButtonView {
         backgroundColor = .clear
         button.setTitleColor(Asset.Colors.interactiveElemetsPrimary.color, for: .normal)
         button.titleLabel?.font = Typography.typographyMedium16
+        button.accessibilityIdentifier = AccessibilityIdentifier.PeriodPicker.confirmButton
         button.addTarget(self, action: #selector(handleTap), for: .touchUpInside)
     }
 

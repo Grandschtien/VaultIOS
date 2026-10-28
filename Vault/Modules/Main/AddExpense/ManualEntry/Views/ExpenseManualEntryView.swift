@@ -90,6 +90,11 @@ private extension ExpenseManualEntryView {
 
         buttonsStackView.axis = .vertical
         buttonsStackView.spacing = spaceS
+
+        titleField.accessibilityIdentifier = AccessibilityIdentifier.ManualEntry.titleField
+        descriptionInputView.accessibilityIdentifier = AccessibilityIdentifier.ManualEntry.descriptionInput
+        primaryButton.accessibilityIdentifier = AccessibilityIdentifier.ManualEntry.primaryButton
+        skipButton.accessibilityIdentifier = AccessibilityIdentifier.ManualEntry.skipButton
     }
 
     func setupLayout() {

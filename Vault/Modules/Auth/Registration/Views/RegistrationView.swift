@@ -82,6 +82,11 @@ private extension RegistrationView {
             }
         }
         stepLabel.setContentHuggingPriority(.required, for: .vertical)
+
+        stepLabel.accessibilityIdentifier = AccessibilityIdentifier.Registration.stepLabel
+        progressView.accessibilityIdentifier = AccessibilityIdentifier.Registration.progress
+        primaryButton.accessibilityIdentifier = AccessibilityIdentifier.Registration.primaryButton
+        secondaryButton.accessibilityIdentifier = AccessibilityIdentifier.Registration.secondaryButton
     }
 
     func setupLayout() {

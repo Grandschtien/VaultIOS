@@ -73,6 +73,10 @@ extension ExpesiesListCollectionViewAdapter: UICollectionViewDataSource {
     ) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(BaseCollectionViewCellWrapper<ExpenseView>.self, for: indexPath)
         cell.configure(with: sections[indexPath.section].items[indexPath.item])
+        cell.accessibilityIdentifier = AccessibilityIdentifier.ExpensesList.cell(
+            section: indexPath.section,
+            item: indexPath.item
+        )
         return cell
     }
 
@@ -92,6 +96,7 @@ extension ExpesiesListCollectionViewAdapter: UICollectionViewDataSource {
         }
 
         header.configure(with: sections[indexPath.section].title)
+        header.accessibilityIdentifier = AccessibilityIdentifier.ExpensesList.sectionHeader(at: indexPath.section)
         return header
     }
 }

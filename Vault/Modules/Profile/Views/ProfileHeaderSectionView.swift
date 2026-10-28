@@ -61,6 +61,11 @@ private extension ProfileHeaderSectionView {
         membershipPlaceholderView.isSkeletonable = true
         membershipPlaceholderView.skeletonCornerRadius = Float(sizeS)
         membershipPlaceholderView.isHidden = true
+
+        avatarView.accessibilityIdentifier = AccessibilityIdentifier.Profile.Header.avatar
+        avatarInitialsLabel.accessibilityIdentifier = AccessibilityIdentifier.Profile.Header.avatarInitials
+        nameLabel.accessibilityIdentifier = AccessibilityIdentifier.Profile.Header.name
+        membershipLabel.accessibilityIdentifier = AccessibilityIdentifier.Profile.Header.membership
     }
 
     func setupLayout() {

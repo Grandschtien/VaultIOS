@@ -31,6 +31,9 @@ private extension ExpenseEntryChooserView {
 
         buttonStackView.axis = .vertical
         buttonStackView.spacing = spaceS
+
+        aiButton.accessibilityIdentifier = AccessibilityIdentifier.EntryChooser.aiButton
+        manualButton.accessibilityIdentifier = AccessibilityIdentifier.EntryChooser.manualButton
     }
 
     func setupLayout() {

@@ -89,6 +89,12 @@ private extension ProfileView {
         contentStackView.alignment = .fill
         contentStackView.distribution = .fill
         contentStackView.spacing = spaceM
+
+        scrollView.accessibilityIdentifier = AccessibilityIdentifier.Profile.scrollView
+        errorView.accessibilityIdentifier = AccessibilityIdentifier.Profile.errorView
+        savingIndicatorView.accessibilityIdentifier = AccessibilityIdentifier.Profile.savingIndicator
+        logoutSectionView.setButtonAccessibilityIdentifier(AccessibilityIdentifier.Profile.logoutButton)
+        deleteAccountSectionView.setButtonAccessibilityIdentifier(AccessibilityIdentifier.Profile.deleteAccountButton)
     }
 
     func setupLayout() {

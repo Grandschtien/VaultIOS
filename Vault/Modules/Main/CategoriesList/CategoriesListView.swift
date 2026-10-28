@@ -99,6 +99,10 @@ private extension CategoriesListView {
 
         errorView.isHidden = true
         emptyLabel.isHidden = true
+
+        collectionView.accessibilityIdentifier = AccessibilityIdentifier.CategoriesList.collectionView
+        errorView.accessibilityIdentifier = AccessibilityIdentifier.CategoriesList.errorView
+        emptyLabel.accessibilityIdentifier = AccessibilityIdentifier.CategoriesList.emptyLabel
     }
 
     func setupLayout() {

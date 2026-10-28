@@ -47,6 +47,7 @@ final class DeleteTableViewCellWrapper<
         deleteView.backgroundColor = Asset.Colors.errorColor.color
         deleteView.layer.cornerRadius = spaceL
         deleteView.alpha = .zero
+        deleteView.accessibilityIdentifier = AccessibilityIdentifier.Common.swipeDeleteAction
 
         deleteIconView.contentMode = .scaleAspectFit
         deleteIconView.tintColor = .white

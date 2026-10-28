@@ -30,6 +30,7 @@ private extension CategoryPeriodPickerCloseBarButtonView {
         backgroundColor = .clear
         button.tintColor = Asset.Colors.textAndIconPrimary.color
         button.setImage(xmarkImage, for: .normal)
+        button.accessibilityIdentifier = AccessibilityIdentifier.PeriodPicker.closeButton
         button.addTarget(self, action: #selector(handleTap), for: .touchUpInside)
     }
 

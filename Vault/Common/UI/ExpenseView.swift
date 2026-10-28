@@ -60,6 +60,11 @@ private extension ExpenseView {
         cardView.isSkeletonable = true
         cardView.skeletonCornerRadius = Float(sizeL)
 
+        iconLabel.accessibilityIdentifier = AccessibilityIdentifier.ExpenseItem.icon
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.ExpenseItem.title
+        subtitleLabel.accessibilityIdentifier = AccessibilityIdentifier.ExpenseItem.subtitle
+        amountLabel.accessibilityIdentifier = AccessibilityIdentifier.ExpenseItem.amount
+
         iconBackgroundView.layer.cornerRadius = sizeS
     }
 

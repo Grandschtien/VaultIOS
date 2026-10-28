@@ -142,6 +142,12 @@ private extension ExpesiesListView {
         loadingView.isHidden = true
         paginationSpinner.hidesWhenStopped = true
         paginationSpinner.color = Asset.Colors.interactiveElemetsPrimary.color
+
+        collectionView.accessibilityIdentifier = AccessibilityIdentifier.ExpensesList.collectionView
+        errorView.accessibilityIdentifier = AccessibilityIdentifier.ExpensesList.errorView
+        emptyLabel.accessibilityIdentifier = AccessibilityIdentifier.ExpensesList.emptyLabel
+        loadingView.accessibilityIdentifier = AccessibilityIdentifier.ExpensesList.loadingView
+        paginationSpinner.accessibilityIdentifier = AccessibilityIdentifier.ExpensesList.paginationSpinner
     }
 
     func setupLayout() {

@@ -25,6 +25,7 @@ final class ExpenseCategoryPickerTableAdapter: NSObject {
 
             let cell = tableView.dequeueReusableCell(ExpenseCategoryPickerCell.self, for: indexPath)
             cell.configure(with: self.rows[itemIdentifier])
+            cell.accessibilityIdentifier = AccessibilityIdentifier.ExpenseCategoryPicker.cell(at: indexPath.row)
             return cell
         }
     }

@@ -63,6 +63,10 @@ private extension ExpenseAmountInputView {
         textField.leftView = currencyContainerView
         textField.leftViewMode = .always
         textField.addTarget(self, action: #selector(handleTextChanged), for: .editingChanged)
+
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.ManualEntry.amountTitle
+        currencyLabel.accessibilityIdentifier = AccessibilityIdentifier.ManualEntry.amountCurrency
+        textField.accessibilityIdentifier = AccessibilityIdentifier.ManualEntry.amountInput
     }
 
     func setupLayout() {

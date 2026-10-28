@@ -52,6 +52,10 @@ private extension CategoryPeriodPickerView {
         calendarView.selectionBehavior = selectionBehavior
         calendarView.locale = Locale.current
         calendarView.tintColor = Asset.Colors.interactiveElemetsPrimary.color
+
+        fromFieldView.accessibilityIdentifier = AccessibilityIdentifier.PeriodPicker.fromField
+        toFieldView.accessibilityIdentifier = AccessibilityIdentifier.PeriodPicker.toField
+        calendarView.accessibilityIdentifier = AccessibilityIdentifier.PeriodPicker.calendar
     }
 
     func setupLayout() {

@@ -34,6 +34,7 @@ struct AnalyticsView: View {
             .padding(.horizontal, metrics.spaceS)
         }
         .scrollIndicators(.hidden)
+        .accessibilityIdentifier(AccessibilityIdentifier.Analytics.loadingView)
     }
 
     private func errorView(_ viewModel: FullScreenCommonErrorView.ViewModel) -> some View {
@@ -47,6 +48,7 @@ struct AnalyticsView: View {
                     .overlay(RoundedRectangle(cornerRadius: metrics.sizeM, style: .continuous).stroke(Color(uiColor: Asset.Colors.textAndIconPlaceseholder.color).opacity(0.35), lineWidth: 1))
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier(AccessibilityIdentifier.Analytics.errorButton)
             .padding(metrics.spaceS)
             Spacer()
         }
@@ -72,6 +74,7 @@ struct AnalyticsView: View {
             }
             .buttonStyle(.plain)
             .disabled(viewModel.button.isEnabled == false || viewModel.button.isLoading)
+            .accessibilityIdentifier(AccessibilityIdentifier.Analytics.unlockButton)
             .padding(.horizontal, metrics.spaceL)
         }
     }
@@ -131,8 +134,14 @@ struct AnalyticsView: View {
                 }
             }
             text(viewModel.topCategoriesTitle)
+                .accessibilityIdentifier(AccessibilityIdentifier.Analytics.topCategoriesTitle)
             VStack(spacing: metrics.spaceXS) {
-                ForEach(viewModel.rows, id: \.id) { rowView($0) }
+                ForEach(Array(viewModel.rows.enumerated()), id: \.element.id) { index, row in
+                    rowView(
+                        row,
+                        accessibilityIdentifier: AccessibilityIdentifier.Analytics.categoryRow(at: index)
+                    )
+                }
             }
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.rows.count)
@@ -169,6 +178,8 @@ struct AnalyticsView: View {
                 }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(AccessibilityIdentifier.Analytics.Body.loadingView)
     }
 
     private func presetPillsView(_ viewModels: [AnalyticsViewModel.PresetPillViewModel]) -> some View {
@@ -198,6 +209,7 @@ struct AnalyticsView: View {
                         .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier(AccessibilityIdentifier.Analytics.presetPill(viewModel.preset))
             }
         }
     }
@@ -215,6 +227,7 @@ struct AnalyticsView: View {
                 )
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(AccessibilityIdentifier.Analytics.Body.errorButton)
     }
 
     private func bodyEmptyView(
@@ -225,6 +238,7 @@ struct AnalyticsView: View {
             VStack(spacing: metrics.spaceM) {
                 fakePagerView
                 text(viewModel)
+                    .accessibilityIdentifier(AccessibilityIdentifier.Analytics.Body.emptyText)
                     .padding(.horizontal, metrics.spaceL)
                     .padding(.vertical, metrics.spaceXL)
             }
@@ -266,13 +280,15 @@ struct AnalyticsView: View {
                         tintColor: Asset.Colors.interactiveElemetsPrimary.color
                     )
                     text(viewModel.centerTitle)
+                        .accessibilityIdentifier(AccessibilityIdentifier.Analytics.Chart.centerTitle)
                     text(viewModel.centerValue)
+                        .accessibilityIdentifier(AccessibilityIdentifier.Analytics.Chart.centerValue)
                 }
                 .padding(metrics.spaceS)
             }
 
             LazyVGrid(columns: [.init(.flexible(), spacing: metrics.spaceS), .init(.flexible(), spacing: metrics.spaceS)], spacing: metrics.spaceS) {
-                ForEach(Array(viewModel.legendItems.enumerated()), id: \.offset) { _, item in
+                ForEach(Array(viewModel.legendItems.enumerated()), id: \.offset) { index, item in
                     HStack(spacing: metrics.spaceXS) {
                         Circle().fill(Color(uiColor: item.color)).frame(width: metrics.sizeXS, height: metrics.sizeXS)
                         Text(item.title)
@@ -280,9 +296,13 @@ struct AnalyticsView: View {
                             .foregroundStyle(Color(uiColor: Asset.Colors.textAndIconSecondary.color))
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier(AccessibilityIdentifier.Analytics.Chart.legendItem(at: index))
                 }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(AccessibilityIdentifier.Analytics.Chart.view)
     }
 
     private func swipeableChartContainer<Content: View>(
@@ -319,7 +339,10 @@ struct AnalyticsView: View {
     }
 
     @ViewBuilder
-    private func rowView(_ viewModel: AnalyticsCategorySummaryCell.ViewModel) -> some View {
+    private func rowView(
+        _ viewModel: AnalyticsCategorySummaryCell.ViewModel,
+        accessibilityIdentifier: String
+    ) -> some View {
         let card = VStack(spacing: metrics.spaceS) {
             HStack(alignment: .top, spacing: metrics.spaceS) {
                 Text(viewModel.iconText)
@@ -358,9 +381,13 @@ struct AnalyticsView: View {
         .clipShape(RoundedRectangle(cornerRadius: metrics.sizeM, style: .continuous))
 
         if viewModel.isInteractive {
-            SwiftUI.Button(action: { viewModel.tapCommand.execute() }) { card }.buttonStyle(.plain)
+            SwiftUI.Button(action: { viewModel.tapCommand.execute() }) { card }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier(accessibilityIdentifier)
         } else {
             card
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier(accessibilityIdentifier)
         }
     }
 

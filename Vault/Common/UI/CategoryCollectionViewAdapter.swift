@@ -33,6 +33,7 @@ extension CategoryCollectionViewAdapter: UICollectionViewDataSource {
     ) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(CategoryCollectionViewCell.self, for: indexPath)
         cell.configure(with: items[indexPath.item])
+        cell.accessibilityIdentifier = AccessibilityIdentifier.CategoryCell.cell(at: indexPath.item)
         return cell
     }
 }

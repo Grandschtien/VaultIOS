@@ -8,6 +8,13 @@ final class CategoryPeriodPickerFieldView: UIView, LayoutScaleProviding {
     private let labelsStackView = UIStackView()
     private var tapCommand: Command = .nope
 
+    override var accessibilityIdentifier: String? {
+        didSet {
+            titleLabel.accessibilityIdentifier = accessibilityIdentifier.map(AccessibilityIdentifier.PeriodPicker.fieldTitle(of:))
+            valueLabel.accessibilityIdentifier = accessibilityIdentifier.map(AccessibilityIdentifier.PeriodPicker.fieldValue(of:))
+        }
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()

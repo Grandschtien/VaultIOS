@@ -59,6 +59,11 @@ private extension CategorySummaryView {
         cardView.isSkeletonable = true
         cardView.skeletonCornerRadius = Float(sizeM)
         iconBackgroundView.layer.cornerRadius = sizeS
+
+        cardView.accessibilityIdentifier = AccessibilityIdentifier.Category.Summary.card
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Category.Summary.title
+        amountLabel.accessibilityIdentifier = AccessibilityIdentifier.Category.Summary.amount
+        noteLabel.accessibilityIdentifier = AccessibilityIdentifier.Category.Summary.note
     }
 
     func setupLayout() {

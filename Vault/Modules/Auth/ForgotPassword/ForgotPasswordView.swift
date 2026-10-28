@@ -80,6 +80,11 @@ private extension ForgotPasswordView {
         closeButton.tintColor = Asset.Colors.textAndIconPrimary.color
         closeButton.setImage(xmarkImage, for: .normal)
         closeButton.addTarget(self, action: #selector(handleTapClose), for: .touchUpInside)
+
+        closeButton.accessibilityIdentifier = AccessibilityIdentifier.ForgotPassword.closeButton
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.ForgotPassword.title
+        emailField.accessibilityIdentifier = AccessibilityIdentifier.ForgotPassword.emailField
+        sendButton.accessibilityIdentifier = AccessibilityIdentifier.ForgotPassword.sendButton
     }
 
     func setupLayout() {

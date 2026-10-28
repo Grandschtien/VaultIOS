@@ -72,6 +72,11 @@ private extension RegistrationCurrencyStepView {
         tableView.delegate = self
         tableView.rowHeight = 72
         tableView.sectionHeaderTopPadding = .zero
+
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Registration.Currency.title
+        searchField.accessibilityIdentifier = AccessibilityIdentifier.Registration.Currency.searchField
+        errorLabel.accessibilityIdentifier = AccessibilityIdentifier.Registration.Currency.errorLabel
+        tableView.accessibilityIdentifier = AccessibilityIdentifier.Registration.Currency.tableView
     }
 
     func setupLayout() {
@@ -113,7 +118,9 @@ extension RegistrationCurrencyStepView: UITableViewDataSource {
         cellForRowAt indexPath: IndexPath
     ) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(RegistrationCurrencyCell.self, for: indexPath)
-        cell.configure(with: sections[indexPath.section].rows[indexPath.row])
+        let row = sections[indexPath.section].rows[indexPath.row]
+        cell.configure(with: row)
+        cell.accessibilityIdentifier = AccessibilityIdentifier.Registration.Currency.cell(code: row.subtitle.text)
 
         return cell
     }

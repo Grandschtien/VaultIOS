@@ -85,6 +85,14 @@ private extension EmailVerificationView {
         resendActionStackView.spacing = spaceXXS
 
         resendCountdownLabel.isHidden = true
+
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.EmailVerification.title
+        subtitleLabel.accessibilityIdentifier = AccessibilityIdentifier.EmailVerification.subtitle
+        codeInputView.accessibilityIdentifier = AccessibilityIdentifier.EmailVerification.codeInput
+        errorLabel.accessibilityIdentifier = AccessibilityIdentifier.EmailVerification.errorLabel
+        resendPromptLabel.accessibilityIdentifier = AccessibilityIdentifier.EmailVerification.resendPrompt
+        resendButton.accessibilityIdentifier = AccessibilityIdentifier.EmailVerification.resendButton
+        resendCountdownLabel.accessibilityIdentifier = AccessibilityIdentifier.EmailVerification.resendCountdown
     }
 
     func setupLayout() {

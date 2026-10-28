@@ -68,6 +68,10 @@ private extension OnboardingView {
         pagesStackView.distribution = .fill
         pagesStackView.spacing = .zero
         pageControl.isUserInteractionEnabled = false
+
+        imageScrollView.accessibilityIdentifier = AccessibilityIdentifier.Onboarding.pagesScrollView
+        pageControl.accessibilityIdentifier = AccessibilityIdentifier.Onboarding.pageControl
+        primaryButton.accessibilityIdentifier = AccessibilityIdentifier.Onboarding.primaryButton
     }
 
     func setupLayout() {
@@ -105,7 +109,7 @@ private extension OnboardingView {
     func buildPages(with pages: [OnboardingModel]) {
         guard pageViews.isEmpty else { return }
 
-        for page in pages {
+        for (index, page) in pages.enumerated() {
             let pageView = UIView()
 
             let imageView = UIImageView(image: page.image)
@@ -113,12 +117,15 @@ private extension OnboardingView {
 
             let titleLabel = Label()
             titleLabel.apply(page.title)
+            titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Onboarding.pageTitle(at: index)
 
             let subtitleLabel = Label()
             subtitleLabel.apply(page.subtitle)
+            subtitleLabel.accessibilityIdentifier = AccessibilityIdentifier.Onboarding.pageSubtitle(at: index)
 
             let pill = PillView()
             pill.apply(viewModel: page.pill)
+            pill.accessibilityIdentifier = AccessibilityIdentifier.Onboarding.pagePill(at: index)
 
             pageView.addSubview(imageView)
             pageView.addSubview(pill)

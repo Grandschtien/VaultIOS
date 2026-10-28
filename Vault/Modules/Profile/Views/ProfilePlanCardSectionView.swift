@@ -62,6 +62,11 @@ private extension ProfilePlanCardSectionView {
         textStackView.alignment = .fill
         textStackView.distribution = .fill
         textStackView.spacing = spaceXXS
+
+        cardView.accessibilityIdentifier = AccessibilityIdentifier.Profile.Plan.card
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Profile.Plan.title
+        subtitleLabel.accessibilityIdentifier = AccessibilityIdentifier.Profile.Plan.subtitle
+        usageLabel.accessibilityIdentifier = AccessibilityIdentifier.Profile.Plan.usage
     }
 
     func setupLayout() {

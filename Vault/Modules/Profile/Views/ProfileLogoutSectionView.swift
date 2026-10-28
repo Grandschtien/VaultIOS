@@ -25,6 +25,10 @@ final class ProfileLogoutSectionView: UIView, LayoutScaleProviding {
         button.layer.borderColor = UIColor.clear.cgColor
     }
 
+    func setButtonAccessibilityIdentifier(_ identifier: String) {
+        button.accessibilityIdentifier = identifier
+    }
+
     func setLoading(_ isLoading: Bool) {
         if isLoading {
             showSkeleton()

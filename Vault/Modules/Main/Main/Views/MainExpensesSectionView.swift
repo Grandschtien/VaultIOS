@@ -126,6 +126,13 @@ private extension MainExpensesSectionView {
         errorView.isHidden = true
         emptyLabel.isHidden = true
         loadingView.isHidden = true
+
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Main.Expenses.title
+        seeAllButton.accessibilityIdentifier = AccessibilityIdentifier.Main.Expenses.seeAllButton
+        collectionView.accessibilityIdentifier = AccessibilityIdentifier.Main.Expenses.collectionView
+        emptyLabel.accessibilityIdentifier = AccessibilityIdentifier.Main.Expenses.emptyLabel
+        errorView.accessibilityIdentifier = AccessibilityIdentifier.Main.Expenses.errorView
+        loadingView.accessibilityIdentifier = AccessibilityIdentifier.Main.Expenses.loadingView
     }
 
     func setupLayout() {
@@ -228,6 +235,10 @@ extension MainExpensesSectionView: UICollectionViewDataSource {
     ) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(BaseCollectionViewCellWrapper<ExpenseView>.self, for: indexPath)
         cell.configure(with: viewModel.sections[indexPath.section].items[indexPath.item])
+        cell.accessibilityIdentifier = AccessibilityIdentifier.Main.Expenses.cell(
+            section: indexPath.section,
+            item: indexPath.item
+        )
         return cell
     }
 
@@ -247,6 +258,7 @@ extension MainExpensesSectionView: UICollectionViewDataSource {
         }
 
         header.configure(with: viewModel.sections[indexPath.section].title)
+        header.accessibilityIdentifier = AccessibilityIdentifier.Main.Expenses.sectionHeader(at: indexPath.section)
         return header
     }
 }

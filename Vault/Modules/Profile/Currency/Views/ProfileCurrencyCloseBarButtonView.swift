@@ -30,6 +30,7 @@ private extension ProfileCurrencyCloseBarButtonView {
         backgroundColor = .clear
         button.tintColor = Asset.Colors.textAndIconPrimary.color
         button.setImage(xmarkImage, for: .normal)
+        button.accessibilityIdentifier = AccessibilityIdentifier.ProfileCurrency.closeButton
         button.addTarget(self, action: #selector(handleTap), for: .touchUpInside)
     }
 

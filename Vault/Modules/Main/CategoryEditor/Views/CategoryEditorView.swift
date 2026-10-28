@@ -106,6 +106,18 @@ private extension CategoryEditorView {
         customEmojiTextField.smartInsertDeleteType = .no
         customEmojiTextField.smartQuotesType = .no
         customEmojiTextField.smartDashesType = .no
+
+        previewView.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.preview
+        nameField.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.nameField
+        emojiTitleLabel.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.emojiTitle
+        emojiGridView.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.emojiGrid
+        colorTitleLabel.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.colorTitle
+        colorGridView.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.colorGrid
+        customEmojiTextField.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.customEmojiInput
+        loadingView.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.loadingView
+        errorView.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.errorView
+        primaryButton.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.primaryButton
+        deleteButton.accessibilityIdentifier = AccessibilityIdentifier.CategoryEditor.deleteButton
     }
 
     func setupLayout() {

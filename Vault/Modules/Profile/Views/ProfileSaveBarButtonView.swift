@@ -32,6 +32,7 @@ private extension ProfileSaveBarButtonView {
         backgroundColor = .clear
         button.tintColor = Asset.Colors.interactiveElemetsPrimary.color
         button.setImage(checkmarkCircleFillImage, for: .normal)
+        button.accessibilityIdentifier = AccessibilityIdentifier.Profile.saveButton
         button.addTarget(self, action: #selector(handleTap), for: .touchUpInside)
     }
 

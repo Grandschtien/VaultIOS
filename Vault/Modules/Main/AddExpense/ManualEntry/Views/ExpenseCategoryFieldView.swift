@@ -56,6 +56,10 @@ private extension ExpenseCategoryFieldView {
         cardButton.contentVerticalAlignment = .fill
         cardButton.addTarget(self, action: #selector(handleTap), for: .touchUpInside)
 
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.ManualEntry.categoryTitle
+        cardButton.accessibilityIdentifier = AccessibilityIdentifier.ManualEntry.categoryButton
+        categoryLabel.accessibilityIdentifier = AccessibilityIdentifier.ManualEntry.categoryValue
+
         iconBackgroundView.layer.cornerRadius = sizeS
 
         chevronImageView.image = chevronRightImage

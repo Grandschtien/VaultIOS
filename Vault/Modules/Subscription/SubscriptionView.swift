@@ -107,6 +107,17 @@ private extension SubscriptionView {
         legalLinksStackView.alignment = .center
         legalLinksStackView.spacing = spaceXS
 
+        loadingView.accessibilityIdentifier = AccessibilityIdentifier.Subscription.loadingView
+        errorView.accessibilityIdentifier = AccessibilityIdentifier.Subscription.errorView
+        overlayLoadingView.accessibilityIdentifier = AccessibilityIdentifier.Subscription.overlayLoadingView
+        overlayMessageLabel.accessibilityIdentifier = AccessibilityIdentifier.Subscription.overlayMessage
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Subscription.title
+        subtitleLabel.accessibilityIdentifier = AccessibilityIdentifier.Subscription.subtitle
+        tableView.accessibilityIdentifier = AccessibilityIdentifier.Subscription.tableView
+        restoreButton.accessibilityIdentifier = AccessibilityIdentifier.Subscription.restoreButton
+        termsOfUseLinkView.accessibilityIdentifier = AccessibilityIdentifier.Subscription.termsOfUseLink
+        privacyPolicyLinkView.accessibilityIdentifier = AccessibilityIdentifier.Subscription.privacyPolicyLink
+
         tableAdapter.attach(to: tableView)
         tableView.sectionHeaderTopPadding = .zero
         tableView.contentInset = UIEdgeInsets(
@@ -314,6 +325,11 @@ private extension SubscriptionCurrentPlanCardView {
         cardView.layer.borderColor = Asset.Colors.textAndIconPlaceseholder.color
             .withAlphaComponent(0.15)
             .cgColor
+
+        cardView.accessibilityIdentifier = AccessibilityIdentifier.Subscription.CurrentPlan.card
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Subscription.CurrentPlan.title
+        planTitleLabel.accessibilityIdentifier = AccessibilityIdentifier.Subscription.CurrentPlan.planTitle
+        descriptionLabel.accessibilityIdentifier = AccessibilityIdentifier.Subscription.CurrentPlan.description
     }
 
     func setupLayout() {

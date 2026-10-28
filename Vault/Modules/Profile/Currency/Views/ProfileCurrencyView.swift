@@ -35,6 +35,8 @@ private extension ProfileCurrencyView {
         backgroundColor = Asset.Colors.backgroundPrimary.color
 
         tableAdapter.attach(to: tableView)
+        searchField.accessibilityIdentifier = AccessibilityIdentifier.ProfileCurrency.searchField
+        tableView.accessibilityIdentifier = AccessibilityIdentifier.ProfileCurrency.tableView
         tableView.sectionHeaderTopPadding = .zero
         tableView.contentInset = UIEdgeInsets(
             top: spaceS,

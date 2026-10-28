@@ -125,6 +125,13 @@ private extension MainCategoriesSectionView {
         errorView.isHidden = true
         emptyLabel.isHidden = true
         loadingView.hidesWhenStopped = true
+
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Main.Categories.title
+        seeAllButton.accessibilityIdentifier = AccessibilityIdentifier.Main.Categories.seeAllButton
+        collectionView.accessibilityIdentifier = AccessibilityIdentifier.Main.Categories.collectionView
+        emptyLabel.accessibilityIdentifier = AccessibilityIdentifier.Main.Categories.emptyLabel
+        errorView.accessibilityIdentifier = AccessibilityIdentifier.Main.Categories.errorView
+        loadingView.accessibilityIdentifier = AccessibilityIdentifier.Main.Categories.loadingView
     }
 
     func setupLayout() {

@@ -13,6 +13,14 @@ final class ExpenseMultilineInputView: UIView, LayoutScaleProviding {
 
     private var minimumHeightConstraint: Constraint?
 
+    override var accessibilityIdentifier: String? {
+        didSet {
+            titleLabel.accessibilityIdentifier = accessibilityIdentifier.map(AccessibilityIdentifier.MultilineInputParts.title(of:))
+            textView.accessibilityIdentifier = accessibilityIdentifier.map(AccessibilityIdentifier.MultilineInputParts.input(of:))
+            counterLabel.accessibilityIdentifier = accessibilityIdentifier.map(AccessibilityIdentifier.MultilineInputParts.counter(of:))
+        }
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()

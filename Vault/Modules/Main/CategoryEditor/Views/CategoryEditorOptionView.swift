@@ -130,6 +130,16 @@ final class CategoryEditorOptionsGridView: UIView, LayoutScaleProviding {
     private let secondRowStack = UIStackView()
     private lazy var optionViews = (0..<8).map { _ in CategoryEditorOptionView() }
 
+    override var accessibilityIdentifier: String? {
+        didSet {
+            for (index, optionView) in optionViews.enumerated() {
+                optionView.accessibilityIdentifier = accessibilityIdentifier.map {
+                    AccessibilityIdentifier.CategoryEditor.option(of: $0, at: index)
+                }
+            }
+        }
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()

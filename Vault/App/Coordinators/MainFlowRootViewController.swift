@@ -103,6 +103,9 @@ private extension MainFlowRootViewController {
             selectedImage: chartPieFillImage
         )
 
+        homeController.tabBarItem.accessibilityIdentifier = AccessibilityIdentifier.TabBar.homeTab
+        analyticsController.tabBarItem.accessibilityIdentifier = AccessibilityIdentifier.TabBar.statsTab
+
         viewControllers = [
             makeNavigationController(
                 rootController: homeController,
@@ -222,6 +225,7 @@ private extension MainFlowRootViewController {
             for: .normal
         )
         button.accessibilityLabel = L10n.mainProfileAccessibilityLabel
+        button.accessibilityIdentifier = AccessibilityIdentifier.Navigation.profileButton
         button.addTarget(self, action: #selector(handleTapProfileButton), for: .touchUpInside)
 
         return button

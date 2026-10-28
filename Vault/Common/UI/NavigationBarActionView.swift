@@ -6,6 +6,12 @@ final class NavigationBarActionView: UIView, LayoutScaleProviding, ImageProvidin
     private let button = UIButton(type: .system)
     private var tapCommand: Command = .nope
 
+    override var accessibilityIdentifier: String? {
+        didSet {
+            button.accessibilityIdentifier = accessibilityIdentifier
+        }
+    }
+
     override var intrinsicContentSize: CGSize {
         CGSize(width: sizeM, height: sizeM)
     }

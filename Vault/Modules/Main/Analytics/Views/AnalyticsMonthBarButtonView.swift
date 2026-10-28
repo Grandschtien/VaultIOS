@@ -85,6 +85,7 @@ private extension AnalyticsMonthBarButtonView {
             trailing: spaceS
         )
         button.configuration = configuration
+        button.accessibilityIdentifier = AccessibilityIdentifier.Analytics.periodButton
         button.addTarget(self, action: #selector(handleTap), for: .touchUpInside)
 
         self.backgroundColor = Asset.Colors.interactiveInputBackground.color

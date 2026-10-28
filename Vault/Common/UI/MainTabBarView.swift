@@ -100,6 +100,7 @@ private extension MainTabBarView {
             plusImage(pointSize: centerActionSymbolSize, weight: .medium),
             for: .normal
         )
+        centerActionButton.accessibilityIdentifier = AccessibilityIdentifier.TabBar.addExpenseButton
         centerActionButton.addTarget(self, action: #selector(handleTapCenterActionButton), for: .touchUpInside)
     }
 

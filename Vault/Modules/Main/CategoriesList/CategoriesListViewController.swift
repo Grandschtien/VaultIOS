@@ -19,6 +19,7 @@ final class CategoriesListViewController: UIViewController, HasContentView {
         self.viewModelStore = viewModelStore
         self.collectionAdapter = collectionAdapter
         super.init(nibName: nil, bundle: nil)
+        addBarButtonView.accessibilityIdentifier = AccessibilityIdentifier.CategoriesList.addButton
     }
 
     override func loadView() {

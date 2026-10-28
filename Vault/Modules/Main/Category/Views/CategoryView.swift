@@ -131,6 +131,12 @@ private extension CategoryView {
         loadingView.isHidden = true
         paginationSpinner.hidesWhenStopped = true
         paginationSpinner.color = Asset.Colors.interactiveElemetsPrimary.color
+
+        tableView.accessibilityIdentifier = AccessibilityIdentifier.Category.tableView
+        errorView.accessibilityIdentifier = AccessibilityIdentifier.Category.errorView
+        emptyLabel.accessibilityIdentifier = AccessibilityIdentifier.Category.emptyLabel
+        loadingView.accessibilityIdentifier = AccessibilityIdentifier.Category.loadingView
+        paginationSpinner.accessibilityIdentifier = AccessibilityIdentifier.Category.paginationSpinner
     }
 
     func setupLayout() {

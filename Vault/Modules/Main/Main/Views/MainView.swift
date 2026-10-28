@@ -60,6 +60,7 @@ private extension MainView {
         scrollView.alwaysBounceVertical = true
         scrollView.showsVerticalScrollIndicator = false
         scrollView.refreshControl = refreshControl
+        scrollView.accessibilityIdentifier = AccessibilityIdentifier.Main.scrollView
         blockingErrorView.isHidden = true
 
         stackView.axis = .vertical

@@ -51,6 +51,10 @@ private extension ProfileGeneralSectionView {
         cardView.skeletonCornerRadius = Float(sizeL)
 
         separatorView.backgroundColor = Asset.Colors.textAndIconPlaceseholder.color.withAlphaComponent(0.15)
+
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.Profile.General.title
+        currencyRowView.accessibilityIdentifier = AccessibilityIdentifier.Profile.General.currencyRow
+        languageRowView.accessibilityIdentifier = AccessibilityIdentifier.Profile.General.languageRow
     }
 
     func setupLayout() {

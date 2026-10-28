@@ -73,6 +73,12 @@ private extension ExpenseCategoryPickerView {
 
         errorView.isHidden = true
         emptyLabel.isHidden = true
+
+        tableView.accessibilityIdentifier = AccessibilityIdentifier.ExpenseCategoryPicker.tableView
+        errorView.accessibilityIdentifier = AccessibilityIdentifier.ExpenseCategoryPicker.errorView
+        emptyLabel.accessibilityIdentifier = AccessibilityIdentifier.ExpenseCategoryPicker.emptyLabel
+        createButton.accessibilityIdentifier = AccessibilityIdentifier.ExpenseCategoryPicker.createButton
+        addButton.accessibilityIdentifier = AccessibilityIdentifier.ExpenseCategoryPicker.addButton
     }
 
     func setupLayout() {

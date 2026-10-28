@@ -45,6 +45,12 @@ private extension ExpenseAIEntryNoExpenseAlertView {
 
         buttonsStackView.axis = .vertical
         buttonsStackView.spacing = spaceS
+
+        cardView.accessibilityIdentifier = AccessibilityIdentifier.AIEntry.NoExpenseAlert.view
+        titleLabel.accessibilityIdentifier = AccessibilityIdentifier.AIEntry.NoExpenseAlert.title
+        messageLabel.accessibilityIdentifier = AccessibilityIdentifier.AIEntry.NoExpenseAlert.message
+        addManuallyButton.accessibilityIdentifier = AccessibilityIdentifier.AIEntry.NoExpenseAlert.addManuallyButton
+        fixPromptButton.accessibilityIdentifier = AccessibilityIdentifier.AIEntry.NoExpenseAlert.fixPromptButton
     }
 
     func setupLayout() {
