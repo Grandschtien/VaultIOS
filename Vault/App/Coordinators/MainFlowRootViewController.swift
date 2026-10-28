@@ -210,9 +210,12 @@ private extension MainFlowRootViewController {
             width: profileButtonSize,
             height: profileButtonSize
         )
-        button.layer.cornerRadius = sizeS
-        button.clipsToBounds = true
-        button.backgroundColor = Asset.Colors.interactiveInputBackground.color
+        if #unavailable(iOS 26) {
+            // On iOS 26+ the bar button item already has the system glass background.
+            button.layer.cornerRadius = sizeS
+            button.clipsToBounds = true
+            button.backgroundColor = Asset.Colors.interactiveInputBackground.color
+        }
         button.tintColor = Asset.Colors.textAndIconSecondary.color
         button.setImage(
             personCropCircleImage(pointSize: profileIconSize, weight: .regular),

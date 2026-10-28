@@ -4,7 +4,6 @@ import SnapKit
 final class AnalyticsMonthBarButtonView: UIView, LayoutScaleProviding, ImageProviding {
     private let button = UIButton(type: .system)
     private var tapCommand: Command = .nope
-    private let chevronImageView = UIImageView()
     private var currentViewModel = ViewModel()
     private var preferredSize: CGSize = .zero
 
@@ -36,7 +35,7 @@ final class AnalyticsMonthBarButtonView: UIView, LayoutScaleProviding, ImageProv
             && currentViewModel.title.isEmpty == false
 
         tapCommand = viewModel.tapCommand
-        button.setTitle(viewModel.title, for: .normal)
+        button.configuration?.title = viewModel.title
         let targetSize = measuredSize()
         currentViewModel = viewModel
 
@@ -65,38 +64,37 @@ private extension AnalyticsMonthBarButtonView {
     func setupViews() {
         backgroundColor = .clear
 
-        button.configuration = .plain()
-        button.setTitleColor(Asset.Colors.textAndIconPrimary.color, for: .normal)
-        button.titleLabel?.font = Typography.typographyMedium16
-        button.titleLabel?.lineBreakMode = .byTruncatingTail
-        button.titleLabel?.numberOfLines = 1
-        button.configuration?.contentInsets = NSDirectionalEdgeInsets(
+        var configuration = UIButton.Configuration.plain()
+        configuration.baseForegroundColor = Asset.Colors.textAndIconPrimary.color
+        configuration.titleLineBreakMode = .byTruncatingTail
+        configuration.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attributes in
+            var attributes = attributes
+            attributes.font = Typography.typographyMedium16
+            return attributes
+        }
+        configuration.image = chevronDownImage
+        configuration.imagePlacement = .trailing
+        configuration.imagePadding = spaceXS
+        configuration.imageColorTransformer = UIConfigurationColorTransformer { _ in
+            Asset.Colors.textAndIconSecondary.color
+        }
+        configuration.contentInsets = NSDirectionalEdgeInsets(
             top: spaceXS,
             leading: spaceS,
             bottom: spaceXS,
-            trailing: sizeL
+            trailing: spaceS
         )
+        button.configuration = configuration
         button.addTarget(self, action: #selector(handleTap), for: .touchUpInside)
 
-        chevronImageView.image = chevronDownImage
-        chevronImageView.tintColor = Asset.Colors.textAndIconSecondary.color
-        chevronImageView.contentMode = .scaleAspectFit
-        
         self.backgroundColor = Asset.Colors.interactiveInputBackground.color
     }
 
     func setupLayout() {
         addSubview(button)
-        addSubview(chevronImageView)
 
         button.snp.makeConstraints { make in
-            make.leading.verticalEdges.equalToSuperview().inset(spaceXS)
-        }
-
-        chevronImageView.snp.makeConstraints { make in
-            make.centerY.equalToSuperview()
-            make.trailing.equalToSuperview().inset(spaceS)
-            make.leading.equalTo(button.snp.trailing).inset(spaceS)
+            make.edges.equalToSuperview()
         }
     }
 
