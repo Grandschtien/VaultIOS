@@ -229,7 +229,8 @@ protocol MainSummaryPeriodUpdating: Sendable {
     func resetToCurrentMonth()
 }
 
-typealias MainSummaryPeriodServicing = MainSummaryPeriodProviding & MainSummaryPeriodUpdating
+// sourcery: AutoMockable
+protocol MainSummaryPeriodServicing: MainSummaryPeriodProviding, MainSummaryPeriodUpdating {}
 
 final class MainSummaryPeriodProvider: MainSummaryPeriodServicing, @unchecked Sendable {
     private let lock = NSLock()

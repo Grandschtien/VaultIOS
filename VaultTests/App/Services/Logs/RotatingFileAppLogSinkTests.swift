@@ -33,11 +33,12 @@ final class RotatingFileAppLogSinkTests: XCTestCase {
         let secondWriteExpectation = expectation(description: "second write")
         secondWriteExpectation.expectedFulfillmentCount = 1
         var observerCalls = 0
+        let queue = DispatchQueue(label: "RotatingFileAppLogSinkTests.rotate")
         let sut = RotatingFileAppLogSink(
             baseDirectoryURL: directoryURL,
             maximumFileSizeInBytes: 180,
             maximumFileCount: 2,
-            queue: DispatchQueue(label: "RotatingFileAppLogSinkTests.rotate"),
+            queue: queue,
             writeExecutionObserver: { _ in
                 observerCalls += 1
                 if observerCalls == 1 {
@@ -53,6 +54,8 @@ final class RotatingFileAppLogSinkTests: XCTestCase {
 
         sut.write(makeEntry(name: "second", payload: ["message": .string(String(repeating: "b", count: 80))]))
         await fulfillment(of: [secondWriteExpectation], timeout: 1.0)
+        // The observer fires before rotation and append, so wait for the queued write to finish.
+        queue.sync {}
 
         let activeFileURL = directoryURL.appendingPathComponent("app-log-0.ndjson")
         let rotatedFileURL = directoryURL.appendingPathComponent("app-log-1.ndjson")

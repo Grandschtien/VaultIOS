@@ -1,165 +1,150 @@
 import XCTest
 @testable import Vylok
 
-@MainActor
 final class ForgotPasswordInteractorTests: XCTestCase {
-    func testFetchDataPresentsInitialState() async {
-        let presenter = ForgotPasswordPresenterSpy()
-        await makeSut(presenter: presenter).fetchData()
-        XCTAssertEqual(presenter.presentedData.last?.loadingState, .idle)
-        XCTAssertEqual(presenter.presentedData.last?.email, "")
-    }
+    private var passwordRestorationService: PasswordRestorationContractServicingMock!
+    private var presenter: ForgotPasswordPresentationLogicMock!
+    private var router: ForgotPasswordRoutingLogicMock!
+    private var analytics: ForgotPasswordAnalyticsTrackingMock!
+    private var sut: ForgotPasswordInteractor!
 
-    func testFetchDataWithContextPresentsPrefilledEmail() async {
-        let presenter = ForgotPasswordPresenterSpy()
-        await makeSut(
+    override func setUp() {
+        super.setUp()
+        passwordRestorationService = PasswordRestorationContractServicingMock()
+        presenter = ForgotPasswordPresentationLogicMock()
+        router = ForgotPasswordRoutingLogicMock()
+        analytics = ForgotPasswordAnalyticsTrackingMock()
+        sut = ForgotPasswordInteractor(
+            passwordRestorationService: passwordRestorationService,
             presenter: presenter,
-            context: ForgotPasswordContext(email: "name@example.com")
-        ).fetchData()
-
-        XCTAssertEqual(presenter.presentedData.last?.loadingState, .idle)
-        XCTAssertEqual(presenter.presentedData.last?.email, "name@example.com")
-    }
-
-    func testHandleTapSendWithEmptyEmailShowsValidationError() async {
-        let presenter = ForgotPasswordPresenterSpy()
-        let router = ForgotPasswordRouterSpy()
-        await makeSut(presenter: presenter, router: router).handleTapSend()
-        XCTAssertEqual(presenter.presentedData.last?.emailErrorMessage, L10n.commonFillField)
-        XCTAssertTrue(router.successMessages.isEmpty)
-        XCTAssertEqual(router.closeCallsCount, 0)
-    }
-
-    func testHandleTapSendWithInvalidEmailShowsValidationError() async {
-        let presenter = ForgotPasswordPresenterSpy()
-        let router = ForgotPasswordRouterSpy()
-        let sut = makeSut(presenter: presenter, router: router)
-        await sut.handleEmailDidChange("name")
-        await sut.handleTapSend()
-        XCTAssertEqual(presenter.presentedData.last?.emailErrorMessage, L10n.registrationErrorInvalidEmail)
-        XCTAssertTrue(router.successMessages.isEmpty)
-        XCTAssertEqual(router.closeCallsCount, 0)
-    }
-
-    func testHandleTapSendWithValidEmailRequestsResetAndShowsSuccess() async {
-        let presenter = ForgotPasswordPresenterSpy()
-        let router = ForgotPasswordRouterSpy()
-        let service = PasswordRestorationContractServiceSpy()
-        let sut = makeSut(
-            passwordRestorationService: service,
-            presenter: presenter,
-            router: router
+            router: router,
+            context: .init(email: "name@example.com"),
+            analytics: analytics
         )
-        await sut.handleEmailDidChange("  name@example.com  ")
-        await sut.handleTapSend()
-
-        XCTAssertEqual(await service.requestedEmails(), ["name@example.com"])
-        XCTAssertEqual(presenter.presentedData.map(\.loadingState), [.loading, .loaded])
-        XCTAssertEqual(router.successMessages, [L10n.forgotPasswordSuccessMessage])
-        XCTAssertEqual(router.closeCallsCount, 1)
     }
 
-    func testHandleTapSendWhenServiceFailsPresentsErrorAndDoesNotClose() async {
-        let presenter = ForgotPasswordPresenterSpy()
-        let router = ForgotPasswordRouterSpy()
-        let service = PasswordRestorationContractServiceSpy()
-        service.nextRequestPasswordResetError = StubError.any
-        let sut = makeSut(
-            passwordRestorationService: service,
-            presenter: presenter,
-            router: router
-        )
+    override func tearDown() {
+        sut = nil
+        analytics = nil
+        router = nil
+        presenter = nil
+        passwordRestorationService = nil
+        super.tearDown()
+    }
+}
 
-        await sut.handleEmailDidChange("name@example.com")
-        await sut.handleTapSend()
+// MARK: - fetchData
 
+extension ForgotPasswordInteractorTests {
+    func testFetchDataPresentsEmailFromContextAndTracksScreenOpen() async {
+        // Act
+        await sut.fetchData()
+
+        // Assert
         XCTAssertEqual(
-            presenter.presentedData.map(\.loadingState),
-            [.loading, .failed(.undelinedError(description: StubError.any.localizedDescription))]
+            presenter.presentFetchedDataReceivedInvocations,
+            [ForgotPasswordFetchData(loadingState: .idle, email: "name@example.com")]
         )
-        XCTAssertEqual(router.errors, [StubError.any.localizedDescription])
-        XCTAssertTrue(router.successMessages.isEmpty)
-        XCTAssertEqual(router.closeCallsCount, 0)
+        XCTAssertEqual(analytics.trackScreenOpenCallsCount, 1)
     }
+}
 
-    func testHandleTapCloseClosesScreen() async {
-        let router = ForgotPasswordRouterSpy()
-        await makeSut(router: router).handleTapClose()
+// MARK: - handleTapSend
+
+extension ForgotPasswordInteractorTests {
+    func testHandleTapSendWhenEmailIsValidRequestsResetAndCloses() async {
+        // Arrange
+        await sut.handleEmailDidChange(" name@example.com ")
+
+        // Act
+        await sut.handleTapSend()
+
+        // Assert
+        XCTAssertEqual(
+            passwordRestorationService.requestPasswordResetReceivedInvocations,
+            [ForgotPasswordRequestDTO(email: "name@example.com")]
+        )
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                ForgotPasswordFetchData(loadingState: .loading, email: " name@example.com "),
+                ForgotPasswordFetchData(loadingState: .loaded, email: " name@example.com ")
+            ]
+        )
+        XCTAssertEqual(router.presentSuccessWithReceivedInvocations, [L10n.forgotPasswordSuccessMessage])
         XCTAssertEqual(router.closeCallsCount, 1)
+        XCTAssertEqual(analytics.trackForgotPasswordSuccessCallsCount, 1)
     }
-}
 
-private extension ForgotPasswordInteractorTests {
-    @MainActor
-    func makeSut(
-        passwordRestorationService: PasswordRestorationContractServicing? = nil,
-        presenter: ForgotPasswordPresentationLogic? = nil,
-        router: ForgotPasswordRoutingLogic? = nil,
-        context: ForgotPasswordContext = .init()
-    ) -> ForgotPasswordInteractor {
-        ForgotPasswordInteractor(
-            passwordRestorationService: passwordRestorationService ?? PasswordRestorationContractServiceSpy(),
-            presenter: presenter ?? ForgotPasswordPresenterSpy(),
-            router: router ?? ForgotPasswordRouterSpy(),
-            context: context
+    func testHandleTapSendWhenEmailIsEmptyShowsFillFieldError() async {
+        // Arrange
+        await sut.handleEmailDidChange("   ")
+
+        // Act
+        await sut.handleTapSend()
+
+        // Assert
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [ForgotPasswordFetchData(loadingState: .idle, email: "   ", emailErrorMessage: L10n.commonFillField)]
         )
+        XCTAssertFalse(passwordRestorationService.requestPasswordResetCalled)
+    }
+
+    func testHandleTapSendWhenEmailIsInvalidShowsInvalidEmailError() async {
+        // Arrange
+        await sut.handleEmailDidChange("name@")
+
+        // Act
+        await sut.handleTapSend()
+
+        // Assert
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                ForgotPasswordFetchData(
+                    loadingState: .idle,
+                    email: "name@",
+                    emailErrorMessage: L10n.registrationErrorInvalidEmail
+                )
+            ]
+        )
+        XCTAssertFalse(passwordRestorationService.requestPasswordResetCalled)
+    }
+
+    func testHandleTapSendWhenServiceFailsPresentsErrorAndStaysOpen() async {
+        // Arrange
+        passwordRestorationService.requestPasswordResetThrowableError = TestError.any
+
+        // Act
+        await sut.handleTapSend()
+
+        // Assert
+        let errorDescription = TestError.any.localizedDescription
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                ForgotPasswordFetchData(loadingState: .loading, email: "name@example.com"),
+                ForgotPasswordFetchData(
+                    loadingState: .failed(.undelinedError(description: errorDescription)),
+                    email: "name@example.com"
+                )
+            ]
+        )
+        XCTAssertEqual(router.presentErrorWithReceivedInvocations, [errorDescription])
+        XCTAssertFalse(router.closeCalled)
+        XCTAssertEqual(analytics.trackForgotPasswordFailureReceivedInvocations as? [TestError], [.any])
     }
 }
 
-@MainActor
-private final class ForgotPasswordPresenterSpy: ForgotPasswordPresentationLogic {
-    private(set) var presentedData: [ForgotPasswordFetchData] = []
-    func presentFetchedData(_ data: ForgotPasswordFetchData) { presentedData.append(data) }
-}
+// MARK: - handleTapClose
 
-@MainActor
-private final class ForgotPasswordRouterSpy: ForgotPasswordRoutingLogic {
-    private(set) var closeCallsCount = 0
-    private(set) var successMessages: [String] = []
-    private(set) var errors: [String] = []
+extension ForgotPasswordInteractorTests {
+    func testHandleTapCloseClosesScreen() async {
+        // Act
+        await sut.handleTapClose()
 
-    func close() { closeCallsCount += 1 }
-    func presentSuccess(with text: String) { successMessages.append(text) }
-    func presentError(with text: String) { errors.append(text) }
-}
-
-private final class PasswordRestorationContractServiceSpy: PasswordRestorationContractServicing, @unchecked Sendable {
-    var nextRequestPasswordResetError: Error?
-
-    private let lock = NSLock()
-    private var _requestedEmails: [String] = []
-
-    func requestPasswordReset(_ request: ForgotPasswordRequestDTO) async throws {
-        lock.withLock {
-            _requestedEmails.append(request.email)
-        }
-
-        if let nextRequestPasswordResetError {
-            throw nextRequestPasswordResetError
-        }
-    }
-
-    func resetPassword(_ request: ResetPasswordRequestDTO) async throws {}
-
-    func requestedEmails() async -> [String] {
-        lock.withLock { _requestedEmails }
-    }
-}
-
-private extension ForgotPasswordInteractorTests {
-    enum StubError: LocalizedError {
-        case any
-
-        var errorDescription: String? {
-            "stub-error"
-        }
-    }
-}
-
-private extension NSLock {
-    func withLock<T>(_ block: () -> T) -> T {
-        lock()
-        defer { unlock() }
-        return block()
+        // Assert
+        XCTAssertEqual(router.closeCallsCount, 1)
     }
 }

@@ -3,91 +3,46 @@ import RevenueCat
 @testable import Vylok
 
 final class FirebaseTransactionLoggerTests: XCTestCase {
-    func testTrackTransactionIfNeededSkipsNilTransaction() async {
-        let spy = FirebaseTransactionLoggerSpy()
-        let sut = FirebaseTransactionLogger(
-            configureIfNeededHandler: {
-                await spy.recordConfigure()
-            },
-            transactionLogActionResolver: { _ in
-                { await spy.recordLog() }
-            }
-        )
+    private var client: FirebaseAnalyticsClientProtocolMock!
 
-        await sut.trackTransactionIfNeeded(nil)
-
-        let configureCallsCount = await spy.configureCallsCount()
-        let logCallsCount = await spy.logCallsCount()
-        XCTAssertEqual(configureCallsCount, 0)
-        XCTAssertEqual(logCallsCount, 0)
+    override func setUp() {
+        super.setUp()
+        client = FirebaseAnalyticsClientProtocolMock()
     }
 
-    func testTrackTransactionIfNeededSkipsTransactionWithoutResolvedAction() async {
-        let spy = FirebaseTransactionLoggerSpy()
-        let sut = FirebaseTransactionLogger(
-            configureIfNeededHandler: {
-                await spy.recordConfigure()
-            },
-            transactionLogActionResolver: { _ in nil }
-        )
-
-        await sut.trackTransactionIfNeeded(
-            StoreTransaction(
-                productIdentifier: "premium.monthly",
-                purchaseDate: Date(timeIntervalSince1970: 10),
-                transactionIdentifier: "transaction-1"
-            )
-        )
-
-        let configureCallsCount = await spy.configureCallsCount()
-        let logCallsCount = await spy.logCallsCount()
-        XCTAssertEqual(configureCallsCount, 0)
-        XCTAssertEqual(logCallsCount, 0)
-    }
-
-    func testTrackTransactionIfNeededConfiguresClientAndRunsResolvedAction() async {
-        let spy = FirebaseTransactionLoggerSpy()
-        let sut = FirebaseTransactionLogger(
-            configureIfNeededHandler: {
-                await spy.recordConfigure()
-            },
-            transactionLogActionResolver: { _ in
-                { await spy.recordLog() }
-            }
-        )
-
-        await sut.trackTransactionIfNeeded(
-            StoreTransaction(
-                productIdentifier: "premium.monthly",
-                purchaseDate: Date(timeIntervalSince1970: 10),
-                transactionIdentifier: "transaction-1"
-            )
-        )
-
-        let configureCallsCount = await spy.configureCallsCount()
-        let logCallsCount = await spy.logCallsCount()
-        XCTAssertEqual(configureCallsCount, 1)
-        XCTAssertEqual(logCallsCount, 1)
+    override func tearDown() {
+        client = nil
+        super.tearDown()
     }
 }
 
-private actor FirebaseTransactionLoggerSpy {
-    private var configureCallCount = 0
-    private var logCallCount = 0
+// MARK: - trackTransactionIfNeeded
 
-    func recordConfigure() {
-        configureCallCount += 1
+extension FirebaseTransactionLoggerTests {
+    func testTrackTransactionIfNeededWhenTransactionIsNilSkipsLogging() async {
+        // Arrange
+        let sut = FirebaseTransactionLogger(client: client)
+
+        // Act
+        await sut.trackTransactionIfNeeded(nil)
+
+        // Assert
+        XCTAssertFalse(client.logTransactionCalled)
     }
 
-    func recordLog() {
-        logCallCount += 1
-    }
+    func testTrackTransactionIfNeededLogsTransaction() async {
+        // Arrange
+        let sut = FirebaseTransactionLogger(client: client)
+        let transaction = StoreTransaction(
+            productIdentifier: "premium.monthly",
+            purchaseDate: Date(timeIntervalSince1970: 10),
+            transactionIdentifier: "transaction-1"
+        )
 
-    func configureCallsCount() -> Int {
-        configureCallCount
-    }
+        // Act
+        await sut.trackTransactionIfNeeded(transaction)
 
-    func logCallsCount() -> Int {
-        logCallCount
+        // Assert
+        XCTAssertEqual(client.logTransactionReceivedInvocations.map(\.transactionIdentifier), ["transaction-1"])
     }
 }

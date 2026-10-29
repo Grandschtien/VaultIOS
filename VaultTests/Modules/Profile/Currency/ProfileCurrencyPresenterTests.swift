@@ -4,11 +4,11 @@ import XCTest
 @MainActor
 final class ProfileCurrencyPresenterTests: XCTestCase {
     private var sut: ProfileCurrencyPresenter!
-    private var handler: ProfileCurrencyHandlerSpy!
+    private var handler: ProfileCurrencyHandlerMock!
 
     override func setUp() {
         super.setUp()
-        handler = ProfileCurrencyHandlerSpy()
+        handler = ProfileCurrencyHandlerMock()
         sut = ProfileCurrencyPresenter(viewModel: .init())
         sut.handler = handler
     }
@@ -37,10 +37,4 @@ extension ProfileCurrencyPresenterTests {
         XCTAssertEqual(sut.viewModel.rows.first?.code, "EUR")
         XCTAssertEqual(sut.viewModel.rows.first?.isSelected, true)
     }
-}
-
-private final class ProfileCurrencyHandlerSpy: ProfileCurrencyHandler, @unchecked Sendable {
-    func handleSelectCurrency(_ currencyCode: String) async {}
-    func handleSearchQueryDidChange(_ query: String) async {}
-    func handleTapClose() async {}
 }

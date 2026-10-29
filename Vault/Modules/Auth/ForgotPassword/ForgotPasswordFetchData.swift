@@ -1,6 +1,6 @@
 import Foundation
 
-struct ForgotPasswordFetchData: Sendable {
+struct ForgotPasswordFetchData: Equatable, Sendable {
     let loadingState: LoadingStatus
     let email: String
     let emailErrorMessage: String?

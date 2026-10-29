@@ -3,7 +3,7 @@ import XCTest
 
 final class PasswordRestorationContractServiceTests: XCTestCase {
     func testRequestPasswordResetForwardsPayload() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         let request = ForgotPasswordRequestDTO(email: "jane@example.com")
         var capturedRequest: ForgotPasswordRequestDTO?
 
@@ -23,7 +23,7 @@ final class PasswordRestorationContractServiceTests: XCTestCase {
     }
 
     func testResetPasswordForwardsPayload() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         let request = ResetPasswordRequestDTO(
             token: "token-123",
             password: "newpassword123"
@@ -48,7 +48,7 @@ final class PasswordRestorationContractServiceTests: XCTestCase {
 
 extension PasswordRestorationContractServiceTests {
     func testRequestPasswordResetWhenClientFailsRethrowsError() async {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.nextError = StubError.any
 
         let sut = PasswordRestorationContractService(networkClient: spy)
@@ -64,7 +64,7 @@ extension PasswordRestorationContractServiceTests {
     }
 
     func testResetPasswordWhenClientFailsRethrowsError() async {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.nextError = StubError.any
 
         let sut = PasswordRestorationContractService(networkClient: spy)

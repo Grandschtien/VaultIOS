@@ -3,15 +3,14 @@ import XCTest
 
 final class UserCurrencyConversionServiceTests: XCTestCase {
     func testConvertUsdAmountWhenProfileHasRateConvertsIntoPreferredCurrency() {
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "EUR",
-                language: "en-US",
-                currencyRate: 2.0
-            )
+        let profileStorage = UserProfileStorageServiceProtocolMock()
+        profileStorage.loadProfileReturnValue = UserProfileDefaults(
+            userId: "user-1",
+            email: "user@example.com",
+            name: "Test User",
+            currency: "EUR",
+            language: "en-US",
+            currencyRate: 2.0
         )
         let sut = UserCurrencyConversionService(userProfileStorageService: profileStorage)
 
@@ -25,7 +24,7 @@ final class UserCurrencyConversionServiceTests: XCTestCase {
 extension UserCurrencyConversionServiceTests {
     func testConvertUsdAmountWhenProfileMissingFallsBackToUsd() {
         let sut = UserCurrencyConversionService(
-            userProfileStorageService: UserProfileStorageSpy(profile: nil)
+            userProfileStorageService: UserProfileStorageServiceProtocolMock()
         )
 
         let converted = sut.convertUsdAmount(10)
@@ -37,15 +36,14 @@ extension UserCurrencyConversionServiceTests {
 
 extension UserCurrencyConversionServiceTests {
     func testConvertExpenseWhenCurrencyIsUsdConvertsToPreferredCurrency() {
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "KZT",
-                language: "ru",
-                currencyRate: 2.0
-            )
+        let profileStorage = UserProfileStorageServiceProtocolMock()
+        profileStorage.loadProfileReturnValue = UserProfileDefaults(
+            userId: "user-1",
+            email: "user@example.com",
+            name: "Test User",
+            currency: "KZT",
+            language: "ru",
+            currencyRate: 2.0
         )
         let sut = UserCurrencyConversionService(userProfileStorageService: profileStorage)
 
@@ -63,15 +61,14 @@ extension UserCurrencyConversionServiceTests {
 
 extension UserCurrencyConversionServiceTests {
     func testConvertExpenseWhenCurrencyIsNotUsdKeepsOriginalValue() {
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "KZT",
-                language: "ru",
-                currencyRate: 2.0
-            )
+        let profileStorage = UserProfileStorageServiceProtocolMock()
+        profileStorage.loadProfileReturnValue = UserProfileDefaults(
+            userId: "user-1",
+            email: "user@example.com",
+            name: "Test User",
+            currency: "KZT",
+            language: "ru",
+            currencyRate: 2.0
         )
         let sut = UserCurrencyConversionService(userProfileStorageService: profileStorage)
 
@@ -87,15 +84,14 @@ extension UserCurrencyConversionServiceTests {
     }
 
     func testConvertExpenseWhenOriginalCurrencyMatchesPreferredCurrencyReturnsOriginalValue() {
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "RUB",
-                language: "ru",
-                currencyRate: 76.34
-            )
+        let profileStorage = UserProfileStorageServiceProtocolMock()
+        profileStorage.loadProfileReturnValue = UserProfileDefaults(
+            userId: "user-1",
+            email: "user@example.com",
+            name: "Test User",
+            currency: "RUB",
+            language: "ru",
+            currencyRate: 76.34
         )
         let sut = UserCurrencyConversionService(userProfileStorageService: profileStorage)
 
@@ -111,15 +107,14 @@ extension UserCurrencyConversionServiceTests {
     }
 
     func testConvertExpenseWhenOriginalCurrencyMatchesPreferredCurrencyAfterNormalizationReturnsOriginalValue() {
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: " kzt ",
-                language: "ru",
-                currencyRate: 2.0
-            )
+        let profileStorage = UserProfileStorageServiceProtocolMock()
+        profileStorage.loadProfileReturnValue = UserProfileDefaults(
+            userId: "user-1",
+            email: "user@example.com",
+            name: "Test User",
+            currency: " kzt ",
+            language: "ru",
+            currencyRate: 2.0
         )
         let sut = UserCurrencyConversionService(userProfileStorageService: profileStorage)
 
@@ -132,33 +127,5 @@ extension UserCurrencyConversionServiceTests {
 
         XCTAssertEqual(converted.amount, 1500)
         XCTAssertEqual(converted.currency, "KZT")
-    }
-}
-
-private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
-    private let lock = NSLock()
-    private var profile: UserProfileDefaults?
-
-    init(profile: UserProfileDefaults?) {
-        self.profile = profile
-    }
-
-    func saveProfile(_ profile: UserProfileDefaults) {
-        lock.lock()
-        self.profile = profile
-        lock.unlock()
-    }
-
-    func loadProfile() -> UserProfileDefaults? {
-        lock.lock()
-        let value = profile
-        lock.unlock()
-        return value
-    }
-
-    func clearProfile() {
-        lock.lock()
-        profile = nil
-        lock.unlock()
     }
 }

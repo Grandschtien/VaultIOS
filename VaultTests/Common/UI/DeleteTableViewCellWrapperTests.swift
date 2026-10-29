@@ -6,8 +6,8 @@ import UIKit
 final class DeleteTableViewCellWrapperTests: XCTestCase {
     func testConfigureAppliesWrappedAndDeleteViewModels() {
         let sut = makeSut()
-        let wrappedViewModel = WrappedViewSpy.ViewModel(text: "Coffee")
-        let deleteViewModel = DeleteTableViewCellWrapper<WrappedViewSpy>.DeleteViewModel(
+        let wrappedViewModel = ExpenseView.ViewModel(id: "exp-1")
+        let deleteViewModel = DeleteTableViewCellWrapper<ExpenseView>.DeleteViewModel(
             id: "exp-1",
             title: makeDeleteLabelViewModel(),
             icon: nil,
@@ -36,7 +36,7 @@ extension DeleteTableViewCellWrapperTests {
 
         sut.configure(
             with: .init(
-                wrappedViewModel: .init(text: "Coffee"),
+                wrappedViewModel: .init(id: "exp-1"),
                 deleteViewModel: .init(
                     id: "exp-1",
                     deleteCommand: Command {
@@ -62,7 +62,7 @@ extension DeleteTableViewCellWrapperTests {
 
         sut.configure(
             with: .init(
-                wrappedViewModel: .init(text: "Coffee"),
+                wrappedViewModel: .init(id: "exp-1"),
                 deleteViewModel: .init(
                     id: "exp-1",
                     deleteCommand: Command {
@@ -112,7 +112,7 @@ extension DeleteTableViewCellWrapperTests {
 
         sut.configure(
             with: .init(
-                wrappedViewModel: .init(text: "Coffee"),
+                wrappedViewModel: .init(id: "exp-1"),
                 deleteViewModel: .init(
                     id: "exp-1",
                     deleteCommand: .any
@@ -134,8 +134,8 @@ extension DeleteTableViewCellWrapperTests {
 }
 
 private extension DeleteTableViewCellWrapperTests {
-    func makeSut() -> DeleteTableViewCellWrapper<WrappedViewSpy> {
-        let cell = DeleteTableViewCellWrapper<WrappedViewSpy>(
+    func makeSut() -> DeleteTableViewCellWrapper<ExpenseView> {
+        let cell = DeleteTableViewCellWrapper<ExpenseView>(
             style: .default,
             reuseIdentifier: nil
         )
@@ -151,18 +151,5 @@ private extension DeleteTableViewCellWrapperTests {
             textColor: .white,
             alignment: .center
         )
-    }
-}
-
-@MainActor
-private final class WrappedViewSpy: UIView, ConfigurableCellWrappedView {
-    struct ViewModel: Equatable {
-        let text: String
-    }
-
-    private(set) var viewModel: ViewModel = .init(text: "")
-
-    func configure(with viewModel: ViewModel) {
-        self.viewModel = viewModel
     }
 }

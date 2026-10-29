@@ -9,9 +9,9 @@ final class MainContractsAPITests: XCTestCase {
 
         XCTAssertEqual(target.path, "/categories")
         XCTAssertEqual(target.method.rawValue, "POST")
-        XCTAssertEqual(target.host, "localhost")
+        XCTAssertEqual(target.host, MainAPIConfiguration.host)
         XCTAssertEqual(target.timeoutInterval, 30)
-        XCTAssertEqual(target.url.absoluteString, "https://localhost:8080/categories")
+        XCTAssertEqual(target.url, MainAPIConfiguration.url(path: "/categories"))
 
         guard case .custonJSON = target.requestType else {
             return XCTFail("Expected custom JSON request type")
@@ -126,7 +126,7 @@ extension MainContractsAPITests {
         XCTAssertEqual(query["cursor"] as? String, "cursor-token")
         XCTAssertEqual(limitValue(in: query), 25)
         XCTAssertEqual(query["from"] as? String, "2025-01-01T00:00:00Z")
-        XCTAssertEqual(query["to"] as? String, "2025-01-11T23:50:00Z")
+        XCTAssertEqual(query["to"] as? String, "2025-01-10T23:50:00Z")
     }
 }
 
@@ -151,7 +151,7 @@ extension MainContractsAPITests {
         XCTAssertEqual(query["category"] as? String, "cat-1")
         XCTAssertEqual(limitValue(in: query), 25)
         XCTAssertEqual(query["from"] as? String, "2025-01-01T00:00:00Z")
-        XCTAssertEqual(query["to"] as? String, "2025-01-11T23:50:00Z")
+        XCTAssertEqual(query["to"] as? String, "2025-01-10T23:50:00Z")
     }
 }
 
@@ -188,7 +188,7 @@ extension MainContractsAPITests {
 //        }
 //
 //        XCTAssertEqual(query["from"] as? String, "2025-01-01T00:00:00Z")
-//        XCTAssertEqual(query["to"] as? String, "2025-01-11T23:50:00Z")
+//        XCTAssertEqual(query["to"] as? String, "2025-01-10T23:50:00Z")
     }
 }
 
@@ -201,11 +201,11 @@ extension MainContractsAPITests {
             )
         )
 
-        XCTAssertEqual(target.path, "/ai/parse")
+        XCTAssertEqual(target.path, "/v2/ai/parse")
         XCTAssertEqual(target.method.rawValue, "POST")
-        XCTAssertEqual(target.host, "localhost")
+        XCTAssertEqual(target.host, MainAPIConfiguration.host)
         XCTAssertEqual(target.timeoutInterval, 30)
-        XCTAssertEqual(target.url.absoluteString, "https://localhost:8080/ai/parse")
+        XCTAssertEqual(target.url, MainAPIConfiguration.url(path: "/v2/ai/parse"))
 
         guard case .custonJSON = target.requestType else {
             return XCTFail("Expected custom JSON request type")

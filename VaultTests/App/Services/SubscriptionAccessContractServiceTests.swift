@@ -3,7 +3,7 @@ import XCTest
 
 final class SubscriptionAccessContractServiceTests: XCTestCase {
     func testGetSubscriptionForwardsTargetAndDecodesResponse() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"tier":"PREMIUM","status":"active","paid_access_until":"2026-06-30T23:59:59Z","capabilities":["analytics","custom_date_range","ai_input"],"usage_limits":{"ai_requests":{"limit":300,"remaining":273}},"status_version":42}"#
         )
@@ -26,7 +26,7 @@ final class SubscriptionAccessContractServiceTests: XCTestCase {
         XCTAssertEqual(response.status, .active)
         XCTAssertEqual(
             response.paidAccessUntil,
-            Date(timeIntervalSince1970: 1_782_870_399)
+            Date(timeIntervalSince1970: 1_782_863_999)
         )
         XCTAssertEqual(
             response.capabilities,
@@ -43,7 +43,7 @@ final class SubscriptionAccessContractServiceTests: XCTestCase {
 
 extension SubscriptionAccessContractServiceTests {
     func testGetSubscriptionDecodesTrialStatusAsActiveSubscription() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"tier":"PREMIUM","status":"trial","paid_access_until":"2026-07-06T13:21:40Z","capabilities":["analytics","custom_date_range","ai_input"],"usage_limits":{"ai_requests":{"limit":80,"remaining":80}},"status_version":57}"#
         )
@@ -69,7 +69,7 @@ extension SubscriptionAccessContractServiceTests {
 
 extension SubscriptionAccessContractServiceTests {
     func testGetSubscriptionDoesNotReuseSessionCacheBetweenCalls() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"tier":"PREMIUM","status":"active","paid_access_until":"2026-06-30T23:59:59Z","capabilities":["analytics"],"usage_limits":{"ai_requests":{"limit":300,"remaining":273}},"status_version":42}"#
         )
@@ -88,7 +88,7 @@ extension SubscriptionAccessContractServiceTests {
     }
 
     func testRefreshSubscriptionLoadsLatestValue() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         let sut = SubscriptionAccessContractService(networkClient: spy)
 
         spy.setResponse(

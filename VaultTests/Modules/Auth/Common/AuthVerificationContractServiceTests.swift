@@ -3,7 +3,7 @@ import XCTest
 
 final class AuthVerificationContractServiceTests: XCTestCase {
     func testStartEmailRegistrationForwardsPayload() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         let request = RegisterRequestDTO(
             provider: "password",
             email: "jane@example.com",
@@ -40,7 +40,7 @@ final class AuthVerificationContractServiceTests: XCTestCase {
     }
 
     func testVerifyEmailForwardsPayload() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         let request = EmailVerificationRequestDTO(
             email: "jane@example.com",
             code: "123456"
@@ -82,7 +82,7 @@ final class AuthVerificationContractServiceTests: XCTestCase {
     }
 
     func testResendEmailVerificationForwardsPayload() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         let request = EmailVerificationResendRequestDTO(email: "jane@example.com")
         var capturedRequest: EmailVerificationResendRequestDTO?
 
@@ -112,7 +112,7 @@ final class AuthVerificationContractServiceTests: XCTestCase {
     }
 
     func testLoginForwardsPayload() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         let request = LoginRequestDTO(
             provider: .password,
             email: "jane@example.com",

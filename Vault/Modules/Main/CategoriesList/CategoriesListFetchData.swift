@@ -2,7 +2,7 @@
 
 import Foundation
 
-struct CategoriesListFetchData: Sendable {
+struct CategoriesListFetchData: Equatable, Sendable {
     let navigationTitle: String
     let loadingState: LoadingStatus
     let categories: [MainCategoryCardModel]

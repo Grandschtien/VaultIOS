@@ -3,118 +3,121 @@ import XCTest
 
 @MainActor
 final class LoginInteractorTests: XCTestCase {
-    func testSignInHappyPathStoresTokenAndOpensMainFlow() async {
-        let authVerificationService = AuthVerificationContractServiceSpy()
-        authVerificationService.loginResult = .success(
-            LoginResponseDTO(
-                accessToken: "access",
-                refreshToken: "refresh",
-                tokenType: "bearer",
-                expiresIn: 3600,
-                user: .init(
-                    id: "1",
-                    email: "name@example.com",
-                    emailVerified: true,
-                    name: "Egor",
-                    currency: "USD",
-                    preferredLanguage: "en-US",
-                    tier: "free"
-                )
-            )
-        )
+    private var authVerificationService: AuthVerificationContractServicingMock!
+    private var presenter: LoginPresentationLogicMock!
+    private var router: LoginRoutingLogicMock!
+    private var tokenStorage: TokenStorageServiceProtocolMock!
+    private var subscriptionInitializer: SubscriptionInitializerLogicMock!
+    private var profileStorage: UserProfileStorageServiceProtocolMock!
+    private var widgetSnapshotSyncService: VylokWidgetSnapshotSyncingMock!
 
-        let presenter = LoginPresenterSpy()
-        let router = LoginRouterSpy()
-        let tokenStorage = TokenStorageSpy()
-        let profileStorage = UserProfileStorageSpy()
-        let widgetSnapshotSyncService = WidgetSnapshotSyncSpy()
-        let sut = makeSut(
+    override func setUp() {
+        super.setUp()
+        authVerificationService = AuthVerificationContractServicingMock()
+        presenter = LoginPresentationLogicMock()
+        router = LoginRoutingLogicMock()
+        tokenStorage = TokenStorageServiceProtocolMock()
+        subscriptionInitializer = SubscriptionInitializerLogicMock()
+        profileStorage = UserProfileStorageServiceProtocolMock()
+        widgetSnapshotSyncService = VylokWidgetSnapshotSyncingMock()
+    }
+
+    override func tearDown() {
+        widgetSnapshotSyncService = nil
+        profileStorage = nil
+        subscriptionInitializer = nil
+        tokenStorage = nil
+        router = nil
+        presenter = nil
+        authVerificationService = nil
+        super.tearDown()
+    }
+}
+
+// MARK: - handleSignInDidTap
+
+extension LoginInteractorTests {
+    func testHandleSignInDidTapWhenLoginSucceedsStoresSessionAndOpensMainFlow() async {
+        // Arrange
+        let sut = LoginInteractor(
             authVerificationService: authVerificationService,
             presenter: presenter,
             router: router,
-            tokenStorage: tokenStorage,
-            profileStorage: profileStorage,
+            tokenStorageService: tokenStorage,
+            subscriptionInitializerLogic: subscriptionInitializer,
+            userProfileStorageService: profileStorage,
             widgetSnapshotSyncService: widgetSnapshotSyncService
         )
-
+        authVerificationService.loginReturnValue = LoginResponseDTOFixtures.makeResponse(
+            tokenType: "bearer",
+            expiresIn: 3600,
+            user: LoginResponseDTOFixtures.makeUser(
+                id: "1",
+                email: "name@example.com",
+                name: "Egor",
+                preferredLanguage: "en-US",
+                tier: "free"
+            )
+        )
         await sut.handleEmailDidChange("name@example.com")
         await sut.handlePasswordDidChange("12345678")
+
+        // Act
         await sut.handleSignInDidTap()
 
+        // Assert
         XCTAssertEqual(
-            authVerificationService.loginRequests,
+            authVerificationService.loginReceivedInvocations,
+            [LoginRequestDTO(provider: .password, email: "name@example.com", password: "12345678")]
+        )
+        XCTAssertEqual(
+            tokenStorage.setTokenReceivedInvocations,
+            [AuthTokenDTO(accessToken: "access", refreshToken: "refresh", tokenType: "bearer", expiresIn: 3600)]
+        )
+        XCTAssertEqual(
+            profileStorage.saveProfileReceivedInvocations,
             [
-                LoginRequestDTO(
-                    provider: .password,
+                UserProfileDefaults(
+                    userId: "1",
                     email: "name@example.com",
-                    password: "12345678"
+                    name: "Egor",
+                    currency: "USD",
+                    language: "en-US"
                 )
             ]
         )
-        XCTAssertEqual(
-            tokenStorage.savedToken,
-            AuthTokenDTO(
-                accessToken: "access",
-                refreshToken: "refresh",
-                tokenType: "bearer",
-                expiresIn: 3600
-            )
-        )
-        XCTAssertEqual(
-            profileStorage.savedProfile,
-            UserProfileDefaults(
-                userId: "1",
-                email: "name@example.com",
-                name: "Egor",
-                currency: "USD",
-                language: "en-US"
-            )
-        )
-        XCTAssertEqual(router.openedMainFlowCount, 1)
-        XCTAssertTrue(router.presentedErrors.isEmpty)
-        XCTAssertTrue(router.emailVerificationContexts.isEmpty)
-        XCTAssertEqual(widgetSnapshotSyncService.syncSnapshotCallsCount, 0)
-
-        guard let lastData = presenter.presentedData.last else {
-            return XCTFail("Expected presenter update")
-        }
-
-        if case .loaded = lastData.loadingState {
-            XCTAssertTrue(true)
-        } else {
-            XCTFail("Expected loaded state")
-        }
+        XCTAssertEqual(router.openMainFlowCallsCount, 1)
+        XCTAssertFalse(router.presentErrorWithCalled)
+        XCTAssertFalse(router.openEmailVerificationContextCalled)
+        XCTAssertFalse(widgetSnapshotSyncService.syncSnapshotCalled)
+        XCTAssertEqual(presenter.presentFetchedDataReceivedInvocations.last?.loadingState, .loaded)
     }
 
-    func testSignInWhenLoginReturnsUnverifiedOpensEmailVerification() async {
-        let authVerificationService = AuthVerificationContractServiceSpy()
-        authVerificationService.loginResult = .failure(
-            AuthVerificationContractError.unverified(
-                AuthVerificationChallenge(
-                    email: "name@example.com",
-                    expiresIn: 600,
-                    resendAvailableIn: 60
-                )
-            )
-        )
-        let presenter = LoginPresenterSpy()
-        let router = LoginRouterSpy()
-        let sut = makeSut(
+    func testHandleSignInDidTapWhenLoginReturnsUnverifiedOpensEmailVerification() async {
+        // Arrange
+        let sut = LoginInteractor(
             authVerificationService: authVerificationService,
             presenter: presenter,
             router: router,
-            tokenStorage: TokenStorageSpy(),
-            profileStorage: UserProfileStorageSpy()
+            tokenStorageService: tokenStorage,
+            subscriptionInitializerLogic: subscriptionInitializer,
+            userProfileStorageService: profileStorage,
+            widgetSnapshotSyncService: widgetSnapshotSyncService
         )
-
+        authVerificationService.loginThrowableError = AuthVerificationContractError.unverified(
+            AuthVerificationChallenge(email: "name@example.com", expiresIn: 600, resendAvailableIn: 60)
+        )
         await sut.handleEmailDidChange("name@example.com")
         await sut.handlePasswordDidChange("12345678")
+
+        // Act
         await sut.handleSignInDidTap()
 
-        XCTAssertEqual(router.openedMainFlowCount, 0)
-        XCTAssertTrue(router.presentedErrors.isEmpty)
+        // Assert
+        XCTAssertFalse(router.openMainFlowCalled)
+        XCTAssertFalse(router.presentErrorWithCalled)
         XCTAssertEqual(
-            router.emailVerificationContexts,
+            router.openEmailVerificationContextReceivedInvocations,
             [
                 EmailVerificationContext(
                     source: .login,
@@ -126,253 +129,84 @@ final class LoginInteractorTests: XCTestCase {
         )
     }
 
-    func testSignInWithEmptyEmailDoesNotOpenMainFlow() async {
-        let presenter = LoginPresenterSpy()
-        let router = LoginRouterSpy()
-        let profileStorage = UserProfileStorageSpy()
-        let sut = makeSut(
-            authVerificationService: AuthVerificationContractServiceSpy(),
-            presenter: presenter,
-            router: router,
-            tokenStorage: TokenStorageSpy(),
-            profileStorage: profileStorage
-        )
-
-        await sut.handlePasswordDidChange("12345678")
-        await sut.handleSignInDidTap()
-
-        XCTAssertEqual(router.openedMainFlowCount, 0)
-        XCTAssertTrue(router.presentedErrors.isEmpty)
-
-        guard let lastData = presenter.presentedData.last else {
-            return XCTFail("Expected presenter update")
-        }
-
-        guard case let .failed(error) = lastData.loadingState else {
-            return XCTFail("Expected failed state")
-        }
-
-        guard case let .undelinedError(description) = error else {
-            return XCTFail("Expected wrapped validation error")
-        }
-
-        XCTAssertEqual(
-            description,
-            LoginInteractor.LocalError.emptyEmail.localizedDescription
-        )
-
-        XCTAssertNil(profileStorage.savedProfile)
-    }
-
-    func testSignInFailurePresentsErrorAndDoesNotOpenMainFlow() async {
-        let authVerificationService = AuthVerificationContractServiceSpy()
-        authVerificationService.loginResult = .failure(StubError.any)
-        let presenter = LoginPresenterSpy()
-        let router = LoginRouterSpy()
-        let profileStorage = UserProfileStorageSpy()
-        let sut = makeSut(
-            authVerificationService: authVerificationService,
-            presenter: presenter,
-            router: router,
-            tokenStorage: TokenStorageSpy(),
-            profileStorage: profileStorage
-        )
-
-        await sut.handleEmailDidChange("name@example.com")
-        await sut.handlePasswordDidChange("12345678")
-        await sut.handleSignInDidTap()
-
-        XCTAssertEqual(router.presentedErrors.count, 1)
-        XCTAssertEqual(router.openedMainFlowCount, 0)
-
-        guard let lastData = presenter.presentedData.last else {
-            return XCTFail("Expected presenter update")
-        }
-
-        if case .failed = lastData.loadingState {
-            XCTAssertTrue(true)
-        } else {
-            XCTFail("Expected failed state")
-        }
-
-        XCTAssertNil(profileStorage.savedProfile)
-    }
-
-    func testHandleForgotDidTapOpensForgotPasswordWithCurrentEmail() async {
-        let router = LoginRouterSpy()
-        let sut = makeSut(
-            authVerificationService: AuthVerificationContractServiceSpy(),
-            presenter: LoginPresenterSpy(),
-            router: router,
-            tokenStorage: TokenStorageSpy(),
-            profileStorage: UserProfileStorageSpy()
-        )
-
-        await sut.handleEmailDidChange("name@example.com")
-        await sut.handleForgotDidTap()
-
-        XCTAssertEqual(
-            router.forgotPasswordContexts,
-            [ForgotPasswordContext(email: "name@example.com")]
-        )
-    }
-}
-
-private extension LoginInteractorTests {
-    func makeSut(
-        authVerificationService: AuthVerificationContractServicing,
-        presenter: LoginPresentationLogic,
-        router: LoginRoutingLogic,
-        tokenStorage: TokenStorageServiceProtocol,
-        profileStorage: UserProfileStorageServiceProtocol,
-        widgetSnapshotSyncService: VylokWidgetSnapshotSyncing = WidgetSnapshotSyncSpy()
-    ) -> LoginInteractor {
-        LoginInteractor(
+    func testHandleSignInDidTapWhenEmailIsEmptyPresentsValidationError() async {
+        // Arrange
+        let sut = LoginInteractor(
             authVerificationService: authVerificationService,
             presenter: presenter,
             router: router,
             tokenStorageService: tokenStorage,
-            subscriptionInitializerLogic: SubscriptionInitializerSpy(),
+            subscriptionInitializerLogic: subscriptionInitializer,
             userProfileStorageService: profileStorage,
             widgetSnapshotSyncService: widgetSnapshotSyncService
         )
+        await sut.handlePasswordDidChange("12345678")
+
+        // Act
+        await sut.handleSignInDidTap()
+
+        // Assert
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations.last?.loadingState,
+            .failed(.undelinedError(description: LoginInteractor.LocalError.emptyEmail.localizedDescription))
+        )
+        XCTAssertFalse(authVerificationService.loginCalled)
+        XCTAssertFalse(router.openMainFlowCalled)
+        XCTAssertFalse(router.presentErrorWithCalled)
+        XCTAssertFalse(profileStorage.saveProfileCalled)
     }
 
-    enum StubError: LocalizedError {
-        case any
+    func testHandleSignInDidTapWhenLoginFailsPresentsError() async {
+        // Arrange
+        let sut = LoginInteractor(
+            authVerificationService: authVerificationService,
+            presenter: presenter,
+            router: router,
+            tokenStorageService: tokenStorage,
+            subscriptionInitializerLogic: subscriptionInitializer,
+            userProfileStorageService: profileStorage,
+            widgetSnapshotSyncService: widgetSnapshotSyncService
+        )
+        authVerificationService.loginThrowableError = TestError.any
+        await sut.handleEmailDidChange("name@example.com")
+        await sut.handlePasswordDidChange("12345678")
 
-        var errorDescription: String? {
-            "stub-error"
+        // Act
+        await sut.handleSignInDidTap()
+
+        // Assert
+        guard case .failed = presenter.presentFetchedDataReceivedInvocations.last?.loadingState else {
+            return XCTFail("Expected failed state")
         }
+        XCTAssertEqual(router.presentErrorWithCallsCount, 1)
+        XCTAssertFalse(router.openMainFlowCalled)
+        XCTAssertFalse(profileStorage.saveProfileCalled)
     }
 }
 
-private final class WidgetSnapshotSyncSpy: VylokWidgetSnapshotSyncing, @unchecked Sendable {
-    private(set) var syncSnapshotCallsCount = 0
+// MARK: - handleForgotDidTap
 
-    func syncSnapshot() async {
-        syncSnapshotCallsCount += 1
+extension LoginInteractorTests {
+    func testHandleForgotDidTapOpensForgotPasswordWithCurrentEmail() async {
+        // Arrange
+        let sut = LoginInteractor(
+            authVerificationService: authVerificationService,
+            presenter: presenter,
+            router: router,
+            tokenStorageService: tokenStorage,
+            subscriptionInitializerLogic: subscriptionInitializer,
+            userProfileStorageService: profileStorage,
+            widgetSnapshotSyncService: widgetSnapshotSyncService
+        )
+        await sut.handleEmailDidChange("name@example.com")
+
+        // Act
+        await sut.handleForgotDidTap()
+
+        // Assert
+        XCTAssertEqual(
+            router.openForgetPasswordScreenContextReceivedInvocations,
+            [ForgotPasswordContext(email: "name@example.com")]
+        )
     }
-
-    func clearSnapshot() {}
-}
-
-private final class AuthVerificationContractServiceSpy: AuthVerificationContractServicing, @unchecked Sendable {
-    var startRegistrationResult: Result<EmailVerificationChallengeResponseDTO, Error> = .failure(LoginInteractorTests.StubError.any)
-    var verifyResult: Result<LoginResponseDTO, Error> = .failure(LoginInteractorTests.StubError.any)
-    var resendResult: Result<EmailVerificationChallengeResponseDTO, Error> = .failure(LoginInteractorTests.StubError.any)
-    var loginResult: Result<LoginResponseDTO, Error> = .failure(LoginInteractorTests.StubError.any)
-
-    private(set) var loginRequests: [LoginRequestDTO] = []
-
-    func startEmailRegistration(_ request: RegisterRequestDTO) async throws -> EmailVerificationChallengeResponseDTO {
-        switch startRegistrationResult {
-        case let .success(response):
-            return response
-        case let .failure(error):
-            throw error
-        }
-    }
-
-    func verifyEmail(_ request: EmailVerificationRequestDTO) async throws -> LoginResponseDTO {
-        switch verifyResult {
-        case let .success(response):
-            return response
-        case let .failure(error):
-            throw error
-        }
-    }
-
-    func resendEmailVerification(_ request: EmailVerificationResendRequestDTO) async throws -> EmailVerificationChallengeResponseDTO {
-        switch resendResult {
-        case let .success(response):
-            return response
-        case let .failure(error):
-            throw error
-        }
-    }
-
-    func login(_ request: LoginRequestDTO) async throws -> LoginResponseDTO {
-        loginRequests.append(request)
-
-        switch loginResult {
-        case let .success(response):
-            return response
-        case let .failure(error):
-            throw error
-        }
-    }
-}
-
-@MainActor
-private final class LoginPresenterSpy: LoginPresentationLogic, @unchecked Sendable {
-    private(set) var presentedData: [LoginFetchData] = []
-
-    func presentFetchedData(_ data: LoginFetchData) {
-        presentedData.append(data)
-    }
-}
-
-@MainActor
-private final class LoginRouterSpy: LoginRoutingLogic, @unchecked Sendable {
-    private(set) var openedMainFlowCount: Int = .zero
-    private(set) var presentedErrors: [String] = []
-    private(set) var emailVerificationContexts: [EmailVerificationContext] = []
-    private(set) var forgotPasswordContexts: [ForgotPasswordContext] = []
-
-    func openRegistration() {}
-
-    func openEmailVerification(context: EmailVerificationContext) {
-        emailVerificationContexts.append(context)
-    }
-
-    func openMainFlow() {
-        openedMainFlowCount += 1
-    }
-
-    func openForgetPasswordScreen(context: ForgotPasswordContext) {
-        forgotPasswordContexts.append(context)
-    }
-
-    func presentError(with text: String) {
-        presentedErrors.append(text)
-    }
-}
-
-private final class TokenStorageSpy: TokenStorageServiceProtocol, @unchecked Sendable {
-    private(set) var savedToken: AuthTokenDTO?
-
-    func setToken(_ token: AuthTokenDTO) {
-        savedToken = token
-    }
-
-    func getToken() -> AuthTokenDTO? {
-        savedToken
-    }
-
-    func removeToken() {
-        savedToken = nil
-    }
-}
-
-private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
-    private(set) var savedProfile: UserProfileDefaults?
-
-    func saveProfile(_ profile: UserProfileDefaults) {
-        savedProfile = profile
-    }
-
-    func loadProfile() -> UserProfileDefaults? {
-        savedProfile
-    }
-
-    func clearProfile() {
-        savedProfile = nil
-    }
-}
-
-private actor SubscriptionInitializerSpy: SubscriptionInitializerLogic {
-    func initialize() async {}
-    func setUserId(_ id: String) async {}
-    func logout() async {}
 }

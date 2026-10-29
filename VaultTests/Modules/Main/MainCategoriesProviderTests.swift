@@ -3,36 +3,33 @@ import XCTest
 
 final class MainCategoriesProviderTests: XCTestCase {
     func testFetchCategoriesUsesResponseAmountAndCurrency() async throws {
-        let categoriesService = CategoriesServiceSpy(
-            listResult: .success(
-                CategoriesResponseDTO(categories: [
-                    .init(
-                        id: "cat-1",
-                        name: "Food",
-                        icon: "🍴",
-                        color: "light_orange",
-                        totalSpent: 10,
-                        currency: "EUR"
-                    ),
-                    .init(
-                        id: "cat-2",
-                        name: "Transport",
-                        icon: "🚘",
-                        color: "light_blue",
-                        totalSpent: 25.4,
-                        currency: "EUR"
-                    ),
-                    .init(
-                        id: "cat-3",
-                        name: "Leisure",
-                        icon: "🎬",
-                        color: "light_purple",
-                        totalSpent: 0,
-                        currency: "EUR"
-                    )
-                ])
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesReturnValue = CategoriesResponseDTO(categories: [
+            .init(
+                id: "cat-1",
+                name: "Food",
+                icon: "🍴",
+                color: "light_orange",
+                totalSpent: 10,
+                currency: "EUR"
+            ),
+            .init(
+                id: "cat-2",
+                name: "Transport",
+                icon: "🚘",
+                color: "light_blue",
+                totalSpent: 25.4,
+                currency: "EUR"
+            ),
+            .init(
+                id: "cat-3",
+                name: "Leisure",
+                icon: "🎬",
+                color: "light_purple",
+                totalSpent: 0,
+                currency: "EUR"
             )
-        )
+        ])
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
             cache: MainDataStoreCache()
@@ -50,20 +47,17 @@ final class MainCategoriesProviderTests: XCTestCase {
 
 extension MainCategoriesProviderTests {
     func testFetchCategoriesFallsBackToUsdWhenTotalSpentIsMissing() async throws {
-        let categoriesService = CategoriesServiceSpy(
-            listResult: .success(
-                CategoriesResponseDTO(categories: [
-                    .init(
-                        id: "cat-1",
-                        name: "Food",
-                        icon: "🍴",
-                        color: "light_orange",
-                        totalSpentUsd: 12.5,
-                        currency: "KZT"
-                    )
-                ])
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesReturnValue = CategoriesResponseDTO(categories: [
+            .init(
+                id: "cat-1",
+                name: "Food",
+                icon: "🍴",
+                color: "light_orange",
+                totalSpentUsd: 12.5,
+                currency: "KZT"
             )
-        )
+        ])
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
             cache: MainDataStoreCache()
@@ -79,19 +73,16 @@ extension MainCategoriesProviderTests {
 
 extension MainCategoriesProviderTests {
     func testFetchCategoriesMapsUnmappedNameToLocalizedValue() async throws {
-        let categoriesService = CategoriesServiceSpy(
-            listResult: .success(
-                CategoriesResponseDTO(categories: [
-                    .init(
-                        id: "cat-1",
-                        name: "Unmapped",
-                        icon: "📦",
-                        color: "light_gray",
-                        totalSpentUsd: 0
-                    )
-                ])
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesReturnValue = CategoriesResponseDTO(categories: [
+            .init(
+                id: "cat-1",
+                name: "Unmapped",
+                icon: "📦",
+                color: "light_gray",
+                totalSpentUsd: 0
             )
-        )
+        ])
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
             cache: MainDataStoreCache()
@@ -106,20 +97,17 @@ extension MainCategoriesProviderTests {
 
 extension MainCategoriesProviderTests {
     func testFetchCategoriesSavesLoadedCategoriesToCache() async throws {
-        let categoriesService = CategoriesServiceSpy(
-            listResult: .success(
-                CategoriesResponseDTO(categories: [
-                    .init(
-                        id: "cat-1",
-                        name: "Food",
-                        icon: "🍴",
-                        color: "light_orange",
-                        totalSpent: 14.7,
-                        currency: "KZT"
-                    )
-                ])
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesReturnValue = CategoriesResponseDTO(categories: [
+            .init(
+                id: "cat-1",
+                name: "Food",
+                icon: "🍴",
+                color: "light_orange",
+                totalSpent: 14.7,
+                currency: "KZT"
             )
-        )
+        ])
         let cache = MainDataStoreCache()
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
@@ -146,7 +134,8 @@ extension MainCategoriesProviderTests {
 
 extension MainCategoriesProviderTests {
     func testFetchCategoriesWhenServiceFailsRethrowsError() async {
-        let categoriesService = CategoriesServiceSpy(listResult: .failure(StubError.any))
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesThrowableError = TestError.any
         let sut = MainCategoriesProvider(
             categoriesService: categoriesService,
             cache: MainDataStoreCache()
@@ -156,65 +145,7 @@ extension MainCategoriesProviderTests {
             _ = try await sut.fetchCategories()
             XCTFail("Expected throw")
         } catch {
-            XCTAssertNotNil(error as? StubError)
+            XCTAssertEqual(error as? TestError, .any)
         }
-    }
-}
-
-private extension MainCategoriesProviderTests {
-    enum StubError: Error {
-        case any
-    }
-}
-
-private actor CategoriesServiceSpy: MainCategoriesContractServicing {
-    private let listResult: Result<CategoriesResponseDTO, Error>
-
-    init(listResult: Result<CategoriesResponseDTO, Error>) {
-        self.listResult = listResult
-    }
-
-    func createCategory(_ request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO {
-        throw MainCategoriesProviderTests.StubError.any
-    }
-
-    func listCategories() async throws -> CategoriesResponseDTO {
-        try listResult.get()
-    }
-
-    func getCategory(id: String) async throws -> CategoryResponseDTO {
-        throw MainCategoriesProviderTests.StubError.any
-    }
-
-    func deleteCategory(id: String) async throws {
-        throw MainCategoriesProviderTests.StubError.any
-    }
-}
-
-private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
-    private let lock = NSLock()
-    private var profile: UserProfileDefaults?
-
-    init(profile: UserProfileDefaults?) {
-        self.profile = profile
-    }
-
-    func saveProfile(_ profile: UserProfileDefaults) {
-        lock.lock()
-        self.profile = profile
-        lock.unlock()
-    }
-
-    func loadProfile() -> UserProfileDefaults? {
-        lock.lock()
-        let value = profile
-        lock.unlock()
-        return value
-    }
-
-    func clearProfile() {
-        lock.lock()
-        profile = nil
-        lock.unlock()
     }
 }

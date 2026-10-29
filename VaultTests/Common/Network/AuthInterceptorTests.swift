@@ -4,40 +4,61 @@ import Alamofire
 @testable import Vylok
 
 final class AuthInterceptorTests: XCTestCase {
-    func testAdaptDoesNotAppendAuthorizationHeaderForLoginPath() async {
-        let authSessionService = AuthSessionServiceStub(accessToken: "access-token")
+    private var authSessionService: AuthSessionServiceProtocolMock!
+
+    override func setUp() {
+        super.setUp()
+        authSessionService = AuthSessionServiceProtocolMock()
+    }
+
+    override func tearDown() {
+        authSessionService = nil
+        super.tearDown()
+    }
+}
+
+// MARK: - adapt
+
+extension AuthInterceptorTests {
+    func testAdaptWhenPathIsLoginDoesNotAppendAuthorizationHeader() async {
+        // Arrange
         let sut = AuthInterceptor(authSessionService: authSessionService)
+        authSessionService.accessTokenReturnValue = "access-token"
         var request = URLRequest(url: URL(string: "https://example.com/auth/login")!)
         request.httpMethod = "POST"
 
+        // Act
         let adaptedRequest = await adaptRequest(sut: sut, request: request)
 
+        // Assert
         XCTAssertNil(adaptedRequest.value(forHTTPHeaderField: "Authorization"))
     }
-}
 
-extension AuthInterceptorTests {
-    func testAdaptDoesNotAppendAuthorizationHeaderForLogoutPath() async {
-        let authSessionService = AuthSessionServiceStub(accessToken: "access-token")
+    func testAdaptWhenPathIsLogoutDoesNotAppendAuthorizationHeader() async {
+        // Arrange
         let sut = AuthInterceptor(authSessionService: authSessionService)
+        authSessionService.accessTokenReturnValue = "access-token"
         var request = URLRequest(url: URL(string: "https://example.com/auth/logout")!)
         request.httpMethod = "POST"
 
+        // Act
         let adaptedRequest = await adaptRequest(sut: sut, request: request)
 
+        // Assert
         XCTAssertNil(adaptedRequest.value(forHTTPHeaderField: "Authorization"))
     }
-}
 
-extension AuthInterceptorTests {
-    func testAdaptAppendsAuthorizationHeaderForProtectedPath() async {
-        let authSessionService = AuthSessionServiceStub(accessToken: "access-token")
+    func testAdaptWhenPathIsProtectedAppendsAuthorizationHeader() async {
+        // Arrange
         let sut = AuthInterceptor(authSessionService: authSessionService)
+        authSessionService.accessTokenReturnValue = "access-token"
         var request = URLRequest(url: URL(string: "https://example.com/expenses")!)
         request.httpMethod = "GET"
 
+        // Act
         let adaptedRequest = await adaptRequest(sut: sut, request: request)
 
+        // Assert
         XCTAssertEqual(adaptedRequest.value(forHTTPHeaderField: "Authorization"), "Bearer access-token")
     }
 }
@@ -56,33 +77,5 @@ private extension AuthInterceptorTests {
                 }
             }
         }
-    }
-}
-
-private actor AuthSessionServiceStub: AuthSessionServiceProtocol {
-    private let token: String?
-
-    init(accessToken: String?) {
-        self.token = accessToken
-    }
-
-    func hasValidSession() async -> Bool {
-        false
-    }
-
-    func refreshAccessToken() async throws -> AuthTokenDTO {
-        throw StubError.notImplemented
-    }
-
-    func accessToken() async -> String? {
-        token
-    }
-
-    func logoutFromBackend() async throws {}
-
-    func logout() async {}
-
-    enum StubError: Error {
-        case notImplemented
     }
 }

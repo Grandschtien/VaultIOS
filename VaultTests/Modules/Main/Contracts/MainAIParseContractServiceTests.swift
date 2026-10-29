@@ -3,7 +3,7 @@ import XCTest
 
 final class MainAIParseContractServiceTests: XCTestCase {
     func testParseForwardsPayloadAndDecodesSingleExpense() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"expenses":[{"title":"Coffee","amount":5,"currency":"USD","category":"Food","suggested_category":null,"confidence":0.92}],"usage":{"entries_used":1,"entries_limit":10,"resets_at":"2025-01-01T10:00:00Z"}}"#
         )
@@ -37,7 +37,7 @@ final class MainAIParseContractServiceTests: XCTestCase {
 
 extension MainAIParseContractServiceTests {
     func testParseDecodesMultipleExpensesAndNoExpenseError() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"expenses":[{"title":"Coffee","amount":5,"currency":"USD","category":"Food","suggested_category":null,"confidence":0.92},{"title":"Taxi","amount":12,"currency":"EUR","category":"UNMAPPED","suggested_category":"Transport","confidence":0.81}],"usage":{"entries_used":2,"entries_limit":10,"resets_at":"2025-01-01T10:00:00Z"}}"#
         )

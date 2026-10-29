@@ -3,7 +3,7 @@ import XCTest
 
 final class MainSummaryContractServiceTests: XCTestCase {
     func testGetSummaryForwardsRangeAndDecodesByCategory() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"total":456.78,"total_usd":456.78,"currency":"USD","by_category":[{"category":"cat-1","total":300},{"category":"cat-2","total":156.78}]}"#
         )
@@ -36,7 +36,7 @@ final class MainSummaryContractServiceTests: XCTestCase {
 
 extension MainSummaryContractServiceTests {
     func testGetSummaryDecodesEmptyByCategoryArray() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"total":0,"total_usd":0,"currency":"USD","by_category":[]}"#
         )
@@ -53,7 +53,7 @@ extension MainSummaryContractServiceTests {
 
 extension MainSummaryContractServiceTests {
     func testGetSummaryByCategoryForwardsIDAndRangeAndDecodesCategorySummary() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"category":"cat-1","total":53210,"total_usd":123.45,"currency":"KZT"}"#
         )

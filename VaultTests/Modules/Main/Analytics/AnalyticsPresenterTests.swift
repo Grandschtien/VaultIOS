@@ -4,14 +4,24 @@ import UIKit
 
 @MainActor
 final class AnalyticsPresenterTests: XCTestCase {
-    private var formatter: AnalyticsValueFormatterStub!
-    private var colorProvider: AnalyticsColorProviderStub!
+    private var formatter: AnalyticsValueFormattingMock!
+    private var colorProvider: CategoryColorProvidingMock!
     private var sut: AnalyticsPresenter!
 
     override func setUp() {
         super.setUp()
-        formatter = AnalyticsValueFormatterStub()
-        colorProvider = AnalyticsColorProviderStub()
+        formatter = AnalyticsValueFormattingMock()
+        formatter.formatAmountCurrencyCodeClosure = { "amount-\($0)-\($1)" }
+        formatter.formatMonthReturnValue = "month"
+        formatter.formatPeriodTitleFromToReturnValue = "01.04.2026 - 06.04.2026"
+        formatter.formatShareClosure = { "share-\($0)" }
+        formatter.formatPercentClosure = { "percent-\($0)" }
+        colorProvider = CategoryColorProvidingMock()
+        colorProvider.colorForReturnValue = .systemTeal
+        colorProvider.summaryColorForReturnValue = .systemBlue
+        colorProvider.accentColorForReturnValue = .systemGreen
+        colorProvider.normalizedHexFromClosure = { $0 }
+        colorProvider.hexStringFromReturnValue = "#00FF00"
         sut = AnalyticsPresenter(
             viewModel: .init(),
             formatter: formatter,
@@ -243,49 +253,5 @@ private extension AnalyticsPresenterTests {
             share: share,
             isInteractive: true
         )
-    }
-}
-
-private final class AnalyticsValueFormatterStub: AnalyticsValueFormatting, @unchecked Sendable {
-    func formatAmount(_ amount: Double, currencyCode: String) -> String {
-        "amount-\(amount)-\(currencyCode)"
-    }
-
-    func formatMonth(_ date: Date) -> String {
-        "month"
-    }
-
-    func formatPeriodTitle(from fromDate: Date, to toDate: Date) -> String {
-        "01.04.2026 - 06.04.2026"
-    }
-
-    func formatShare(_ share: Double) -> String {
-        "share-\(share)"
-    }
-
-    func formatPercent(_ share: Double) -> String {
-        "percent-\(share)"
-    }
-}
-
-private final class AnalyticsColorProviderStub: CategoryColorProviding, @unchecked Sendable {
-    func color(for value: String) -> UIColor {
-        .systemTeal
-    }
-
-    func summaryColor(for value: String) -> UIColor {
-        .systemBlue
-    }
-
-    func accentColor(for value: String) -> UIColor {
-        .systemGreen
-    }
-
-    func normalizedHex(from value: String) -> String? {
-        value
-    }
-
-    func hexString(from color: UIColor) -> String? {
-        "#00FF00"
     }
 }

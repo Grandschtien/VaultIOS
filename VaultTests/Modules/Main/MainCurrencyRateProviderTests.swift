@@ -2,178 +2,129 @@ import XCTest
 @testable import Vylok
 
 final class MainCurrencyRateProviderTests: XCTestCase {
+    private var currencyRateService: MainCurrencyRateContractServicingMock!
+    private var profileStorage: UserProfileStorageServiceProtocolMock!
+
+    override func setUp() {
+        super.setUp()
+        currencyRateService = MainCurrencyRateContractServicingMock()
+        profileStorage = UserProfileStorageServiceProtocolMock()
+    }
+
+    override func tearDown() {
+        profileStorage = nil
+        currencyRateService = nil
+        super.tearDown()
+    }
+}
+
+// MARK: - synchronizeCurrencyRateOnLaunch
+
+extension MainCurrencyRateProviderTests {
     func testSynchronizeCurrencyRateOnLaunchWhenCacheIsFreshSkipsRequest() async throws {
-        let now = Date(timeIntervalSince1970: 1_743_000_000)
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "1",
-                email: "name@example.com",
-                name: "Egor",
-                currency: "USD",
-                language: "en-US",
-                currencyRate: 1.5,
-                currencyRateUpdatedAt: Date(timeIntervalSince1970: 1_742_999_000)
-            )
-        )
-        let service = CurrencyRateServiceSpy(
-            result: .success(.init(currency: "USD", rateToUsd: 2.0, asOf: ""))
-        )
+        // Arrange
         let sut = MainCurrencyRateProvider(
-            currencyRateService: service,
+            currencyRateService: currencyRateService,
             userProfileStorageService: profileStorage,
-            currentDateProvider: { now }
+            currentDateProvider: { Date(timeIntervalSince1970: 1_743_000_000) }
+        )
+        profileStorage.loadProfileReturnValue = UserProfileDefaultsFixtures.makeProfile(
+            currencyRate: 1.5,
+            currencyRateUpdatedAt: Date(timeIntervalSince1970: 1_742_999_000)
         )
 
+        // Act
         try await sut.synchronizeCurrencyRateOnLaunch()
 
-        let requestedCurrencies = await service.requestedCurrencies()
-        XCTAssertTrue(requestedCurrencies.isEmpty)
-        XCTAssertEqual(profileStorage.loadProfile()?.currencyRate, 1.5)
+        // Assert
+        XCTAssertFalse(currencyRateService.getCurrencyRateCurrencyCalled)
+        XCTAssertFalse(profileStorage.saveProfileCalled)
     }
-}
 
-extension MainCurrencyRateProviderTests {
     func testSynchronizeCurrencyRateOnLaunchWhenCacheIsStaleRequestsAndPersistsNewRate() async throws {
-        let now = Date(timeIntervalSince1970: 1_743_000_000)
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "1",
-                email: "name@example.com",
-                name: "Egor",
-                currency: "USD",
-                language: "en-US",
-                currencyRate: 1.5,
-                currencyRateUpdatedAt: Date(timeIntervalSince1970: 1_742_800_000)
-            )
-        )
-        let service = CurrencyRateServiceSpy(
-            result: .success(.init(currency: "USD", rateToUsd: 2.0, asOf: ""))
-        )
+        // Arrange
         let sut = MainCurrencyRateProvider(
-            currencyRateService: service,
+            currencyRateService: currencyRateService,
             userProfileStorageService: profileStorage,
-            currentDateProvider: { now }
+            currentDateProvider: { Date(timeIntervalSince1970: 1_743_000_000) }
+        )
+        profileStorage.loadProfileReturnValue = UserProfileDefaultsFixtures.makeProfile(
+            currencyRate: 1.5,
+            currencyRateUpdatedAt: Date(timeIntervalSince1970: 1_742_800_000)
+        )
+        currencyRateService.getCurrencyRateCurrencyReturnValue = CurrencyRateResponseDTO(
+            currency: "USD",
+            rateToUsd: 2.0,
+            asOf: ""
         )
 
+        // Act
         try await sut.synchronizeCurrencyRateOnLaunch()
 
-        let requestedCurrencies = await service.requestedCurrencies()
-        XCTAssertEqual(requestedCurrencies, ["USD"])
-        XCTAssertEqual(profileStorage.loadProfile()?.currencyRate, 2.0)
-        XCTAssertEqual(profileStorage.loadProfile()?.currencyRateUpdatedAt, now)
+        // Assert
+        XCTAssertEqual(currencyRateService.getCurrencyRateCurrencyReceivedInvocations, ["USD"])
+        XCTAssertEqual(
+            profileStorage.saveProfileReceivedInvocations,
+            [
+                UserProfileDefaultsFixtures.makeProfile(
+                    currencyRate: 2.0,
+                    currencyRateUpdatedAt: Date(timeIntervalSince1970: 1_743_000_000)
+                )
+            ]
+        )
     }
-}
 
-extension MainCurrencyRateProviderTests {
-    func testSynchronizeCurrencyRateOnLaunchWhenRequestFailsAndCacheExistsUsesPreviousValue() async throws {
-        let now = Date(timeIntervalSince1970: 1_743_000_000)
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "1",
-                email: "name@example.com",
-                name: "Egor",
-                currency: "USD",
-                language: "en-US",
-                currencyRate: 1.5,
-                currencyRateUpdatedAt: Date(timeIntervalSince1970: 1_742_800_000)
-            )
-        )
-        let service = CurrencyRateServiceSpy(result: .failure(StubError.any))
+    func testSynchronizeCurrencyRateOnLaunchWhenRequestFailsAndCacheExistsKeepsPreviousValue() async throws {
+        // Arrange
         let sut = MainCurrencyRateProvider(
-            currencyRateService: service,
+            currencyRateService: currencyRateService,
             userProfileStorageService: profileStorage,
-            currentDateProvider: { now }
+            currentDateProvider: { Date(timeIntervalSince1970: 1_743_000_000) }
         )
+        profileStorage.loadProfileReturnValue = UserProfileDefaultsFixtures.makeProfile(
+            currencyRate: 1.5,
+            currencyRateUpdatedAt: Date(timeIntervalSince1970: 1_742_800_000)
+        )
+        currencyRateService.getCurrencyRateCurrencyThrowableError = TestError.any
 
+        // Act
         try await sut.synchronizeCurrencyRateOnLaunch()
 
-        let requestedCurrencies = await service.requestedCurrencies()
-        XCTAssertEqual(requestedCurrencies, ["USD"])
-        XCTAssertEqual(profileStorage.loadProfile()?.currencyRate, 1.5)
+        // Assert
+        XCTAssertEqual(currencyRateService.getCurrencyRateCurrencyReceivedInvocations, ["USD"])
+        XCTAssertFalse(profileStorage.saveProfileCalled)
     }
-}
 
-extension MainCurrencyRateProviderTests {
-    func testSynchronizeCurrencyRateOnLaunchWhenRequestFailsAndNoCacheThrows() async {
-        let now = Date(timeIntervalSince1970: 1_743_000_000)
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "1",
-                email: "name@example.com",
-                name: "Egor",
-                currency: "USD",
-                language: "en-US"
-            )
-        )
-        let service = CurrencyRateServiceSpy(result: .failure(StubError.any))
+    func testSynchronizeCurrencyRateOnLaunchWhenRequestFailsAndNoCacheRethrowsError() async {
+        // Arrange
         let sut = MainCurrencyRateProvider(
-            currencyRateService: service,
+            currencyRateService: currencyRateService,
             userProfileStorageService: profileStorage,
-            currentDateProvider: { now }
+            currentDateProvider: { Date(timeIntervalSince1970: 1_743_000_000) }
+        )
+        profileStorage.loadProfileReturnValue = UserProfileDefaultsFixtures.makeProfile()
+        currencyRateService.getCurrencyRateCurrencyThrowableError = TestError.any
+
+        // Act
+        let result = await Result { try await sut.synchronizeCurrencyRateOnLaunch() }
+
+        // Assert
+        XCTAssertEqual(result.failure as? TestError, .any)
+    }
+
+    func testSynchronizeCurrencyRateOnLaunchWhenProfileIsMissingThrowsMissingProfile() async {
+        // Arrange
+        let sut = MainCurrencyRateProvider(
+            currencyRateService: currencyRateService,
+            userProfileStorageService: profileStorage,
+            currentDateProvider: { Date(timeIntervalSince1970: 1_743_000_000) }
         )
 
-        do {
-            try await sut.synchronizeCurrencyRateOnLaunch()
-            XCTFail("Expected sync to throw when there is no cached rate")
-        } catch {
-            XCTAssertTrue(true)
-        }
-    }
-}
+        // Act
+        let result = await Result { try await sut.synchronizeCurrencyRateOnLaunch() }
 
-private extension MainCurrencyRateProviderTests {
-    enum StubError: Error {
-        case any
-    }
-}
-
-private actor CurrencyRateServiceSpy: MainCurrencyRateContractServicing {
-    private let result: Result<CurrencyRateResponseDTO, Error>
-    private var currencies: [String] = []
-
-    init(result: Result<CurrencyRateResponseDTO, Error>) {
-        self.result = result
-    }
-
-    func getCurrencyRate(currency: String) async throws -> CurrencyRateResponseDTO {
-        currencies.append(currency)
-        return try result.get()
-    }
-
-    func requestedCurrencies() -> [String] {
-        currencies
-    }
-}
-
-private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
-    private let lock = NSLock()
-    private var profile: UserProfileDefaults?
-
-    init(profile: UserProfileDefaults?) {
-        self.profile = profile
-    }
-
-    func saveProfile(_ profile: UserProfileDefaults) {
-        lock.withLock {
-            self.profile = profile
-        }
-    }
-
-    func loadProfile() -> UserProfileDefaults? {
-        lock.withLock { profile }
-    }
-
-    func clearProfile() {
-        lock.withLock {
-            profile = nil
-        }
-    }
-}
-
-private extension NSLock {
-    func withLock<T>(_ block: () -> T) -> T {
-        lock()
-        defer { unlock() }
-        return block()
+        // Assert
+        XCTAssertEqual(result.failure as? MainCurrencyRateProvider.Error, .missingProfile)
+        XCTAssertFalse(currencyRateService.getCurrencyRateCurrencyCalled)
     }
 }

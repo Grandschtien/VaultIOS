@@ -2,75 +2,54 @@ import XCTest
 @testable import Vylok
 
 final class SubscriptionAppAccountTokenProviderTests: XCTestCase {
+    private var userProfileStorageService: UserProfileStorageServiceProtocolMock!
+
+    override func setUp() {
+        super.setUp()
+        userProfileStorageService = UserProfileStorageServiceProtocolMock()
+    }
+
+    override func tearDown() {
+        userProfileStorageService = nil
+        super.tearDown()
+    }
+}
+
+// MARK: - currentAppAccountToken
+
+extension SubscriptionAppAccountTokenProviderTests {
     func testCurrentAppAccountTokenReturnsStoredBackendUserUUID() throws {
-        let sut = SubscriptionAppAccountTokenProvider(
-            userProfileStorageService: UserProfileStorageSpy(
-                storedProfile: .init(
-                    userId: "11111111-1111-1111-1111-111111111111",
-                    email: "jane@example.com",
-                    name: "Jane",
-                    currency: "USD",
-                    language: "en-US"
-                )
-            )
+        // Arrange
+        let sut = SubscriptionAppAccountTokenProvider(userProfileStorageService: userProfileStorageService)
+        userProfileStorageService.loadProfileReturnValue = UserProfileDefaultsFixtures.makeProfile(
+            userId: "11111111-1111-1111-1111-111111111111"
         )
 
+        // Act
         let token = try sut.currentAppAccountToken()
 
-        XCTAssertEqual(token.uuidString, "11111111-1111-1111-1111-111111111111")
+        // Assert
+        XCTAssertEqual(token, UUID(uuidString: "11111111-1111-1111-1111-111111111111"))
     }
-}
 
-extension SubscriptionAppAccountTokenProviderTests {
     func testCurrentAppAccountTokenWhenProfileMissingThrowsUnavailableError() {
-        let sut = SubscriptionAppAccountTokenProvider(
-            userProfileStorageService: UserProfileStorageSpy()
-        )
+        // Arrange
+        let sut = SubscriptionAppAccountTokenProvider(userProfileStorageService: userProfileStorageService)
 
+        // Act & Assert
         XCTAssertThrowsError(try sut.currentAppAccountToken()) { error in
-            XCTAssertEqual(
-                error.localizedDescription,
-                L10n.subscriptionAccountTokenUnavailable
-            )
+            XCTAssertEqual(error.localizedDescription, L10n.subscriptionAccountTokenUnavailable)
         }
     }
-}
 
-extension SubscriptionAppAccountTokenProviderTests {
     func testCurrentAppAccountTokenWhenUserIDIsNotUUIDThrowsUnavailableError() {
-        let sut = SubscriptionAppAccountTokenProvider(
-            userProfileStorageService: UserProfileStorageSpy(
-                storedProfile: .init(
-                    userId: "not-a-uuid",
-                    email: "jane@example.com",
-                    name: "Jane",
-                    currency: "USD",
-                    language: "en-US"
-                )
-            )
-        )
+        // Arrange
+        let sut = SubscriptionAppAccountTokenProvider(userProfileStorageService: userProfileStorageService)
+        userProfileStorageService.loadProfileReturnValue = UserProfileDefaultsFixtures.makeProfile(userId: "not-a-uuid")
 
+        // Act & Assert
         XCTAssertThrowsError(try sut.currentAppAccountToken()) { error in
-            XCTAssertEqual(
-                error.localizedDescription,
-                L10n.subscriptionAccountTokenUnavailable
-            )
+            XCTAssertEqual(error.localizedDescription, L10n.subscriptionAccountTokenUnavailable)
         }
     }
-}
-
-private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
-    private let storedProfile: UserProfileDefaults?
-
-    init(storedProfile: UserProfileDefaults? = nil) {
-        self.storedProfile = storedProfile
-    }
-
-    func saveProfile(_ profile: UserProfileDefaults) {}
-
-    func loadProfile() -> UserProfileDefaults? {
-        storedProfile
-    }
-
-    func clearProfile() {}
 }

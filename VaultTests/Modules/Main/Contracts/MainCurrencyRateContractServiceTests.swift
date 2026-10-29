@@ -3,7 +3,7 @@ import XCTest
 
 final class MainCurrencyRateContractServiceTests: XCTestCase {
     func testGetCurrencyRateForwardsCurrencyAndDecodesResponse() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"currency":"USD","rateToUsd":1.23,"asOf":"2026-01-01"}"#
         )

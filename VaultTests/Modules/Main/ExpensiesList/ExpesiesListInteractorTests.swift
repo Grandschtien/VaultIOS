@@ -1,469 +1,217 @@
 import XCTest
 @testable import Vylok
 
-@MainActor
 final class ExpesiesListInteractorTests: XCTestCase {
-    func testFetchDataBuildsLoadedState() async {
-        let presenter = ExpesiesListPresenterSpy()
-        let repository = ExpesiesListRepositoryStub(
-            firstPageResults: [
-                .success(
-                    .init(
-                        expenses: [makeExpense(id: "expense-1", time: 1_700_000_000)],
-                        hasMore: true
-                    )
-                )
-            ],
-            nextPageResults: []
-        )
-        let sut = makeSut(
-            presenter: presenter,
-            router: ExpesiesListRouterSpy(),
-            repository: repository,
-            observer: repository.observer
-        )
+    private var presenter: ExpesiesListPresentationLogicMock!
+    private var router: ExpesiesListRoutingLogicMock!
+    private var repository: MainFlowDomainRepositoryProtocolMock!
+    private var observer: MainFlowDomainObserverProtocolMock!
+    private var analytics: ExpesiesListAnalyticsTrackingMock!
+    private var sut: ExpesiesListInteractor!
 
-        await sut.fetchData()
-        await waitForUpdates()
-
-        guard let first = presenter.presentedData.first,
-              let last = presenter.presentedData.last else {
-            return XCTFail("Expected presenter updates")
-        }
-
-        assertStatus(first.loadingState, is: .loading)
-        assertStatus(last.loadingState, is: .loaded)
-        XCTAssertEqual(last.categories.count, 1)
-        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 1)
-        XCTAssertTrue(last.hasMore)
-    }
-}
-
-extension ExpesiesListInteractorTests {
-    func testFetchDataIgnoresRepeatedCallWhileRequestInProgress() async {
-        let presenter = ExpesiesListPresenterSpy()
-        let repository = ExpesiesListRepositoryStub(
-            firstPageResults: [
-                .success(
-                    .init(
-                        expenses: [makeExpense(id: "expense-1", time: 1_700_000_000)],
-                        hasMore: true
-                    )
-                )
-            ],
-            nextPageResults: []
-        )
-        await repository.setShouldSuspendFirstPage(true)
-        let sut = makeSut(
-            presenter: presenter,
-            router: ExpesiesListRouterSpy(),
-            repository: repository,
-            observer: repository.observer
-        )
-
-        let firstTask = Task {
-            await sut.fetchData()
-        }
-        await repository.waitUntilFirstPageStarted()
-
-        let secondTask = Task {
-            await sut.fetchData()
-        }
-        await waitForUpdates()
-
-        XCTAssertEqual(await repository.firstPageCallsCount(), 1)
-
-        await repository.resumeFirstPage()
-        _ = await firstTask.value
-        _ = await secondTask.value
-        await waitForUpdates()
-
-        guard let last = presenter.presentedData.last else {
-            return XCTFail("Expected presenter update")
-        }
-
-        assertStatus(last.loadingState, is: .loaded)
-        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 1)
-    }
-
-    func testHandleLoadNextPageAppendsExpenses() async {
-        let presenter = ExpesiesListPresenterSpy()
-        let repository = ExpesiesListRepositoryStub(
-            firstPageResults: [
-                .success(
-                    .init(
-                        expenses: [makeExpense(id: "expense-1", time: 1_700_000_100)],
-                        hasMore: true
-                    )
-                )
-            ],
-            nextPageResults: [
-                .success(
-                    .init(
-                        expenses: [makeExpense(id: "expense-2", time: 1_700_000_000)],
-                        hasMore: false
-                    )
-                )
-            ]
-        )
-        let sut = makeSut(
-            presenter: presenter,
-            router: ExpesiesListRouterSpy(),
-            repository: repository,
-            observer: repository.observer
-        )
-
-        await sut.fetchData()
-        await sut.handleLoadNextPage()
-        await waitForUpdates()
-
-        guard let last = presenter.presentedData.last else {
-            return XCTFail("Expected presenter update")
-        }
-
-        assertStatus(last.loadingState, is: .loaded)
-        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 2)
-        XCTAssertFalse(last.hasMore)
-    }
-}
-
-extension ExpesiesListInteractorTests {
-    func testHandleLoadNextPageIgnoresRepeatedCallWhileRequestInProgress() async {
-        let presenter = ExpesiesListPresenterSpy()
-        let repository = ExpesiesListRepositoryStub(
-            firstPageResults: [
-                .success(
-                    .init(
-                        expenses: [makeExpense(id: "expense-1", time: 1_700_000_100)],
-                        hasMore: true
-                    )
-                )
-            ],
-            nextPageResults: [
-                .success(
-                    .init(
-                        expenses: [makeExpense(id: "expense-2", time: 1_700_000_000)],
-                        hasMore: false
-                    )
-                )
-            ]
-        )
-        await repository.setShouldSuspendNextPage(true)
-        let sut = makeSut(
-            presenter: presenter,
-            router: ExpesiesListRouterSpy(),
-            repository: repository,
-            observer: repository.observer
-        )
-
-        await sut.fetchData()
-
-        let firstTask = Task {
-            await sut.handleLoadNextPage()
-        }
-        await repository.waitUntilNextPageStarted()
-
-        let secondTask = Task {
-            await sut.handleLoadNextPage()
-        }
-        await waitForUpdates()
-
-        XCTAssertEqual(await repository.nextPageCallsCount(), 1)
-
-        await repository.resumeNextPage()
-        _ = await firstTask.value
-        _ = await secondTask.value
-        await waitForUpdates()
-
-        guard let last = presenter.presentedData.last else {
-            return XCTFail("Expected presenter update")
-        }
-
-        assertStatus(last.loadingState, is: .loaded)
-        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 2)
-        XCTAssertFalse(last.hasMore)
-    }
-
-    func testHandleLoadNextPageFailureKeepsExistingDataAndShowsToast() async {
-        let presenter = ExpesiesListPresenterSpy()
-        let router = ExpesiesListRouterSpy()
-        let repository = ExpesiesListRepositoryStub(
-            firstPageResults: [
-                .success(
-                    .init(
-                        expenses: [makeExpense(id: "expense-1", time: 1_700_000_100)],
-                        hasMore: true
-                    )
-                )
-            ],
-            nextPageResults: [.failure(StubError.any)]
-        )
-        let sut = makeSut(
+    override func setUp() {
+        super.setUp()
+        presenter = ExpesiesListPresentationLogicMock()
+        router = ExpesiesListRoutingLogicMock()
+        repository = MainFlowDomainRepositoryProtocolMock()
+        observer = MainFlowDomainObserverProtocolMock()
+        analytics = ExpesiesListAnalyticsTrackingMock()
+        observer.subscribeExpensesListReturnValue = AsyncStream { $0.finish() }
+        observer.currentExpensesListSnapshotReturnValue = MainFlowExpensesListSnapshot()
+        sut = ExpesiesListInteractor(
             presenter: presenter,
             router: router,
             repository: repository,
-            observer: repository.observer
+            observer: observer,
+            analytics: analytics
+        )
+    }
+
+    override func tearDown() {
+        sut = nil
+        analytics = nil
+        observer = nil
+        repository = nil
+        router = nil
+        presenter = nil
+        super.tearDown()
+    }
+}
+
+// MARK: - fetchData
+
+extension ExpesiesListInteractorTests {
+    func testFetchDataWhenRefreshSucceedsPresentsObservedSnapshot() async {
+        // Arrange
+        observer.currentExpensesListSnapshotReturnValue = MainFlowExpensesListSnapshot(
+            categories: [MainModelFixtures.makeCategory()],
+            expenseGroups: [MainModelFixtures.makeExpenseGroup()],
+            hasMore: true
         )
 
+        // Act
         await sut.fetchData()
+
+        // Assert
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                ExpesiesListFetchData(loadingState: .loading, hasMore: false),
+                ExpesiesListFetchData(
+                    loadingState: .loaded,
+                    categories: [MainModelFixtures.makeCategory()],
+                    expenseGroups: [MainModelFixtures.makeExpenseGroup()],
+                    hasMore: true
+                )
+            ]
+        )
+        XCTAssertEqual(repository.refreshExpensesFirstPageCallsCount, 1)
+        XCTAssertEqual(repository.refreshCategoriesCallsCount, 1)
+        XCTAssertEqual(analytics.trackScreenOpenCallsCount, 1)
+        XCTAssertEqual(analytics.trackScreenSuccessCallsCount, 1)
+    }
+
+    func testFetchDataWhenRefreshFailsWithoutCachedExpensesPresentsFailedState() async {
+        // Arrange
+        repository.refreshExpensesFirstPageThrowableError = TestError.any
+
+        // Act
+        await sut.fetchData()
+
+        // Assert
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                ExpesiesListFetchData(loadingState: .loading, hasMore: false),
+                ExpesiesListFetchData(
+                    loadingState: .failed(.undelinedError(description: TestError.any.localizedDescription)),
+                    hasMore: false
+                )
+            ]
+        )
+        XCTAssertEqual(analytics.trackScreenFailureCallsCount, 1)
+    }
+
+    func testFetchDataWhenRefreshFailsWithCachedExpensesPresentsLoadedState() async {
+        // Arrange
+        repository.refreshExpensesFirstPageThrowableError = TestError.any
+        observer.currentExpensesListSnapshotReturnValue = MainFlowExpensesListSnapshot(
+            expenseGroups: [MainModelFixtures.makeExpenseGroup()]
+        )
+
+        // Act
+        await sut.fetchData()
+
+        // Assert
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                ExpesiesListFetchData(loadingState: .loading, hasMore: false),
+                ExpesiesListFetchData(
+                    loadingState: .loaded,
+                    expenseGroups: [MainModelFixtures.makeExpenseGroup()],
+                    hasMore: false
+                )
+            ]
+        )
+        XCTAssertEqual(analytics.trackScreenSuccessCallsCount, 1)
+    }
+}
+
+// MARK: - handleLoadNextPage
+
+extension ExpesiesListInteractorTests {
+    func testHandleLoadNextPageWhenMorePagesExistLoadsNextPage() async {
+        // Arrange
+        let firstPage = MainFlowExpensesListSnapshot(
+            expenseGroups: [MainModelFixtures.makeExpenseGroup()],
+            hasMore: true
+        )
+        let secondPage = MainFlowExpensesListSnapshot(
+            expenseGroups: [
+                MainModelFixtures.makeExpenseGroup(),
+                MainModelFixtures.makeExpenseGroup(expenses: [MainModelFixtures.makeExpense(id: "expense-2")])
+            ],
+            hasMore: false
+        )
+        observer.currentExpensesListSnapshotReturnValue = firstPage
+        await sut.fetchData()
+        observer.currentExpensesListSnapshotReturnValue = secondPage
+
+        // Act
         await sut.handleLoadNextPage()
-        await waitForUpdates()
 
-        guard let last = presenter.presentedData.last else {
-            return XCTFail("Expected presenter update")
-        }
-
-        assertStatus(last.loadingState, is: .loaded)
-        XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).count, 1)
-        XCTAssertTrue(last.hasMore)
-        XCTAssertEqual(router.presentedErrors, [L10n.mainOverviewError])
-    }
-}
-
-private extension ExpesiesListInteractorTests {
-    enum StatusCase {
-        case idle
-        case loading
-        case loaded
-        case failed
-    }
-
-    enum StubError: Error {
-        case any
-    }
-
-    func makeSut(
-        presenter: ExpesiesListPresentationLogic,
-        router: ExpesiesListRoutingLogic,
-        repository: MainFlowDomainRepositoryProtocol,
-        observer: MainFlowDomainObserverProtocol
-    ) -> ExpesiesListInteractor {
-        ExpesiesListInteractor(
-            presenter: presenter,
-            router: router,
-            repository: repository,
-            observer: observer
+        // Assert
+        XCTAssertEqual(repository.loadNextExpensesPageCallsCount, 1)
+        XCTAssertEqual(
+            Array(presenter.presentFetchedDataReceivedInvocations.dropFirst(2)),
+            [
+                ExpesiesListFetchData(
+                    loadingState: .loaded,
+                    expenseGroups: firstPage.expenseGroups,
+                    isLoadingNextPage: true,
+                    hasMore: true
+                ),
+                ExpesiesListFetchData(
+                    loadingState: .loaded,
+                    expenseGroups: secondPage.expenseGroups,
+                    hasMore: false
+                )
+            ]
         )
     }
 
-    func makeExpense(id: String, time: TimeInterval) -> MainExpenseModel {
-        MainExpenseModel(
-            id: id,
-            title: "Coffee \(id)",
-            description: "Morning",
-            amount: 4.5,
-            currency: "USD",
-            category: "cat-1",
-            timeOfAdd: Date(timeIntervalSince1970: time)
+    func testHandleLoadNextPageWhenLoadingFailsPresentsError() async {
+        // Arrange
+        observer.currentExpensesListSnapshotReturnValue = MainFlowExpensesListSnapshot(
+            expenseGroups: [MainModelFixtures.makeExpenseGroup()],
+            hasMore: true
         )
-    }
+        await sut.fetchData()
+        repository.loadNextExpensesPageThrowableError = TestError.any
 
-    func waitForUpdates() async {
-        await Task.yield()
-        await Task.yield()
-    }
+        // Act
+        await sut.handleLoadNextPage()
 
-    func assertStatus(
-        _ status: LoadingStatus,
-        is expected: StatusCase,
-        file: StaticString = #filePath,
-        line: UInt = #line
-    ) {
-        XCTAssertTrue(
-            isStatus(status, expected),
-            "Expected status \(expected), got \(status)",
-            file: file,
-            line: line
-        )
-    }
-
-    func isStatus(_ status: LoadingStatus, _ expected: StatusCase) -> Bool {
-        switch (status, expected) {
-        case (.idle, .idle), (.loading, .loading), (.loaded, .loaded), (.failed, .failed):
-            return true
-        default:
-            return false
-        }
-    }
-}
-
-@MainActor
-private final class ExpesiesListPresenterSpy: ExpesiesListPresentationLogic, @unchecked Sendable {
-    private(set) var presentedData: [ExpesiesListFetchData] = []
-
-    func presentFetchedData(_ data: ExpesiesListFetchData) {
-        presentedData.append(data)
-    }
-}
-
-@MainActor
-private final class ExpesiesListRouterSpy: ExpesiesListRoutingLogic, @unchecked Sendable {
-    private(set) var presentedErrors: [String] = []
-
-    func presentError(with text: String) {
-        presentedErrors.append(text)
-    }
-}
-
-private actor ExpesiesListRepositoryStub: MainFlowDomainRepositoryProtocol {
-    nonisolated let observer: MainFlowDomainObserverProtocol
-
-    private let store: MainFlowDomainStoreProtocol
-    private let firstPageResults: [Result<PagePayload, Error>]
-    private let nextPageResults: [Result<PagePayload, Error>]
-    private var firstPageCallCount: Int = .zero
-    private var nextPageCallCount: Int = .zero
-    private var shouldSuspendFirstPage = false
-    private var shouldSuspendNextPage = false
-    private var firstPageContinuation: CheckedContinuation<Void, Never>?
-    private var nextPageContinuation: CheckedContinuation<Void, Never>?
-    private var firstPageStartedContinuation: CheckedContinuation<Void, Never>?
-    private var nextPageStartedContinuation: CheckedContinuation<Void, Never>?
-
-    init(
-        firstPageResults: [Result<PagePayload, Error>],
-        nextPageResults: [Result<PagePayload, Error>]
-    ) {
-        let store = MainFlowDomainStore()
-        self.store = store
-        self.observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
-        self.firstPageResults = firstPageResults
-        self.nextPageResults = nextPageResults
-    }
-
-    func setShouldSuspendFirstPage(_ shouldSuspend: Bool) {
-        shouldSuspendFirstPage = shouldSuspend
-    }
-
-    func setShouldSuspendNextPage(_ shouldSuspend: Bool) {
-        shouldSuspendNextPage = shouldSuspend
-    }
-
-    func waitUntilFirstPageStarted() async {
-        guard firstPageCallCount == .zero else {
-            return
-        }
-
-        await withCheckedContinuation { continuation in
-            firstPageStartedContinuation = continuation
-        }
-    }
-
-    func waitUntilNextPageStarted() async {
-        guard nextPageCallCount == .zero else {
-            return
-        }
-
-        await withCheckedContinuation { continuation in
-            nextPageStartedContinuation = continuation
-        }
-    }
-
-    func firstPageCallsCount() -> Int {
-        firstPageCallCount
-    }
-
-    func nextPageCallsCount() -> Int {
-        nextPageCallCount
-    }
-
-    func resumeFirstPage() {
-        firstPageContinuation?.resume()
-        firstPageContinuation = nil
-        shouldSuspendFirstPage = false
-    }
-
-    func resumeNextPage() {
-        nextPageContinuation?.resume()
-        nextPageContinuation = nil
-        shouldSuspendNextPage = false
-    }
-
-    func refreshMainFlow() async throws {}
-
-    func refreshCategories() async throws {
-        let category = MainCategoryCardModel(
-            id: "cat-1",
-            name: "Food",
-            icon: "🍴",
-            color: "light_orange",
-            amount: 10,
-            currency: "USD"
-        )
-
-        store.update { state in
-            state.categoriesByID[category.id] = category
-            state.categoryOrder = [category.id]
-        }
-        observer.publishAll(from: store)
-    }
-
-    func refreshRecentExpenses() async throws {}
-    func refreshCategoryFirstPage(id: String, fromDate: Date?, toDate: Date?) async throws {}
-    func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {}
-
-    func refreshExpensesFirstPage() async throws {
-        let index = min(firstPageCallCount, max(firstPageResults.count - 1, .zero))
-        let payload = try firstPageResults[index].get()
-        firstPageCallCount += 1
-        firstPageStartedContinuation?.resume()
-        firstPageStartedContinuation = nil
-
-        if shouldSuspendFirstPage {
-            await withCheckedContinuation { continuation in
-                firstPageContinuation = continuation
-            }
-        }
-
-        store.update { state in
-            payload.expenses.forEach { state.expensesByID[$0.id] = $0 }
-            state.expensesListExpenseIDs = payload.expenses.map(\.id)
-            state.expensesListPagination = .init(
-                nextCursor: payload.hasMore ? "cursor-1" : nil,
-                hasMore: payload.hasMore,
-                isLoaded: true
+        // Assert
+        XCTAssertEqual(router.presentErrorWithReceivedInvocations, [L10n.mainOverviewError])
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations.last,
+            ExpesiesListFetchData(
+                loadingState: .loaded,
+                expenseGroups: [MainModelFixtures.makeExpenseGroup()],
+                hasMore: true
             )
-        }
-        observer.publishAll(from: store)
+        )
     }
 
-    func loadNextCategoryPage(id: String) async throws {}
+    func testHandleLoadNextPageWhenNoMorePagesDoesNotLoad() async {
+        // Arrange
+        await sut.fetchData()
 
-    func loadNextExpensesPage() async throws {
-        let index = min(nextPageCallCount, max(nextPageResults.count - 1, .zero))
-        let payload = try nextPageResults[index].get()
-        nextPageCallCount += 1
-        nextPageStartedContinuation?.resume()
-        nextPageStartedContinuation = nil
+        // Act
+        await sut.handleLoadNextPage()
 
-        if shouldSuspendNextPage {
-            await withCheckedContinuation { continuation in
-                nextPageContinuation = continuation
-            }
-        }
-
-        store.update { state in
-            payload.expenses.forEach { state.expensesByID[$0.id] = $0 }
-            state.expensesListExpenseIDs += payload.expenses.map(\.id)
-            state.expensesListPagination = .init(
-                nextCursor: payload.hasMore ? "cursor-\(nextPageCallCount)" : nil,
-                hasMore: payload.hasMore,
-                isLoaded: true
-            )
-        }
-        observer.publishAll(from: store)
+        // Assert
+        XCTAssertFalse(repository.loadNextExpensesPageCalled)
     }
-
-    func addExpense(_ request: ExpensesCreateRequestDTO) async throws {}
-    func deleteExpense(id: String) async throws {}
-    func addCategory(_ request: CategoryCreateRequestDTO) async throws {}
-    func deleteCategory(id: String) async throws {}
-    func clearSession() async {}
 }
 
-private extension ExpesiesListRepositoryStub {
-    struct PagePayload {
-        let expenses: [MainExpenseModel]
-        let hasMore: Bool
+// MARK: - handleTapRetry
+
+extension ExpesiesListInteractorTests {
+    func testHandleTapRetryRefetchesFirstPage() async {
+        // Arrange
+        repository.refreshExpensesFirstPageThrowableError = TestError.any
+        await sut.fetchData()
+        repository.refreshExpensesFirstPageThrowableError = nil
+
+        // Act
+        await sut.handleTapRetry()
+
+        // Assert
+        XCTAssertEqual(repository.refreshExpensesFirstPageCallsCount, 2)
+        XCTAssertEqual(presenter.presentFetchedDataReceivedInvocations.last, ExpesiesListFetchData(loadingState: .loaded, hasMore: false))
+        XCTAssertEqual(analytics.trackScreenOpenCallsCount, 1)
     }
 }

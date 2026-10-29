@@ -2,93 +2,70 @@ import XCTest
 @testable import Vylok
 
 final class MainSummaryProviderTests: XCTestCase {
-    func testFetchSummaryForwardsCurrentMonthRangeAndMapsResponse() async throws {
-        let from = Date(timeIntervalSince1970: 1_735_689_600)
-        let to = Date(timeIntervalSince1970: 1_735_700_000)
-        let service = MainSummaryServiceSpy(
-            summaryResult: .success(
-                .init(
-                    category: nil,
-                    total: 456.78,
-                    currency: "USD",
-                    byCategory: nil
-                )
-            )
-        )
-        let sut = MainSummaryProvider(
-            summaryService: service,
-            summaryPeriodProvider: MainSummaryPeriodProviderStub(
-                period: .init(from: from, to: to)
-            )
-        )
+    private var summaryService: MainSummaryContractServicingMock!
+    private var summaryPeriodProvider: MainSummaryPeriodProvidingMock!
 
-        let summary = try await sut.fetchSummary()
+    override func setUp() {
+        super.setUp()
+        summaryService = MainSummaryContractServicingMock()
+        summaryPeriodProvider = MainSummaryPeriodProvidingMock()
+        summaryPeriodProvider.currentMonthPeriodReturnValue = .init(
+            from: Date(timeIntervalSince1970: 1_735_689_600),
+            to: Date(timeIntervalSince1970: 1_735_700_000)
+        )
+    }
 
-        XCTAssertEqual(summary.totalAmount, 456.78)
-        XCTAssertEqual(summary.currency, "USD")
-        XCTAssertEqual(summary.changePercent, .zero)
-        let requestedParameters = await service.requestedParameters()
-        XCTAssertEqual(requestedParameters, [.init(from: from, to: to)])
+    override func tearDown() {
+        summaryPeriodProvider = nil
+        summaryService = nil
+        super.tearDown()
     }
 }
+
+// MARK: - fetchSummary
 
 extension MainSummaryProviderTests {
-    func testFetchSummaryWhenServiceFailsRethrowsError() async {
-        let service = MainSummaryServiceSpy(summaryResult: .failure(StubError.any))
+    func testFetchSummaryForwardsCurrentMonthRangeAndMapsResponse() async throws {
+        // Arrange
         let sut = MainSummaryProvider(
-            summaryService: service,
-            summaryPeriodProvider: MainSummaryPeriodProviderStub(
-                period: .init(
-                    from: Date(timeIntervalSince1970: 1),
-                    to: Date(timeIntervalSince1970: 2)
-                )
-            )
+            summaryService: summaryService,
+            summaryPeriodProvider: summaryPeriodProvider
+        )
+        summaryService.getSummaryParametersReturnValue = SummaryResponseDTO(
+            category: nil,
+            total: 456.78,
+            currency: "USD",
+            byCategory: nil
         )
 
-        do {
-            _ = try await sut.fetchSummary()
-            XCTFail("Expected throw")
-        } catch {
-            XCTAssertNotNil(error as? StubError)
-        }
-    }
-}
+        // Act
+        let summary = try await sut.fetchSummary()
 
-private extension MainSummaryProviderTests {
-    enum StubError: Error {
-        case any
-    }
-}
-
-private actor MainSummaryServiceSpy: MainSummaryContractServicing {
-    private let summaryResult: Result<SummaryResponseDTO, Error>
-    private var parametersHistory: [SummaryQueryParameters] = []
-
-    init(summaryResult: Result<SummaryResponseDTO, Error>) {
-        self.summaryResult = summaryResult
+        // Assert
+        XCTAssertEqual(summary, MainSummaryModel(totalAmount: 456.78, currency: "USD", changePercent: .zero))
+        XCTAssertEqual(
+            summaryService.getSummaryParametersReceivedInvocations,
+            [
+                SummaryQueryParameters(
+                    from: Date(timeIntervalSince1970: 1_735_689_600),
+                    to: Date(timeIntervalSince1970: 1_735_700_000)
+                )
+            ]
+        )
     }
 
-    func getSummary(parameters: SummaryQueryParameters) async throws -> SummaryResponseDTO {
-        parametersHistory.append(parameters)
-        return try summaryResult.get()
-    }
+    func testFetchSummaryWhenServiceFailsRethrowsError() async {
+        // Arrange
+        let sut = MainSummaryProvider(
+            summaryService: summaryService,
+            summaryPeriodProvider: summaryPeriodProvider
+        )
+        summaryService.getSummaryParametersThrowableError = TestError.any
 
-    func getSummaryByCategory(
-        id: String,
-        parameters: SummaryQueryParameters
-    ) async throws -> SummaryResponseDTO {
-        throw MainSummaryProviderTests.StubError.any
-    }
+        // Act
+        let result = await Result { try await sut.fetchSummary() }
 
-    func requestedParameters() -> [SummaryQueryParameters] {
-        parametersHistory
-    }
-}
-
-private struct MainSummaryPeriodProviderStub: MainSummaryPeriodProviding {
-    let period: MainSummaryPeriod
-
-    func currentMonthPeriod() -> MainSummaryPeriod {
-        period
+        // Assert
+        XCTAssertEqual(result.failure as? TestError, .any)
     }
 }

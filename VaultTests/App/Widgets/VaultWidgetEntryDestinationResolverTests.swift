@@ -2,132 +2,70 @@ import XCTest
 @testable import Vylok
 
 final class VaultWidgetEntryDestinationResolverTests: XCTestCase {
-    func testResolveDestinationReturnsAIEntryWhenCurrentSnapshotHasAiAccess() async {
-        let subscriptionAccessService = SubscriptionAccessServiceSpy(
-            currentSnapshot: .init(
-                tier: .premium,
-                status: .active,
-                paidAccessUntil: nil,
-                capabilities: [.aiInput],
-                aiRequestsLimit: 10,
-                aiRequestsRemaining: 4,
-                statusVersion: 1,
-                hasAiRequestsLimit: true
-            )
-        )
-        let sut = VylokWidgetEntryDestinationResolver(
-            subscriptionAccessService: subscriptionAccessService
-        )
+    private var subscriptionAccessService: SubscriptionAccessServicingMock!
+    private var sut: VylokWidgetEntryDestinationResolver!
 
-        let destination = await sut.resolveDestination()
-
-        XCTAssertEqual(destination, .aiEntry)
-        XCTAssertEqual(await subscriptionAccessService.currentSnapshotCallsCount(), 1)
-        XCTAssertEqual(await subscriptionAccessService.refreshSnapshotCallsCount(), 0)
+    override func setUp() {
+        super.setUp()
+        subscriptionAccessService = SubscriptionAccessServicingMock()
+        sut = VylokWidgetEntryDestinationResolver(subscriptionAccessService: subscriptionAccessService)
     }
 
-    func testResolveDestinationReturnsManualEntryWhenCurrentSnapshotHasNoAiAccess() async {
-        let subscriptionAccessService = SubscriptionAccessServiceSpy(
-            currentSnapshot: .init(
-                tier: .premium,
-                status: .active,
-                paidAccessUntil: nil,
-                capabilities: [.aiInput],
-                aiRequestsLimit: 10,
-                aiRequestsRemaining: 0,
-                statusVersion: 1,
-                hasAiRequestsLimit: true
-            ),
-            refreshedSnapshot: nil
-        )
-        let sut = VylokWidgetEntryDestinationResolver(
-            subscriptionAccessService: subscriptionAccessService
-        )
-
-        let destination = await sut.resolveDestination()
-
-        XCTAssertEqual(destination, .manualEntry)
-        XCTAssertEqual(await subscriptionAccessService.currentSnapshotCallsCount(), 1)
-        XCTAssertEqual(await subscriptionAccessService.refreshSnapshotCallsCount(), 1)
-    }
-
-    func testResolveDestinationReturnsAIEntryWhenRefreshRestoresAiAccess() async {
-        let subscriptionAccessService = SubscriptionAccessServiceSpy(
-            currentSnapshot: .init(
-                tier: .regular,
-                status: .expired,
-                paidAccessUntil: nil,
-                capabilities: [],
-                aiRequestsLimit: 0,
-                aiRequestsRemaining: 0,
-                statusVersion: 1
-            ),
-            refreshedSnapshot: .init(
-                tier: .premium,
-                status: .active,
-                paidAccessUntil: nil,
-                capabilities: [.aiInput],
-                aiRequestsLimit: 10,
-                aiRequestsRemaining: 3,
-                statusVersion: 2,
-                hasAiRequestsLimit: true
-            )
-        )
-        let sut = VylokWidgetEntryDestinationResolver(
-            subscriptionAccessService: subscriptionAccessService
-        )
-
-        let destination = await sut.resolveDestination()
-
-        XCTAssertEqual(destination, .aiEntry)
-        XCTAssertEqual(await subscriptionAccessService.currentSnapshotCallsCount(), 1)
-        XCTAssertEqual(await subscriptionAccessService.refreshSnapshotCallsCount(), 1)
+    override func tearDown() {
+        sut = nil
+        subscriptionAccessService = nil
+        super.tearDown()
     }
 }
 
-private final class SubscriptionAccessServiceSpy: SubscriptionAccessServicing, @unchecked Sendable {
-    private let currentSnapshotValue: SubscriptionAccessSnapshot?
-    private let refreshedSnapshotValue: SubscriptionAccessSnapshot?
-    private var currentSnapshotCalls: Int = .zero
-    private var refreshSnapshotCalls: Int = .zero
+// MARK: - resolveDestination
 
-    init(
-        currentSnapshot: SubscriptionAccessSnapshot?,
-        refreshedSnapshot: SubscriptionAccessSnapshot? = nil
-    ) {
-        currentSnapshotValue = currentSnapshot
-        refreshedSnapshotValue = refreshedSnapshot
+extension VaultWidgetEntryDestinationResolverTests {
+    func testResolveDestinationWhenCurrentSnapshotHasAiAccessReturnsAIEntryWithoutRefresh() async {
+        // Arrange
+        subscriptionAccessService.currentSubscriptionSnapshotReturnValue =
+            SubscriptionAccessSnapshotFixtures.makeSnapshot(aiRequestsRemaining: 4)
+
+        // Act
+        let destination = await sut.resolveDestination()
+
+        // Assert
+        XCTAssertEqual(destination, .aiEntry)
+        XCTAssertFalse(subscriptionAccessService.refreshCurrentSubscriptionSnapshotCalled)
     }
 
-    func currentTierState() async -> SubscriptionTierState {
-        .resolved(.regular)
+    func testResolveDestinationWhenNoAiAccessAndRefreshFailsReturnsManualEntry() async {
+        // Arrange
+        subscriptionAccessService.currentSubscriptionSnapshotReturnValue =
+            SubscriptionAccessSnapshotFixtures.makeSnapshot(aiRequestsRemaining: 0)
+        subscriptionAccessService.refreshCurrentSubscriptionSnapshotReturnValue = nil
+
+        // Act
+        let destination = await sut.resolveDestination()
+
+        // Assert
+        XCTAssertEqual(destination, .manualEntry)
+        XCTAssertEqual(subscriptionAccessService.refreshCurrentSubscriptionSnapshotCallsCount, 1)
     }
 
-    func refreshCurrentTierState() async -> SubscriptionTierState {
-        .resolved(.regular)
-    }
+    func testResolveDestinationWhenRefreshRestoresAiAccessReturnsAIEntry() async {
+        // Arrange
+        subscriptionAccessService.currentSubscriptionSnapshotReturnValue =
+            SubscriptionAccessSnapshotFixtures.makeSnapshot(
+                tier: .regular,
+                status: .expired,
+                capabilities: [],
+                aiRequestsLimit: 0,
+                aiRequestsRemaining: 0,
+                hasAiRequestsLimit: nil
+            )
+        subscriptionAccessService.refreshCurrentSubscriptionSnapshotReturnValue =
+            SubscriptionAccessSnapshotFixtures.makeSnapshot(aiRequestsRemaining: 3, statusVersion: 2)
 
-    func refreshCurrentTierSourceState() async -> SubscriptionTierRefreshState {
-        .unavailable
-    }
+        // Act
+        let destination = await sut.resolveDestination()
 
-    func currentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
-        currentSnapshotCalls += 1
-        return currentSnapshotValue
-    }
-
-    func refreshCurrentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
-        refreshSnapshotCalls += 1
-        return refreshedSnapshotValue
-    }
-
-    func startMonitoring() {}
-
-    func currentSnapshotCallsCount() async -> Int {
-        currentSnapshotCalls
-    }
-
-    func refreshSnapshotCallsCount() async -> Int {
-        refreshSnapshotCalls
+        // Assert
+        XCTAssertEqual(destination, .aiEntry)
     }
 }

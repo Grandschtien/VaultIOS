@@ -78,7 +78,7 @@ private extension AnalyticsPeriodResolverTests {
     var currentMonth: MainSummaryPeriod { .init(from: monthStart(0), to: now) }
     var previousMonth: MainSummaryPeriod { .init(from: monthStart(-1), to: monthEnd(-1)) }
 
-    func makeSut() -> AnalyticsPeriodResolver { AnalyticsPeriodResolver(calendar: calendar, now: { now }) }
+    func makeSut() -> AnalyticsPeriodResolver { AnalyticsPeriodResolver(calendar: calendar, now: { [now] in now }) }
 
     func dayStart(_ offset: Int) -> Date {
         calendar.startOfDay(for: weekCalendar.date(byAdding: .day, value: offset, to: now) ?? now)

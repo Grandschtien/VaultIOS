@@ -1,6 +1,6 @@
 import Foundation
 
-struct CategoryEditorFetchData: Sendable {
+struct CategoryEditorFetchData: Equatable, Sendable {
     let mode: CategoryEditorMode
     let loadingState: LoadingStatus
     let draft: CategoryEditorDraft

@@ -1,27 +1,21 @@
 import Foundation
 import NetworkClient
 
-final class AsyncNetworkClientContractSpy: AsyncNetworkClient, @unchecked Sendable {
-    enum SpyError: Error {
+final class AsyncNetworkClientMock: AsyncNetworkClient, @unchecked Sendable {
+    enum MockError: Error {
         case missingResponseData
     }
 
     var onRequest: ((ApiTarget) -> Void)?
     var onRequestWithoutResponse: ((ApiTarget) -> Void)?
     var nextError: Error?
+    var responseDelayNanoseconds: UInt64 = .zero
 
-    private let lock = NSLock()
-    private var _nextResponseData: Data?
-    private var _capturedTargets: [ApiTarget] = []
-
-    var capturedTargets: [ApiTarget] {
-        lock.withLock { _capturedTargets }
-    }
+    private var nextResponseData: Data?
+    private(set) var capturedTargets: [ApiTarget] = []
 
     func setResponse(json: String) {
-        lock.withLock {
-            _nextResponseData = Data(json.utf8)
-        }
+        nextResponseData = Data(json.utf8)
     }
 
     func request<T: Codable, InBodyError: CustomError>(
@@ -30,19 +24,19 @@ final class AsyncNetworkClientContractSpy: AsyncNetworkClient, @unchecked Sendab
         responseType: T.Type,
         decoder: JSONDecoder
     ) async throws -> T {
-        lock.withLock {
-            _capturedTargets.append(target)
-        }
-
+        capturedTargets.append(target)
         onRequest?(target)
+
+        if responseDelayNanoseconds > .zero {
+            try await Task.sleep(nanoseconds: responseDelayNanoseconds)
+        }
 
         if let nextError {
             throw nextError
         }
 
-        let data = lock.withLock { _nextResponseData }
-        guard let data else {
-            throw SpyError.missingResponseData
+        guard let data = nextResponseData else {
+            throw MockError.missingResponseData
         }
 
         return try decoder.decode(T.self, from: data)
@@ -52,22 +46,11 @@ final class AsyncNetworkClientContractSpy: AsyncNetworkClient, @unchecked Sendab
         inBodyError: InBodyError.Type,
         _ target: ApiTarget
     ) async throws {
-        lock.withLock {
-            _capturedTargets.append(target)
-        }
-
+        capturedTargets.append(target)
         onRequestWithoutResponse?(target)
 
         if let nextError {
             throw nextError
         }
-    }
-}
-
-private extension NSLock {
-    func withLock<T>(_ block: () -> T) -> T {
-        lock()
-        defer { unlock() }
-        return block()
     }
 }

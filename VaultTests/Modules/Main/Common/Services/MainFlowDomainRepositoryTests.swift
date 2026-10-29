@@ -5,46 +5,53 @@ final class MainFlowDomainRepositoryTests: XCTestCase {
     func testRefreshMainFlowFillsStoreAndObserverSnapshots() async throws {
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
-        let categoriesService = CategoriesServiceStub(
-            listResult: .success(
-                CategoriesResponseDTO(
-                    categories: [
-                        .init(
-                            id: "cat-1",
-                            name: "Food",
-                            icon: "🍴",
-                            color: "light_orange",
-                            totalSpentUsd: 15
-                        )
-                    ]
-                )
-            )
-        )
-        let expensesService = ExpensesServiceStub(
-            listResults: [
-                .success(
-                    ExpensesListResponseDTO(
-                        expenses: [
-                            .init(
-                                id: "exp-1",
-                                title: "Coffee",
-                                description: "Morning",
-                                amount: 4,
-                                currency: "USD",
-                                category: "cat-1",
-                                timeOfAdd: Date(timeIntervalSince1970: 100)
-                            )
-                        ],
-                        nextCursor: nil,
-                        hasMore: false
-                    )
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = CategoriesResponseDTO(
+            categories: [
+                .init(
+                    id: "cat-1",
+                    name: "Food",
+                    icon: "🍴",
+                    color: "light_orange",
+                    totalSpentUsd: 15
                 )
             ]
         )
+        categoriesService.getCategoryIdParametersThrowableError = RepositoryTestError.any
+        let expensesService = MainExpensesContractServicingMock()
+        let expensesServiceListResults: [Result<ExpensesListResponseDTO, Error>] = [
+            .success(
+                ExpensesListResponseDTO(
+                    expenses: [
+                        .init(
+                            id: "exp-1",
+                            title: "Coffee",
+                            description: "Morning",
+                            amount: 4,
+                            currency: "USD",
+                            category: "cat-1",
+                            timeOfAdd: Date(timeIntervalSince1970: 100)
+                        )
+                    ],
+                    nextCursor: nil,
+                    hasMore: false
+                )
+            )
+        ]
+        expensesService.listExpensesParametersClosure = { [unowned expensesService] _ in
+            let index = min(expensesService.listExpensesParametersCallsCount - 1, expensesServiceListResults.count - 1)
+            return try expensesServiceListResults[index].get()
+        }
+        expensesService.createExpensesThrowableError = RepositoryTestError.any
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
             expensesService: expensesService,
-            currencyConversionService: CurrencyConverterStub(),
+            currencyConversionService: currencyConversionService,
             store: store,
             observer: observer
         )
@@ -63,37 +70,44 @@ extension MainFlowDomainRepositoryTests {
     func testRefreshCategoriesForwardsCurrentPeriodToCategoriesRequest() async throws {
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
-        let categoriesService = CategoriesServiceStub(
-            listResult: .success(
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(
+            categories: [
                 .init(
-                    categories: [
-                        .init(
-                            id: "cat-1",
-                            name: "Food",
-                            icon: "🍴",
-                            color: "light_orange",
-                            totalSpentUsd: 7
-                        ),
-                        .init(
-                            id: "cat-2",
-                            name: "Taxi",
-                            icon: "🚕",
-                            color: "light_blue",
-                            totalSpentUsd: 18
-                        )
-                    ]
+                    id: "cat-1",
+                    name: "Food",
+                    icon: "🍴",
+                    color: "light_orange",
+                    totalSpentUsd: 7
+                ),
+                .init(
+                    id: "cat-2",
+                    name: "Taxi",
+                    icon: "🚕",
+                    color: "light_blue",
+                    totalSpentUsd: 18
                 )
-            )
+            ]
         )
+        categoriesService.getCategoryIdParametersThrowableError = RepositoryTestError.any
         let period = MainSummaryPeriod(
             from: Date(timeIntervalSince1970: 1_735_689_600),
             to: Date(timeIntervalSince1970: 1_735_700_000)
         )
+        let expensesService = MainExpensesContractServicingMock()
+        expensesService.createExpensesThrowableError = RepositoryTestError.any
+        let summaryPeriodProvider = MainSummaryPeriodProvidingMock()
+        summaryPeriodProvider.currentMonthPeriodReturnValue = period
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
-            expensesService: ExpensesServiceStub(listResults: []),
-            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
-            currencyConversionService: CurrencyConverterStub(),
+            expensesService: expensesService,
+            summaryPeriodProvider: summaryPeriodProvider,
+            currencyConversionService: currencyConversionService,
             store: store,
             observer: observer
         )
@@ -101,7 +115,7 @@ extension MainFlowDomainRepositoryTests {
         try await repository.refreshCategories()
 
         let state = store.snapshot()
-        let requestedListParameters = await categoriesService.requestedListParameters()
+        let requestedListParameters = categoriesService.listCategoriesParametersReceivedInvocations
         XCTAssertEqual(state.categoriesByID["cat-1"]?.amount, 7)
         XCTAssertEqual(state.categoriesByID["cat-2"]?.amount, 18)
         XCTAssertEqual(requestedListParameters, [.init(from: period.from, to: period.to)])
@@ -114,39 +128,53 @@ extension MainFlowDomainRepositoryTests {
             from: Date(timeIntervalSince1970: 1_735_689_600),
             to: Date(timeIntervalSince1970: 1_735_700_000)
         )
-        let expensesService = ExpensesServiceStub(
-            listResults: [
-                .success(
-                    .init(
-                        expenses: [
-                            .init(
-                                id: "exp-1",
-                                title: "Coffee",
-                                description: "Morning",
-                                amount: 4,
-                                currency: "USD",
-                                category: "cat-1",
-                                timeOfAdd: Date(timeIntervalSince1970: 100)
-                            )
-                        ],
-                        nextCursor: nil,
-                        hasMore: false
-                    )
+        let expensesService = MainExpensesContractServicingMock()
+        let expensesServiceListResults: [Result<ExpensesListResponseDTO, Error>] = [
+            .success(
+                .init(
+                    expenses: [
+                        .init(
+                            id: "exp-1",
+                            title: "Coffee",
+                            description: "Morning",
+                            amount: 4,
+                            currency: "USD",
+                            category: "cat-1",
+                            timeOfAdd: Date(timeIntervalSince1970: 100)
+                        )
+                    ],
+                    nextCursor: nil,
+                    hasMore: false
                 )
-            ]
-        )
+            )
+        ]
+        expensesService.listExpensesParametersClosure = { [unowned expensesService] _ in
+            let index = min(expensesService.listExpensesParametersCallsCount - 1, expensesServiceListResults.count - 1)
+            return try expensesServiceListResults[index].get()
+        }
+        expensesService.createExpensesThrowableError = RepositoryTestError.any
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(categories: [])
+        categoriesService.getCategoryIdParametersThrowableError = RepositoryTestError.any
+        let summaryPeriodProvider = MainSummaryPeriodProvidingMock()
+        summaryPeriodProvider.currentMonthPeriodReturnValue = period
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
-            categoriesService: CategoriesServiceStub(listResult: .success(.init(categories: []))),
+            categoriesService: categoriesService,
             expensesService: expensesService,
-            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
-            currencyConversionService: CurrencyConverterStub(),
+            summaryPeriodProvider: summaryPeriodProvider,
+            currencyConversionService: currencyConversionService,
             store: store,
             observer: observer
         )
 
         try await repository.refreshExpensesFirstPage()
 
-        let requestedParameters = await expensesService.requestedParameters()
+        let requestedParameters = expensesService.listExpensesParametersReceivedInvocations
         XCTAssertEqual(
             requestedParameters,
             [
@@ -168,22 +196,36 @@ extension MainFlowDomainRepositoryTests {
             from: Date(timeIntervalSince1970: 1_735_689_600),
             to: Date(timeIntervalSince1970: 1_735_700_000)
         )
-        let expensesService = ExpensesServiceStub(
-            listResults: [
-                .success(
-                    .init(
-                        expenses: [],
-                        nextCursor: nil,
-                        hasMore: false
-                    )
+        let expensesService = MainExpensesContractServicingMock()
+        let expensesServiceListResults: [Result<ExpensesListResponseDTO, Error>] = [
+            .success(
+                .init(
+                    expenses: [],
+                    nextCursor: nil,
+                    hasMore: false
                 )
-            ]
-        )
+            )
+        ]
+        expensesService.listExpensesParametersClosure = { [unowned expensesService] _ in
+            let index = min(expensesService.listExpensesParametersCallsCount - 1, expensesServiceListResults.count - 1)
+            return try expensesServiceListResults[index].get()
+        }
+        expensesService.createExpensesThrowableError = RepositoryTestError.any
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(categories: [])
+        categoriesService.getCategoryIdParametersThrowableError = RepositoryTestError.any
+        let summaryPeriodProvider = MainSummaryPeriodProvidingMock()
+        summaryPeriodProvider.currentMonthPeriodReturnValue = period
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
-            categoriesService: CategoriesServiceStub(listResult: .success(.init(categories: []))),
+            categoriesService: categoriesService,
             expensesService: expensesService,
-            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
-            currencyConversionService: CurrencyConverterStub(),
+            summaryPeriodProvider: summaryPeriodProvider,
+            currencyConversionService: currencyConversionService,
             store: store,
             observer: observer
         )
@@ -198,7 +240,7 @@ extension MainFlowDomainRepositoryTests {
 
         try await repository.loadNextExpensesPage()
 
-        let requestedParameters = await expensesService.requestedParameters()
+        let requestedParameters = expensesService.listExpensesParametersReceivedInvocations
         XCTAssertEqual(
             requestedParameters,
             [
@@ -217,22 +259,36 @@ extension MainFlowDomainRepositoryTests {
             from: Date(timeIntervalSince1970: 1_735_689_600),
             to: Date(timeIntervalSince1970: 1_735_700_000)
         )
-        let expensesService = ExpensesServiceStub(
-            listResults: [
-                .success(
-                    .init(
-                        expenses: [],
-                        nextCursor: nil,
-                        hasMore: false
-                    )
+        let expensesService = MainExpensesContractServicingMock()
+        let expensesServiceListResults: [Result<ExpensesListResponseDTO, Error>] = [
+            .success(
+                .init(
+                    expenses: [],
+                    nextCursor: nil,
+                    hasMore: false
                 )
-            ]
-        )
+            )
+        ]
+        expensesService.listExpensesParametersClosure = { [unowned expensesService] _ in
+            let index = min(expensesService.listExpensesParametersCallsCount - 1, expensesServiceListResults.count - 1)
+            return try expensesServiceListResults[index].get()
+        }
+        expensesService.createExpensesThrowableError = RepositoryTestError.any
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(categories: [])
+        categoriesService.getCategoryIdParametersThrowableError = RepositoryTestError.any
+        let summaryPeriodProvider = MainSummaryPeriodProvidingMock()
+        summaryPeriodProvider.currentMonthPeriodReturnValue = period
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
-            categoriesService: CategoriesServiceStub(listResult: .success(.init(categories: []))),
+            categoriesService: categoriesService,
             expensesService: expensesService,
-            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
-            currencyConversionService: CurrencyConverterStub(),
+            summaryPeriodProvider: summaryPeriodProvider,
+            currencyConversionService: currencyConversionService,
             store: store,
             observer: observer
         )
@@ -248,7 +304,7 @@ extension MainFlowDomainRepositoryTests {
 
         try await repository.loadNextCategoryPage(id: "cat-1")
 
-        let requestedParameters = await expensesService.requestedParameters()
+        let requestedParameters = expensesService.listExpensesParametersReceivedInvocations
         XCTAssertEqual(
             requestedParameters,
             [
@@ -264,25 +320,30 @@ extension MainFlowDomainRepositoryTests {
     func testRefreshCategoriesUsesPlainRequestWhenNoSummaryPeriodProviderExists() async throws {
         let store = MainFlowDomainStore()
         let observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
-        let categoriesService = CategoriesServiceStub(
-            listResult: .success(
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(
+            categories: [
                 .init(
-                    categories: [
-                        .init(
-                            id: "cat-1",
-                            name: "Food",
-                            icon: "🍴",
-                            color: "light_orange",
-                            totalSpentUsd: 15
-                        )
-                    ]
+                    id: "cat-1",
+                    name: "Food",
+                    icon: "🍴",
+                    color: "light_orange",
+                    totalSpentUsd: 15
                 )
-            )
+            ]
         )
+        categoriesService.getCategoryIdParametersThrowableError = RepositoryTestError.any
+        let expensesService = MainExpensesContractServicingMock()
+        expensesService.createExpensesThrowableError = RepositoryTestError.any
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
-            expensesService: ExpensesServiceStub(listResults: []),
-            currencyConversionService: CurrencyConverterStub(),
+            expensesService: expensesService,
+            currencyConversionService: currencyConversionService,
             store: store,
             observer: observer
         )
@@ -290,7 +351,7 @@ extension MainFlowDomainRepositoryTests {
         try await repository.refreshCategories()
 
         XCTAssertEqual(store.snapshot().categoriesByID["cat-1"]?.amount, 15)
-        let requestedListParameters = await categoriesService.requestedListParameters()
+        let requestedListParameters = categoriesService.listCategoriesParametersReceivedInvocations
         XCTAssertEqual(requestedListParameters, [.init()])
     }
 }
@@ -307,63 +368,71 @@ extension MainFlowDomainRepositoryTests {
             from: Date(timeIntervalSince1970: 1_733_011_200),
             to: Date(timeIntervalSince1970: 1_733_097_599)
         )
-        let categoriesService = CategoriesServiceStub(
-            listResult: .success(.init(categories: [])),
-            getResult: .success(
-                .init(
-                    category: .init(
-                        id: "cat-1",
-                        name: "Food",
-                        icon: "🍴",
-                        color: "light_orange",
-                        totalSpentUsd: 15
-                    )
-                )
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(categories: [])
+        categoriesService.getCategoryIdParametersReturnValue = .init(
+            category: .init(
+                id: "cat-1",
+                name: "Food",
+                icon: "🍴",
+                color: "light_orange",
+                totalSpentUsd: 15
             )
         )
-        let expensesService = ExpensesServiceStub(
-            listResults: [
-                .success(
-                    .init(
-                        expenses: [
-                            .init(
-                                id: "exp-list",
-                                title: "Taxi",
-                                description: nil,
-                                amount: 12,
-                                currency: "USD",
-                                category: "cat-1",
-                                timeOfAdd: Date(timeIntervalSince1970: 100)
-                            )
-                        ],
-                        nextCursor: nil,
-                        hasMore: false
-                    )
-                ),
-                .success(
-                    .init(
-                        expenses: [
-                            .init(
-                                id: "exp-cat",
-                                title: "Lunch",
-                                description: nil,
-                                amount: 8,
-                                currency: "USD",
-                                category: "cat-1",
-                                timeOfAdd: Date(timeIntervalSince1970: 200)
-                            )
-                        ],
-                        nextCursor: nil,
-                        hasMore: false
-                    )
+        let expensesService = MainExpensesContractServicingMock()
+        let expensesServiceListResults: [Result<ExpensesListResponseDTO, Error>] = [
+            .success(
+                .init(
+                    expenses: [
+                        .init(
+                            id: "exp-list",
+                            title: "Taxi",
+                            description: nil,
+                            amount: 12,
+                            currency: "USD",
+                            category: "cat-1",
+                            timeOfAdd: Date(timeIntervalSince1970: 100)
+                        )
+                    ],
+                    nextCursor: nil,
+                    hasMore: false
                 )
-            ]
-        )
+            ),
+            .success(
+                .init(
+                    expenses: [
+                        .init(
+                            id: "exp-cat",
+                            title: "Lunch",
+                            description: nil,
+                            amount: 8,
+                            currency: "USD",
+                            category: "cat-1",
+                            timeOfAdd: Date(timeIntervalSince1970: 200)
+                        )
+                    ],
+                    nextCursor: nil,
+                    hasMore: false
+                )
+            )
+        ]
+        expensesService.listExpensesParametersClosure = { [unowned expensesService] _ in
+            let index = min(expensesService.listExpensesParametersCallsCount - 1, expensesServiceListResults.count - 1)
+            return try expensesServiceListResults[index].get()
+        }
+        expensesService.createExpensesThrowableError = RepositoryTestError.any
+        let summaryPeriodProvider = MainSummaryPeriodProvidingMock()
+        summaryPeriodProvider.currentMonthPeriodReturnValue = period
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
             expensesService: expensesService,
-            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
-            currencyConversionService: CurrencyConverterStub(),
+            summaryPeriodProvider: summaryPeriodProvider,
+            currencyConversionService: currencyConversionService,
             store: store,
             observer: observer
         )
@@ -380,7 +449,7 @@ extension MainFlowDomainRepositoryTests {
 
         await repository.refreshLoadedPeriodDependentModules()
 
-        let requestedParameters = await expensesService.requestedParameters()
+        let requestedParameters = expensesService.listExpensesParametersReceivedInvocations
         XCTAssertEqual(
             requestedParameters,
             [
@@ -413,57 +482,63 @@ extension MainFlowDomainRepositoryTests {
             from: Date(timeIntervalSince1970: 1_735_689_600),
             to: Date(timeIntervalSince1970: 1_735_700_000)
         )
-        let summaryService = SummaryServiceStub(
-            summaryResult: .failure(RepositoryTestError.any),
-            byCategoryResult: .success(
-                .init(
-                    category: "cat-1",
-                    total: 53_210,
-                    totalUsd: 123.45,
-                    currency: "KZT",
-                    byCategory: nil
-                )
+        let summaryService = MainSummaryContractServicingMock()
+        summaryService.getSummaryParametersThrowableError = RepositoryTestError.any
+        summaryService.getSummaryByCategoryIdParametersReturnValue = .init(
+            category: "cat-1",
+            total: 53_210,
+            totalUsd: 123.45,
+            currency: "KZT",
+            byCategory: nil
+        )
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(categories: [])
+        categoriesService.getCategoryIdParametersReturnValue = .init(
+            category: .init(
+                id: "cat-1",
+                name: "Food",
+                icon: "🍴",
+                color: "light_orange",
+                totalSpent: 53_210,
+                currency: "KZT"
             )
         )
-        let categoriesService = CategoriesServiceStub(
-            listResult: .success(.init(categories: [])),
-            getResult: .success(
+        let expensesService = MainExpensesContractServicingMock()
+        let expensesServiceListResults: [Result<ExpensesListResponseDTO, Error>] = [
+            .success(
                 .init(
-                    category: .init(
-                        id: "cat-1",
-                        name: "Food",
-                        icon: "🍴",
-                        color: "light_orange",
-                        totalSpent: 53_210,
-                        currency: "KZT"
-                    )
+                    expenses: [],
+                    nextCursor: nil,
+                    hasMore: false
                 )
             )
-        )
-        let expensesService = ExpensesServiceStub(
-            listResults: [
-                .success(
-                    .init(
-                        expenses: [],
-                        nextCursor: nil,
-                        hasMore: false
-                    )
-                )
-            ]
-        )
+        ]
+        expensesService.listExpensesParametersClosure = { [unowned expensesService] _ in
+            let index = min(expensesService.listExpensesParametersCallsCount - 1, expensesServiceListResults.count - 1)
+            return try expensesServiceListResults[index].get()
+        }
+        expensesService.createExpensesThrowableError = RepositoryTestError.any
+        let summaryPeriodProvider = MainSummaryPeriodProvidingMock()
+        summaryPeriodProvider.currentMonthPeriodReturnValue = period
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
             expensesService: expensesService,
             summaryService: summaryService,
-            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
-            currencyConversionService: CurrencyConverterStub(),
+            summaryPeriodProvider: summaryPeriodProvider,
+            currencyConversionService: currencyConversionService,
             store: store,
-            observer: observer
+            observer: observer,
+            calendar: makeCalendar()
         )
 
         try await repository.refreshCategoryFirstPage(id: "cat-1")
 
-        let requestedByCategoryParameters = await summaryService.requestedByCategoryParameters()
+        let requestedByCategoryParameters = summaryService.getSummaryByCategoryIdParametersReceivedInvocations
         XCTAssertEqual(requestedByCategoryParameters.count, 1)
         XCTAssertEqual(requestedByCategoryParameters.first?.id, "cat-1")
         XCTAssertEqual(
@@ -541,7 +616,7 @@ extension MainFlowDomainRepositoryTests {
 //
 //        try await repository.refreshCategoryFirstPage(id: "cat-1")
 //
-//        let requestedExpenseParameters = await expensesService.requestedParameters()
+//        let requestedExpenseParameters = expensesService.listExpensesParametersReceivedInvocations
 //        XCTAssertEqual(
 //            requestedExpenseParameters,
 //            [
@@ -554,7 +629,7 @@ extension MainFlowDomainRepositoryTests {
 //                )
 //            ]
 //        )
-//        let requestedGetParameters = await categoriesService.requestedGetParameters()
+//        let requestedGetParameters = categoriesService.getCategoryIdParametersReceivedInvocations
 //        XCTAssertEqual(requestedGetParameters.count, 1)
 //        XCTAssertEqual(requestedGetParameters.first?.id, "cat-1")
 //        XCTAssertEqual(
@@ -607,7 +682,7 @@ extension MainFlowDomainRepositoryTests {
 //
 //        try await repository.loadNextCategoryPage(id: "cat-1")
 //
-//        let requestedExpenseParameters = await expensesService.requestedParameters()
+//        let requestedExpenseParameters = expensesService.listExpensesParametersReceivedInvocations
 //        XCTAssertEqual(
 //            requestedExpenseParameters,
 //            [
@@ -782,7 +857,7 @@ extension MainFlowDomainRepositoryTests {
 //        XCTAssertEqual(state.categoryExpenseIDs["cat-1"], [])
 //        XCTAssertTrue(state.expensesByID.isEmpty)
 //
-//        let requestedParameters = await expensesService.requestedParameters()
+//        let requestedParameters = expensesService.listExpensesParametersReceivedInvocations
 //        XCTAssertEqual(
 //            requestedParameters,
 //            [
@@ -798,7 +873,7 @@ extension MainFlowDomainRepositoryTests {
 //
 //        try? await repository.loadNextCategoryPage(id: "cat-1")
 //
-//        let finalParameters = await expensesService.requestedParameters()
+//        let finalParameters = expensesService.listExpensesParametersReceivedInvocations
 //        XCTAssertEqual(finalParameters, requestedParameters)
     }
 }
@@ -834,13 +909,21 @@ extension MainFlowDomainRepositoryTests {
         }
         observer.publishAll(from: store)
 
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(categories: [])
+        categoriesService.getCategoryIdParametersThrowableError = RepositoryTestError.any
+        let expensesService = MainExpensesContractServicingMock()
+        expensesService.createExpensesThrowableError = RepositoryTestError.any
+        expensesService.deleteExpenseIdThrowableError = RepositoryTestError.any
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
-            categoriesService: CategoriesServiceStub(listResult: .success(.init(categories: []))),
-            expensesService: ExpensesServiceStub(
-                listResults: [],
-                deleteResult: .failure(RepositoryTestError.any)
-            ),
-            currencyConversionService: CurrencyConverterStub(),
+            categoriesService: categoriesService,
+            expensesService: expensesService,
+            currencyConversionService: currencyConversionService,
             store: store,
             observer: observer
         )
@@ -883,27 +966,32 @@ extension MainFlowDomainRepositoryTests {
         }
         observer.publishAll(from: store)
 
-        let repository = MainFlowDomainRepository(
-            categoriesService: CategoriesServiceStub(listResult: .success(.init(categories: []))),
-            expensesService: ExpensesServiceStub(
-                listResults: [],
-                createResult: .success(
-                    .init(
-                        expenses: [
-                            .init(
-                                id: "exp-server",
-                                title: "Coffee",
-                                description: "Morning",
-                                amount: 4,
-                                currency: "USD",
-                                category: "cat-1",
-                                timeOfAdd: Date(timeIntervalSince1970: 25)
-                            )
-                        ]
-                    )
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(categories: [])
+        categoriesService.getCategoryIdParametersThrowableError = RepositoryTestError.any
+        let expensesService = MainExpensesContractServicingMock()
+        expensesService.createExpensesReturnValue = .init(
+            expenses: [
+                .init(
+                    id: "exp-server",
+                    title: "Coffee",
+                    description: "Morning",
+                    amount: 4,
+                    currency: "USD",
+                    category: "cat-1",
+                    timeOfAdd: Date(timeIntervalSince1970: 25)
                 )
-            ),
-            currencyConversionService: CurrencyConverterStub(),
+            ]
+        )
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
+        let repository = MainFlowDomainRepository(
+            categoriesService: categoriesService,
+            expensesService: expensesService,
+            currencyConversionService: currencyConversionService,
             store: store,
             observer: observer,
             now: { currentDayNow }
@@ -954,43 +1042,42 @@ extension MainFlowDomainRepositoryTests {
         }
         observer.publishAll(from: store)
 
-        let categoriesService = CategoriesServiceStub(
-            listResult: .success(
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(
+            categories: [
                 .init(
-                    categories: [
-                        .init(
-                            id: "cat-1",
-                            name: "Food",
-                            icon: "🍴",
-                            color: "light_orange",
-                            totalSpentUsd: 15
-                        )
-                    ]
+                    id: "cat-1",
+                    name: "Food",
+                    icon: "🍴",
+                    color: "light_orange",
+                    totalSpentUsd: 15
                 )
-            )
+            ]
         )
-        let expensesService = ExpensesServiceStub(
-            listResults: [],
-            createResult: .success(
+        categoriesService.getCategoryIdParametersThrowableError = RepositoryTestError.any
+        let expensesService = MainExpensesContractServicingMock()
+        expensesService.createExpensesReturnValue = .init(
+            expenses: [
                 .init(
-                    expenses: [
-                        .init(
-                            id: "exp-server",
-                            title: "Coffee",
-                            description: "Morning",
-                            amount: 4,
-                            currency: "USD",
-                            category: "cat-1",
-                            timeOfAdd: Date(timeIntervalSince1970: 25)
-                        )
-                    ]
+                    id: "exp-server",
+                    title: "Coffee",
+                    description: "Morning",
+                    amount: 4,
+                    currency: "USD",
+                    category: "cat-1",
+                    timeOfAdd: Date(timeIntervalSince1970: 25)
                 )
-            )
+            ]
         )
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
             expensesService: expensesService,
-            currencyConversionService: CurrencyConverterStub(),
+            currencyConversionService: currencyConversionService,
             store: store,
             observer: observer
         )
@@ -1083,69 +1170,71 @@ extension MainFlowDomainRepositoryTests {
         }
         observer.publishAll(from: store)
 
-        let summaryService = SummaryServiceStub(
-            summaryResult: .success(
-                .init(
-                    category: nil,
-                    total: 60_000,
-                    totalUsd: 120,
-                    currency: "KZT",
-                    byCategory: nil
-                )
-            ),
-            byCategoryResult: .success(
-                .init(
-                    category: "cat-1",
-                    total: 53_210,
-                    totalUsd: 106.42,
-                    currency: "KZT",
-                    byCategory: nil
-                )
-            )
+        let summaryService = MainSummaryContractServicingMock()
+        summaryService.getSummaryParametersReturnValue = .init(
+            category: nil,
+            total: 60_000,
+            totalUsd: 120,
+            currency: "KZT",
+            byCategory: nil
         )
-        let categoriesService = CategoriesServiceStub(
-            listResult: .success(
-                .init(
-                    categories: [
-                        .init(
-                            id: "cat-1",
-                            name: "Food",
-                            icon: "🍴",
-                            color: "light_orange",
-                            totalSpent: 53_210,
-                            currency: "KZT"
-                        )
-                    ]
-                )
-            ),
-            getResult: .success(
-                .init(
-                    category: .init(
-                        id: "cat-1",
-                        name: "Food",
-                        icon: "🍴",
-                        color: "light_orange",
-                        totalSpent: 53_210,
-                        currency: "KZT"
-                    )
-                )
-            )
+        summaryService.getSummaryByCategoryIdParametersReturnValue = .init(
+            category: "cat-1",
+            total: 53_210,
+            totalUsd: 106.42,
+            currency: "KZT",
+            byCategory: nil
         )
-        let expensesService = ExpensesServiceStub(
-            listResults: [
-                .success(.init(expenses: [recentExpense], nextCursor: nil, hasMore: false)),
-                .success(.init(expenses: [listExpense], nextCursor: nil, hasMore: false)),
-                .success(.init(expenses: [categoryExpense], nextCursor: nil, hasMore: false))
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(
+            categories: [
+                .init(
+                    id: "cat-1",
+                    name: "Food",
+                    icon: "🍴",
+                    color: "light_orange",
+                    totalSpent: 53_210,
+                    currency: "KZT"
+                )
             ]
         )
+        categoriesService.getCategoryIdParametersReturnValue = .init(
+            category: .init(
+                id: "cat-1",
+                name: "Food",
+                icon: "🍴",
+                color: "light_orange",
+                totalSpent: 53_210,
+                currency: "KZT"
+            )
+        )
+        let expensesService = MainExpensesContractServicingMock()
+        let expensesServiceListResults: [Result<ExpensesListResponseDTO, Error>] = [
+            .success(.init(expenses: [recentExpense], nextCursor: nil, hasMore: false)),
+            .success(.init(expenses: [listExpense], nextCursor: nil, hasMore: false)),
+            .success(.init(expenses: [categoryExpense], nextCursor: nil, hasMore: false))
+        ]
+        expensesService.listExpensesParametersClosure = { [unowned expensesService] _ in
+            let index = min(expensesService.listExpensesParametersCallsCount - 1, expensesServiceListResults.count - 1)
+            return try expensesServiceListResults[index].get()
+        }
+        expensesService.createExpensesThrowableError = RepositoryTestError.any
+        let summaryPeriodProvider = MainSummaryPeriodProvidingMock()
+        summaryPeriodProvider.currentMonthPeriodReturnValue = period
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
             expensesService: expensesService,
             summaryService: summaryService,
-            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
-            currencyConversionService: CurrencyConverterStub(),
+            summaryPeriodProvider: summaryPeriodProvider,
+            currencyConversionService: currencyConversionService,
             store: store,
-            observer: observer
+            observer: observer,
+            calendar: makeCalendar()
         )
 
         await repository.handleCurrencyDidChange(
@@ -1169,22 +1258,18 @@ extension MainFlowDomainRepositoryTests {
         XCTAssertEqual(observer.currentOverviewSnapshot().summary?.totalAmount, 60_000)
         XCTAssertEqual(observer.currentOverviewSnapshot().summary?.currency, "KZT")
 
-        let summaryParameters = await summaryService.requestedParameters()
-        let categorySummaryParameters = await summaryService.requestedByCategoryParameters()
-        let categoriesListCalls = await categoriesService.listCallsCount()
-        let categoryRequests = await categoriesService.requestedGetParameters()
-        let expenseRequests = await expensesService.requestedParameters()
+        let summaryParameters = summaryService.getSummaryParametersReceivedInvocations
+        let categorySummaryParameters = summaryService.getSummaryByCategoryIdParametersReceivedInvocations
+        let categoriesListCalls = categoriesService.listCategoriesParametersCallsCount
+        let categoryRequests = categoriesService.getCategoryIdParametersReceivedInvocations
+        let expenseRequests = expensesService.listExpensesParametersReceivedInvocations
 
         XCTAssertEqual(summaryParameters, [.init(from: period.from, to: period.to)])
-        XCTAssertEqual(
-            categorySummaryParameters,
-            [(id: "cat-1", parameters: .init(from: period.from, to: period.to))]
-        )
+        XCTAssertEqual(categorySummaryParameters.map(\.id), ["cat-1"])
+        XCTAssertEqual(categorySummaryParameters.map(\.parameters), [.init(from: period.from, to: period.to)])
         XCTAssertEqual(categoriesListCalls, 1)
-        XCTAssertEqual(
-            categoryRequests,
-            [(id: "cat-1", parameters: .init(from: period.from, to: period.to))]
-        )
+        XCTAssertEqual(categoryRequests.map(\.id), ["cat-1"])
+        XCTAssertEqual(categoryRequests.map(\.parameters), [.init(from: period.from, to: period.to)])
         XCTAssertEqual(
             expenseRequests,
             [
@@ -1238,29 +1323,39 @@ extension MainFlowDomainRepositoryTests {
         }
         observer.publishAll(from: store)
 
-        let summaryService = SummaryServiceStub(
-            summaryResult: .failure(RepositoryTestError.any),
-            byCategoryResult: .failure(RepositoryTestError.any)
-        )
-        let categoriesService = CategoriesServiceStub(
-            listResult: .failure(RepositoryTestError.any),
-            getResult: .failure(RepositoryTestError.any)
-        )
-        let expensesService = ExpensesServiceStub(
-            listResults: [
-                .failure(RepositoryTestError.any),
-                .failure(RepositoryTestError.any),
-                .failure(RepositoryTestError.any)
-            ]
-        )
+        let summaryService = MainSummaryContractServicingMock()
+        summaryService.getSummaryParametersThrowableError = RepositoryTestError.any
+        summaryService.getSummaryByCategoryIdParametersThrowableError = RepositoryTestError.any
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersThrowableError = RepositoryTestError.any
+        categoriesService.getCategoryIdParametersThrowableError = RepositoryTestError.any
+        let expensesService = MainExpensesContractServicingMock()
+        let expensesServiceListResults: [Result<ExpensesListResponseDTO, Error>] = [
+            .failure(RepositoryTestError.any),
+            .failure(RepositoryTestError.any),
+            .failure(RepositoryTestError.any)
+        ]
+        expensesService.listExpensesParametersClosure = { [unowned expensesService] _ in
+            let index = min(expensesService.listExpensesParametersCallsCount - 1, expensesServiceListResults.count - 1)
+            return try expensesServiceListResults[index].get()
+        }
+        expensesService.createExpensesThrowableError = RepositoryTestError.any
+        let summaryPeriodProvider = MainSummaryPeriodProvidingMock()
+        summaryPeriodProvider.currentMonthPeriodReturnValue = period
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
             expensesService: expensesService,
             summaryService: summaryService,
-            summaryPeriodProvider: MainSummaryPeriodProviderStub(period: period),
-            currencyConversionService: CurrencyConverterStub(),
+            summaryPeriodProvider: summaryPeriodProvider,
+            currencyConversionService: currencyConversionService,
             store: store,
-            observer: observer
+            observer: observer,
+            calendar: makeCalendar()
         )
 
         await repository.handleCurrencyDidChange(
@@ -1273,8 +1368,8 @@ extension MainFlowDomainRepositoryTests {
         )
 
         let state = store.snapshot()
-        let categoriesListCalls = await categoriesService.listCallsCount()
-        let expensesListCalls = await expensesService.listCallsCount()
+        let categoriesListCalls = categoriesService.listCategoriesParametersCallsCount
+        let expensesListCalls = expensesService.listExpensesParametersCallsCount
         XCTAssertEqual(categoriesListCalls, 1)
         XCTAssertEqual(expensesListCalls, 3)
         XCTAssertEqual(state.preferredCurrencyCode, "KZT")
@@ -1333,43 +1428,42 @@ extension MainFlowDomainRepositoryTests {
         }
         observer.publishAll(from: store)
 
-        let categoriesService = CategoriesServiceStub(
-            listResult: .success(
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(
+            categories: [
                 .init(
-                    categories: [
-                        .init(
-                            id: "cat-1",
-                            name: "Food",
-                            icon: "🍴",
-                            color: "light_orange",
-                            totalSpentUsd: 15
-                        )
-                    ]
+                    id: "cat-1",
+                    name: "Food",
+                    icon: "🍴",
+                    color: "light_orange",
+                    totalSpentUsd: 15
                 )
-            )
+            ]
         )
-        let expensesService = ExpensesServiceStub(
-            listResults: [],
-            createResult: .success(
+        categoriesService.getCategoryIdParametersThrowableError = RepositoryTestError.any
+        let expensesService = MainExpensesContractServicingMock()
+        expensesService.createExpensesReturnValue = .init(
+            expenses: [
                 .init(
-                    expenses: [
-                        .init(
-                            id: "exp-server",
-                            title: "Coffee",
-                            description: "Morning",
-                            amount: 4,
-                            currency: "USD",
-                            category: "cat-1",
-                            timeOfAdd: Date(timeIntervalSince1970: 100)
-                        )
-                    ]
+                    id: "exp-server",
+                    title: "Coffee",
+                    description: "Morning",
+                    amount: 4,
+                    currency: "USD",
+                    category: "cat-1",
+                    timeOfAdd: Date(timeIntervalSince1970: 100)
                 )
-            )
+            ]
         )
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
             categoriesService: categoriesService,
             expensesService: expensesService,
-            currencyConversionService: CurrencyConverterStub(),
+            currencyConversionService: currencyConversionService,
             store: store,
             observer: observer,
             analyticsIntervalRepository: analyticsIntervalRepository
@@ -1396,13 +1490,15 @@ extension MainFlowDomainRepositoryTests {
         XCTAssertEqual(state.categoryExpenseIDs["cat-1"], ["exp-server"])
         XCTAssertEqual(Array(state.expensesByID.keys), ["exp-server"])
         XCTAssertEqual(state.expensesByID["exp-server"]?.title, "Coffee")
-        let expensesListCallCount = await expensesService.listCallsCount()
-        let categoriesListCallCount = await categoriesService.listCallsCount()
+        let expensesListCallCount = expensesService.listExpensesParametersCallsCount
+        let categoriesListCallCount = categoriesService.listCategoriesParametersCallsCount
         XCTAssertEqual(expensesListCallCount, 0)
         XCTAssertEqual(categoriesListCallCount, 1)
-        XCTAssertNil(await analyticsIntervalRepository.cachedData(for: affectedResolution))
+        let awaitedValue1 = await analyticsIntervalRepository.cachedData(for: affectedResolution)
+        XCTAssertNil(awaitedValue1)
+        let awaitedValue2 = await analyticsIntervalRepository.cachedData(for: unaffectedResolution)?.totalAmount
         XCTAssertEqual(
-            await analyticsIntervalRepository.cachedData(for: unaffectedResolution)?.totalAmount,
+            awaitedValue2,
             80
         )
     }
@@ -1430,13 +1526,20 @@ extension MainFlowDomainRepositoryTests {
         }
         observer.publishAll(from: store)
 
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(categories: [])
+        categoriesService.getCategoryIdParametersThrowableError = RepositoryTestError.any
+        let expensesService = MainExpensesContractServicingMock()
+        expensesService.createExpensesThrowableError = RepositoryTestError.any
+        let currencyConversionService = UserCurrencyConvertingMock()
+        currencyConversionService.convertUsdAmountClosure = { .init(amount: $0, currency: "USD") }
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyClosure = { amount, currency, _, _ in
+            .init(amount: amount, currency: currency)
+        }
         let repository = MainFlowDomainRepository(
-            categoriesService: CategoriesServiceStub(listResult: .success(.init(categories: []))),
-            expensesService: ExpensesServiceStub(
-                listResults: [],
-                createResult: .failure(RepositoryTestError.any)
-            ),
-            currencyConversionService: CurrencyConverterStub(),
+            categoriesService: categoriesService,
+            expensesService: expensesService,
+            currencyConversionService: currencyConversionService,
             store: store,
             observer: observer
         )
@@ -1467,162 +1570,6 @@ extension MainFlowDomainRepositoryTests {
 
 private enum RepositoryTestError: Error {
     case any
-}
-
-private final class CurrencyConverterStub: UserCurrencyConverting, @unchecked Sendable {
-    func convertUsdAmount(_ amount: Double) -> UserCurrencyAmount {
-        .init(amount: amount, currency: "USD")
-    }
-
-    func convertExpense(
-        amount: Double,
-        currency: String,
-        originalAmount: Double?,
-        originalCurrency: String?
-    ) -> UserCurrencyAmount {
-        .init(amount: amount, currency: currency)
-    }
-}
-
-private actor CategoriesServiceStub: MainCategoriesContractServicing {
-    private let listResult: Result<CategoriesResponseDTO, Error>
-    private let getResult: Result<CategoryResponseDTO, Error>
-    private var listCalls = 0
-    private var listParametersHistory: [CategoriesQueryParameters] = []
-    private var getParametersHistory: [(id: String, parameters: CategoriesQueryParameters)] = []
-
-    init(
-        listResult: Result<CategoriesResponseDTO, Error>,
-        getResult: Result<CategoryResponseDTO, Error> = .failure(RepositoryTestError.any)
-    ) {
-        self.listResult = listResult
-        self.getResult = getResult
-    }
-
-    func createCategory(_ request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO {
-        throw RepositoryTestError.any
-    }
-
-    func listCategories() async throws -> CategoriesResponseDTO {
-        listCalls += 1
-        return try listResult.get()
-    }
-
-    func listCategories(parameters: CategoriesQueryParameters) async throws -> CategoriesResponseDTO {
-        listParametersHistory.append(parameters)
-        return try await listCategories()
-    }
-
-    func getCategory(id: String) async throws -> CategoryResponseDTO {
-        try getResult.get()
-    }
-
-    func getCategory(
-        id: String,
-        parameters: CategoriesQueryParameters
-    ) async throws -> CategoryResponseDTO {
-        getParametersHistory.append((id, parameters))
-        return try await getCategory(id: id)
-    }
-
-    func deleteCategory(id: String) async throws {}
-
-    func listCallsCount() -> Int {
-        listCalls
-    }
-
-    func requestedListParameters() -> [CategoriesQueryParameters] {
-        listParametersHistory
-    }
-
-    func requestedGetParameters() -> [(id: String, parameters: CategoriesQueryParameters)] {
-        getParametersHistory
-    }
-}
-
-private actor ExpensesServiceStub: MainExpensesContractServicing {
-    private let listResults: [Result<ExpensesListResponseDTO, Error>]
-    private let createResult: Result<ExpensesCreateResponseDTO, Error>
-    private let deleteResult: Result<Void, Error>
-    private var parametersHistory: [ExpensesListQueryParameters] = []
-    private var listCallCount: Int = .zero
-
-    init(
-        listResults: [Result<ExpensesListResponseDTO, Error>],
-        createResult: Result<ExpensesCreateResponseDTO, Error> = .failure(RepositoryTestError.any),
-        deleteResult: Result<Void, Error> = .success(())
-    ) {
-        self.listResults = listResults
-        self.createResult = createResult
-        self.deleteResult = deleteResult
-    }
-
-    func createExpenses(_ request: ExpensesCreateRequestDTO) async throws -> ExpensesCreateResponseDTO {
-        try createResult.get()
-    }
-
-    func listExpenses(parameters: ExpensesListQueryParameters) async throws -> ExpensesListResponseDTO {
-        parametersHistory.append(parameters)
-        let index = min(listCallCount, max(listResults.count - 1, .zero))
-        listCallCount += 1
-        return try listResults[index].get()
-    }
-
-    func deleteExpense(id: String) async throws {
-        _ = try deleteResult.get()
-    }
-
-    func listCallsCount() -> Int {
-        listCallCount
-    }
-
-    func requestedParameters() -> [ExpensesListQueryParameters] {
-        parametersHistory
-    }
-}
-
-private actor SummaryServiceStub: MainSummaryContractServicing {
-    private let summaryResult: Result<SummaryResponseDTO, Error>
-    private let byCategoryResult: Result<SummaryResponseDTO, Error>
-    private var parametersHistory: [SummaryQueryParameters] = []
-    private var byCategoryParametersHistory: [(id: String, parameters: SummaryQueryParameters)] = []
-
-    init(
-        summaryResult: Result<SummaryResponseDTO, Error>,
-        byCategoryResult: Result<SummaryResponseDTO, Error> = .failure(RepositoryTestError.any)
-    ) {
-        self.summaryResult = summaryResult
-        self.byCategoryResult = byCategoryResult
-    }
-
-    func getSummary(parameters: SummaryQueryParameters) async throws -> SummaryResponseDTO {
-        parametersHistory.append(parameters)
-        return try summaryResult.get()
-    }
-
-    func getSummaryByCategory(
-        id: String,
-        parameters: SummaryQueryParameters
-    ) async throws -> SummaryResponseDTO {
-        byCategoryParametersHistory.append((id: id, parameters: parameters))
-        return try byCategoryResult.get()
-    }
-
-    func requestedParameters() -> [SummaryQueryParameters] {
-        parametersHistory
-    }
-
-    func requestedByCategoryParameters() -> [(id: String, parameters: SummaryQueryParameters)] {
-        byCategoryParametersHistory
-    }
-}
-
-private struct MainSummaryPeriodProviderStub: MainSummaryPeriodProviding {
-    let period: MainSummaryPeriod
-
-    func currentMonthPeriod() -> MainSummaryPeriod {
-        period
-    }
 }
 
 private func makeAnalyticsIntervalRepository() -> AnalyticsIntervalRepository {

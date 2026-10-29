@@ -1,5 +1,4 @@
 import FirebaseAnalytics
-import FirebaseCore
 
 final class FirebaseAnalyticsService: AnalyticsServiceProtocol, @unchecked Sendable {
     private struct FirebaseEvent {
@@ -7,32 +6,17 @@ final class FirebaseAnalyticsService: AnalyticsServiceProtocol, @unchecked Senda
         let parameters: [String: Any]?
     }
 
-    private let configureIfNeededHandler: @Sendable () async -> Void
-    private let logEventHandler: @Sendable (String, [String: Any]?) async -> Void
+    private let client: FirebaseAnalyticsClientProtocol
     let provider: AnalyticsProvider = .firebase
 
-    init(
-        configureIfNeededHandler: @escaping @Sendable () async -> Void = {
-            await MainActor.run {
-                if FirebaseApp.app() == nil {
-                    FirebaseApp.configure()
-                }
-            }
-        },
-        logEventHandler: @escaping @Sendable (String, [String: Any]?) async -> Void = { name, parameters in
-            await MainActor.run {
-                Analytics.logEvent(name, parameters: parameters)
-            }
-        }
-    ) {
-        self.configureIfNeededHandler = configureIfNeededHandler
-        self.logEventHandler = logEventHandler
+    init(client: FirebaseAnalyticsClientProtocol = FirebaseAnalyticsClient()) {
+        self.client = client
     }
 
     func send(event: AnalyticsEvent, payload: AnalyticsPayload) async {
-        await configureIfNeededHandler()
+        await client.configureIfNeeded()
         let firebaseEvent = makeFirebaseEvent(for: event, payload: payload)
-        await logEventHandler(firebaseEvent.name, firebaseEvent.parameters)
+        await client.logEvent(firebaseEvent.name, parameters: firebaseEvent.parameters)
     }
 }
 

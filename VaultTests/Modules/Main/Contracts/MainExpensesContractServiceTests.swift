@@ -3,7 +3,7 @@ import XCTest
 
 final class MainExpensesContractServiceTests: XCTestCase {
     func testCreateExpensesForwardsPayloadAndDecodesResponse() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"expenses":[{"id":"exp-1","title":"iPhone","description":"Apple Store","amount":650.42,"currency":"USD","original_amount":600,"original_currency":"EUR","category":"cat-1","time_of_add":"2025-01-01T10:00:00Z"}]}"#
         )
@@ -53,7 +53,7 @@ final class MainExpensesContractServiceTests: XCTestCase {
 
 extension MainExpensesContractServiceTests {
     func testCreateExpensesForwardsEmptyDescription() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"expenses":[{"id":"exp-2","title":"Coffee","amount":5,"currency":"USD","category":"cat-1","time_of_add":"2025-01-01T10:00:00Z"}]}"#
         )
@@ -90,7 +90,7 @@ extension MainExpensesContractServiceTests {
 
 extension MainExpensesContractServiceTests {
     func testListExpensesForwardsAllFiltersAndDecodesCursor() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"expenses":[{"id":"exp-1","title":"Coffee","description":null,"amount":5.5,"currency":"USD","original_amount":420,"original_currency":"RUB","category":"cat-1","time_of_add":"2025-01-02T08:30:00Z"}],"next_cursor":"next-1","has_more":true}"#
         )
@@ -131,7 +131,7 @@ extension MainExpensesContractServiceTests {
 
 extension MainExpensesContractServiceTests {
     func testListExpensesDecodesMissingNextCursorAsNil() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"expenses":[{"id":"exp-2","title":"Taxi","amount":12.2,"currency":"USD","category":"cat-2","time_of_add":"2025-01-03T12:00:00Z"}],"has_more":false}"#
         )
@@ -148,7 +148,7 @@ extension MainExpensesContractServiceTests {
 
 extension MainExpensesContractServiceTests {
     func testDeleteExpenseForwardsID() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
 
         var capturedID: String?
         spy.onRequestWithoutResponse = { target in

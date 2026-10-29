@@ -7,9 +7,8 @@ final class AnalyticsDataProviderTests: XCTestCase {
             from: makeDate(year: 2026, month: 4, day: 1),
             to: makeDate(year: 2026, month: 4, day: 6, hour: 12)
         )
-        let categoriesService = CategoriesServiceStub(
-            response: .init(categories: [])
-        )
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(categories: [])
         let sut = AnalyticsDataProvider(
             categoriesService: categoriesService,
             calendar: calendar
@@ -18,7 +17,7 @@ final class AnalyticsDataProviderTests: XCTestCase {
         _ = try await sut.fetchData(for: period)
 
         XCTAssertEqual(
-            categoriesService.capturedParameters,
+            categoriesService.listCategoriesParametersReceivedArguments,
             CategoriesQueryParameters(
                 from: period.from,
                 to: period.to
@@ -33,9 +32,8 @@ extension AnalyticsDataProviderTests {
             from: makeDate(year: 2026, month: 3, day: 15),
             to: makeDate(year: 2026, month: 3, day: 31, hour: 23, minute: 59, second: 59)
         )
-        let categoriesService = CategoriesServiceStub(
-            response: .init(categories: [])
-        )
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(categories: [])
         let sut = AnalyticsDataProvider(
             categoriesService: categoriesService,
             calendar: calendar
@@ -44,7 +42,7 @@ extension AnalyticsDataProviderTests {
         _ = try await sut.fetchData(for: period)
 
         XCTAssertEqual(
-            categoriesService.capturedParameters,
+            categoriesService.listCategoriesParametersReceivedArguments,
             CategoriesQueryParameters(
                 from: period.from,
                 to: period.to
@@ -55,43 +53,42 @@ extension AnalyticsDataProviderTests {
 
 extension AnalyticsDataProviderTests {
     func testFetchDataMapsFilteredCategoriesAndSortsDescending() async throws {
-        let categoriesService = CategoriesServiceStub(
-            response: .init(
-                categories: [
-                    .init(
-                        id: "food",
-                        name: "Food",
-                        icon: "🍔",
-                        color: "light_green",
-                        totalSpent: 60,
-                        currency: "KZT"
-                    ),
-                    .init(
-                        id: "other",
-                        name: "Unmapped",
-                        icon: "📦",
-                        color: "light_blue",
-                        totalSpent: 25,
-                        currency: "KZT"
-                    ),
-                    .init(
-                        id: "leisure",
-                        name: "Leisure",
-                        icon: "🎬",
-                        color: "light_purple",
-                        totalSpent: 15,
-                        currency: "KZT"
-                    ),
-                    .init(
-                        id: "zero",
-                        name: "Zero",
-                        icon: "0",
-                        color: "light_gray",
-                        totalSpent: 0,
-                        currency: "KZT"
-                    )
-                ]
-            )
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(
+            categories: [
+                .init(
+                    id: "food",
+                    name: "Food",
+                    icon: "🍔",
+                    color: "light_green",
+                    totalSpent: 60,
+                    currency: "KZT"
+                ),
+                .init(
+                    id: "other",
+                    name: "Unmapped",
+                    icon: "📦",
+                    color: "light_blue",
+                    totalSpent: 25,
+                    currency: "KZT"
+                ),
+                .init(
+                    id: "leisure",
+                    name: "Leisure",
+                    icon: "🎬",
+                    color: "light_purple",
+                    totalSpent: 15,
+                    currency: "KZT"
+                ),
+                .init(
+                    id: "zero",
+                    name: "Zero",
+                    icon: "0",
+                    color: "light_gray",
+                    totalSpent: 0,
+                    currency: "KZT"
+                )
+            ]
         )
         let sut = AnalyticsDataProvider(
             categoriesService: categoriesService,
@@ -118,21 +115,21 @@ extension AnalyticsDataProviderTests {
 
 extension AnalyticsDataProviderTests {
     func testFetchDataWithZeroTotalReturnsEmptyCategories() async throws {
-        let sut = AnalyticsDataProvider(
-            categoriesService: CategoriesServiceStub(
-                response: .init(
-                    categories: [
-                        .init(
-                            id: "food",
-                            name: "Food",
-                            icon: "🍔",
-                            color: "light_green",
-                            totalSpent: 0,
-                            currency: "KZT"
-                        )
-                    ]
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesParametersReturnValue = .init(
+            categories: [
+                .init(
+                    id: "food",
+                    name: "Food",
+                    icon: "🍔",
+                    color: "light_green",
+                    totalSpent: 0,
+                    currency: "KZT"
                 )
-            ),
+            ]
+        )
+        let sut = AnalyticsDataProvider(
+            categoriesService: categoriesService,
             calendar: calendar
         )
 
@@ -175,60 +172,4 @@ private extension AnalyticsDataProviderTests {
             )
         ) ?? .distantPast
     }
-}
-
-private final class CategoriesServiceStub: MainCategoriesContractServicing, @unchecked Sendable {
-    let response: CategoriesResponseDTO
-    private(set) var capturedParameters: CategoriesQueryParameters?
-
-    init(response: CategoriesResponseDTO) {
-        self.response = response
-    }
-
-    func listCategories() async throws -> CategoriesResponseDTO {
-        response
-    }
-
-    func listCategories(parameters: CategoriesQueryParameters) async throws -> CategoriesResponseDTO {
-        capturedParameters = parameters
-        return response
-    }
-
-    func getCategory(id: String) async throws -> CategoryResponseDTO {
-        CategoryResponseDTO(
-            category: response.categories.first ?? .init(
-                id: id,
-                name: "",
-                icon: "",
-                color: "",
-                totalSpent: nil
-            )
-        )
-    }
-
-    func createCategory(_ request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO {
-        CategoryResponseDTO(
-            category: .init(
-                id: "created",
-                name: request.name,
-                icon: request.icon,
-                color: request.color,
-                totalSpent: nil
-            )
-        )
-    }
-
-    func updateCategory(id: String, request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO {
-        CategoryResponseDTO(
-            category: .init(
-                id: id,
-                name: request.name,
-                icon: request.icon,
-                color: request.color,
-                totalSpent: nil
-            )
-        )
-    }
-
-    func deleteCategory(id: String) async throws {}
 }

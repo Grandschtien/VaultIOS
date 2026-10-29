@@ -18,20 +18,26 @@ final class AnalyticsIntervalRepositoryTests: XCTestCase {
     }
 }
 
+// MARK: - cachedData
+
 extension AnalyticsIntervalRepositoryTests {
-    func testNewInstanceStartsEmpty() async {
-        XCTAssertNil(
-            await sut.cachedData(
-                for: makeResolution(
-                    from: date(year: 2026, month: 7, day: 4, hour: 0),
-                    to: date(year: 2026, month: 7, day: 4, hour: 9),
-                    preset: .day
-                )
-            )
+    func testCachedDataWhenNothingSavedReturnsNil() async {
+        // Arrange
+        let resolution = makeResolution(
+            from: date(year: 2026, month: 7, day: 4, hour: 0),
+            to: date(year: 2026, month: 7, day: 4, hour: 9),
+            preset: .day
         )
+
+        // Act
+        let result = await sut.cachedData(for: resolution)
+
+        // Assert
+        XCTAssertNil(result)
     }
 
-    func testSaveAndReadPresetResolutionUsingSameCalendarDayOfPeriodEnd() async {
+    func testCachedDataWhenPresetMatchesSameDayOfPeriodEndReturnsSavedData() async {
+        // Arrange
         let cachedResolution = makeResolution(
             from: date(year: 2026, month: 7, day: 1, hour: 0),
             to: date(year: 2026, month: 7, day: 4, hour: 9),
@@ -42,38 +48,60 @@ extension AnalyticsIntervalRepositoryTests {
             to: date(year: 2026, month: 7, day: 4, hour: 18),
             preset: .month
         )
-        let data = makeData(totalAmount: 120)
+        await sut.save(data: makeData(totalAmount: 120), for: cachedResolution)
 
-        await sut.save(data: data, for: cachedResolution)
+        // Act
+        let result = await sut.cachedData(for: requestedResolution)
 
-        XCTAssertEqual(await sut.cachedData(for: requestedResolution), data)
+        // Assert
+        XCTAssertEqual(result, makeData(totalAmount: 120))
     }
 
-    func testCustomResolutionRequiresExactFromAndToMatch() async {
-        let cachedResolution = makeResolution(
+    func testCachedDataWhenCustomResolutionMatchesExactlyReturnsSavedData() async {
+        // Arrange
+        let resolution = makeResolution(
             from: date(year: 2026, month: 7, day: 2, hour: 0),
             to: date(year: 2026, month: 7, day: 5, hour: 9),
             preset: nil
         )
-        let exactResolution = makeResolution(
-            from: date(year: 2026, month: 7, day: 2, hour: 0),
-            to: date(year: 2026, month: 7, day: 5, hour: 9),
-            preset: nil
+        await sut.save(data: makeData(totalAmount: 80), for: resolution)
+
+        // Act
+        let result = await sut.cachedData(for: resolution)
+
+        // Assert
+        XCTAssertEqual(result, makeData(totalAmount: 80))
+    }
+
+    func testCachedDataWhenCustomResolutionEndDiffersReturnsNil() async {
+        // Arrange
+        await sut.save(
+            data: makeData(totalAmount: 80),
+            for: makeResolution(
+                from: date(year: 2026, month: 7, day: 2, hour: 0),
+                to: date(year: 2026, month: 7, day: 5, hour: 9),
+                preset: nil
+            )
         )
-        let differentEndResolution = makeResolution(
+        let requestedResolution = makeResolution(
             from: date(year: 2026, month: 7, day: 2, hour: 0),
             to: date(year: 2026, month: 7, day: 5, hour: 18),
             preset: nil
         )
-        let data = makeData(totalAmount: 80)
 
-        await sut.save(data: data, for: cachedResolution)
+        // Act
+        let result = await sut.cachedData(for: requestedResolution)
 
-        XCTAssertEqual(await sut.cachedData(for: exactResolution), data)
-        XCTAssertNil(await sut.cachedData(for: differentEndResolution))
+        // Assert
+        XCTAssertNil(result)
     }
+}
 
-    func testInvalidateIntersectingRemovesOnlyMatchingIntervals() async {
+// MARK: - invalidateIntersecting
+
+extension AnalyticsIntervalRepositoryTests {
+    func testInvalidateIntersectingRemovesOnlyIntervalsContainingDate() async {
+        // Arrange
         let presetResolution = makeResolution(
             from: date(year: 2026, month: 7, day: 4, hour: 0),
             to: date(year: 2026, month: 7, day: 4, hour: 9),
@@ -89,44 +117,41 @@ extension AnalyticsIntervalRepositoryTests {
             to: date(year: 2026, month: 7, day: 4, hour: 18),
             preset: nil
         )
-
         await sut.save(data: makeData(totalAmount: 10), for: presetResolution)
         await sut.save(data: makeData(totalAmount: 20), for: shortCustomResolution)
         await sut.save(data: makeData(totalAmount: 30), for: longCustomResolution)
 
-        await sut.invalidateIntersecting(
-            with: [date(year: 2026, month: 7, day: 4, hour: 14)]
-        )
+        // Act
+        await sut.invalidateIntersecting(with: [date(year: 2026, month: 7, day: 4, hour: 14)])
 
-        XCTAssertNil(await sut.cachedData(for: presetResolution))
-        XCTAssertEqual(
-            await sut.cachedData(for: shortCustomResolution)?.totalAmount,
-            20
-        )
-        XCTAssertNil(await sut.cachedData(for: longCustomResolution))
+        // Assert
+        let presetData = await sut.cachedData(for: presetResolution)
+        let shortCustomData = await sut.cachedData(for: shortCustomResolution)
+        let longCustomData = await sut.cachedData(for: longCustomResolution)
+        XCTAssertNil(presetData)
+        XCTAssertEqual(shortCustomData, makeData(totalAmount: 20))
+        XCTAssertNil(longCustomData)
     }
+}
 
+// MARK: - clear
+
+extension AnalyticsIntervalRepositoryTests {
     func testClearRemovesAllSavedIntervals() async {
-        await sut.save(
-            data: makeData(totalAmount: 55),
-            for: makeResolution(
-                from: date(year: 2026, month: 7, day: 1, hour: 0),
-                to: date(year: 2026, month: 7, day: 3, hour: 10),
-                preset: .week
-            )
+        // Arrange
+        let resolution = makeResolution(
+            from: date(year: 2026, month: 7, day: 1, hour: 0),
+            to: date(year: 2026, month: 7, day: 3, hour: 10),
+            preset: .week
         )
+        await sut.save(data: makeData(totalAmount: 55), for: resolution)
 
+        // Act
         await sut.clear()
 
-        XCTAssertNil(
-            await sut.cachedData(
-                for: makeResolution(
-                    from: date(year: 2026, month: 7, day: 1, hour: 0),
-                    to: date(year: 2026, month: 7, day: 3, hour: 10),
-                    preset: .week
-                )
-            )
-        )
+        // Assert
+        let result = await sut.cachedData(for: resolution)
+        XCTAssertNil(result)
     }
 }
 

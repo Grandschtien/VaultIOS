@@ -17,7 +17,7 @@ final class CategoriesListCategoriesProviderTests: XCTestCase {
         cache.save(categories: cachedCategories)
 
         let sut = CategoriesListCategoriesProvider(
-            categoriesService: CategoriesServiceSpy(listResult: .failure(StubError.any)),
+            categoriesService: MainCategoriesContractServicingMock(),
             cache: cache
         )
 
@@ -27,29 +27,26 @@ final class CategoriesListCategoriesProviderTests: XCTestCase {
 
 extension CategoriesListCategoriesProviderTests {
     func testFetchCategoriesUsesTotalSpentAndFallsBackToUsdWhenMissing() async throws {
-        let categoriesService = CategoriesServiceSpy(
-            listResult: .success(
-                CategoriesResponseDTO(categories: [
-                    .init(
-                        id: "cat-1",
-                        name: "Food",
-                        icon: "🍴",
-                        color: "light_orange",
-                        totalSpent: 18.5,
-                        currency: "EUR"
-                    ),
-                    .init(
-                        id: "cat-2",
-                        name: "Unmapped",
-                        icon: "📦",
-                        color: "light_blue",
-                        totalSpentUsd: 7.25,
-                        totalSpent: nil,
-                        currency: "EUR"
-                    )
-                ])
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesReturnValue = CategoriesResponseDTO(categories: [
+            .init(
+                id: "cat-1",
+                name: "Food",
+                icon: "🍴",
+                color: "light_orange",
+                totalSpent: 18.5,
+                currency: "EUR"
+            ),
+            .init(
+                id: "cat-2",
+                name: "Unmapped",
+                icon: "📦",
+                color: "light_blue",
+                totalSpentUsd: 7.25,
+                totalSpent: nil,
+                currency: "EUR"
             )
-        )
+        ])
         let cache = MainDataStoreCache()
         let sut = CategoriesListCategoriesProvider(
             categoriesService: categoriesService,
@@ -70,8 +67,10 @@ extension CategoriesListCategoriesProviderTests {
 
 extension CategoriesListCategoriesProviderTests {
     func testFetchCategoriesWhenServiceFailsRethrowsError() async {
+        let categoriesService = MainCategoriesContractServicingMock()
+        categoriesService.listCategoriesThrowableError = TestError.any
         let sut = CategoriesListCategoriesProvider(
-            categoriesService: CategoriesServiceSpy(listResult: .failure(StubError.any)),
+            categoriesService: categoriesService,
             cache: MainDataStoreCache()
         )
 
@@ -79,65 +78,7 @@ extension CategoriesListCategoriesProviderTests {
             _ = try await sut.fetchCategories()
             XCTFail("Expected throw")
         } catch {
-            XCTAssertNotNil(error as? StubError)
+            XCTAssertEqual(error as? TestError, .any)
         }
-    }
-}
-
-private extension CategoriesListCategoriesProviderTests {
-    enum StubError: Error {
-        case any
-    }
-}
-
-private actor CategoriesServiceSpy: MainCategoriesContractServicing {
-    private let listResult: Result<CategoriesResponseDTO, Error>
-
-    init(listResult: Result<CategoriesResponseDTO, Error>) {
-        self.listResult = listResult
-    }
-
-    func createCategory(_ request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO {
-        throw CategoriesListCategoriesProviderTests.StubError.any
-    }
-
-    func listCategories() async throws -> CategoriesResponseDTO {
-        try listResult.get()
-    }
-
-    func getCategory(id: String) async throws -> CategoryResponseDTO {
-        throw CategoriesListCategoriesProviderTests.StubError.any
-    }
-
-    func deleteCategory(id: String) async throws {
-        throw CategoriesListCategoriesProviderTests.StubError.any
-    }
-}
-
-private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
-    private let lock = NSLock()
-    private var profile: UserProfileDefaults?
-
-    init(profile: UserProfileDefaults?) {
-        self.profile = profile
-    }
-
-    func saveProfile(_ profile: UserProfileDefaults) {
-        lock.lock()
-        self.profile = profile
-        lock.unlock()
-    }
-
-    func loadProfile() -> UserProfileDefaults? {
-        lock.lock()
-        let value = profile
-        lock.unlock()
-        return value
-    }
-
-    func clearProfile() {
-        lock.lock()
-        profile = nil
-        lock.unlock()
     }
 }

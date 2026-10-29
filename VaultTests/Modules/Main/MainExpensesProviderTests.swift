@@ -2,195 +2,122 @@ import XCTest
 @testable import Vylok
 
 final class MainExpensesProviderTests: XCTestCase {
-    func testFetchExpensesRequestsFiveItemsAndCapsOutputToFive() async throws {
-        let expensesService = ExpensesServiceSpy(
-            listResult: .success(
-                .init(
-                    expenses: makeExpenses(count: 7),
-                    nextCursor: "cursor-1",
-                    hasMore: true
-                )
-            )
-        )
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "EUR",
-                language: "en-US",
-                currencyRate: 2.0
-            )
-        )
+    private var expensesService: MainExpensesContractServicingMock!
+    private var currencyConversionService: UserCurrencyConvertingMock!
 
-        let sut = MainExpensesProvider(
-            expensesService: expensesService,
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: profileStorage
-            )
-        )
+    override func setUp() {
+        super.setUp()
+        expensesService = MainExpensesContractServicingMock()
+        currencyConversionService = UserCurrencyConvertingMock()
+    }
 
-        let expenses = try await sut.fetchExpenses()
-        let requestedParameters = await expensesService.requestedParameters()
-
-        XCTAssertEqual(requestedParameters, [.init(limit: 5)])
-        XCTAssertEqual(expenses.count, 5)
-        XCTAssertEqual(expenses.map(\.id), ["expense-1", "expense-2", "expense-3", "expense-4", "expense-5"])
-        XCTAssertEqual(expenses.first?.amount, 0.5)
-        XCTAssertEqual(expenses.first?.currency, "EUR")
+    override func tearDown() {
+        currencyConversionService = nil
+        expensesService = nil
+        super.tearDown()
     }
 }
+
+// MARK: - fetchExpenses
 
 extension MainExpensesProviderTests {
-    func testFetchExpensesMapsNilDescriptionToEmptyString() async throws {
-        let expense = ExpenseDTO(
-            id: "expense-1",
-            title: "Taxi",
-            description: nil,
-            amount: 24,
-            currency: "USD",
-            category: "transport",
-            timeOfAdd: .init(timeIntervalSince1970: 1_700_000_000)
-        )
-
-        let expensesService = ExpensesServiceSpy(
-            listResult: .success(
-                .init(
-                    expenses: [expense],
-                    nextCursor: nil,
-                    hasMore: false
-                )
-            )
-        )
-
+    func testFetchExpensesWhenServiceReturnsMoreThanLimitReturnsFirstFiveConverted() async throws {
+        // Arrange
         let sut = MainExpensesProvider(
             expensesService: expensesService,
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: UserProfileStorageSpy(profile: nil)
-            )
+            currencyConversionService: currencyConversionService
         )
+        expensesService.listExpensesParametersReturnValue = ExpenseDTOFixtures.makeListResponse(
+            expenses: ExpenseDTOFixtures.makeExpenses(count: 7),
+            nextCursor: "cursor-1",
+            hasMore: true
+        )
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyReturnValue =
+            UserCurrencyAmount(amount: 10, currency: "EUR")
 
+        // Act
         let expenses = try await sut.fetchExpenses()
-        XCTAssertEqual(expenses.first?.description, "")
+
+        // Assert
+        XCTAssertEqual(
+            expensesService.listExpensesParametersReceivedInvocations,
+            [ExpensesListQueryParameters(limit: 5)]
+        )
+        XCTAssertEqual(
+            expenses,
+            (1...5).map { index in
+                MainExpenseModel(
+                    id: "expense-\(index)",
+                    title: "Expense \(index)",
+                    description: "Latte",
+                    amount: 10,
+                    currency: "EUR",
+                    category: "food",
+                    timeOfAdd: ExpenseDTOFixtures.timeOfAdd
+                )
+            }
+        )
     }
 
-    func testFetchExpensesShowsOriginalAmountWhenOriginalCurrencyMatchesPreferredCurrency() async throws {
-        let expense = ExpenseDTO(
-            id: "expense-1",
-            title: "Coffee",
-            description: "Morning",
-            amount: 2.62,
-            currency: "USD",
-            originalAmount: 200,
-            originalCurrency: "RUB",
-            category: "transport",
-            timeOfAdd: .init(timeIntervalSince1970: 1_700_000_000)
-        )
-
-        let expensesService = ExpensesServiceSpy(
-            listResult: .success(
-                .init(
-                    expenses: [expense],
-                    nextCursor: nil,
-                    hasMore: false
-                )
-            )
-        )
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "RUB",
-                language: "ru",
-                currencyRate: 76.34
-            )
-        )
-
+    func testFetchExpensesWhenDescriptionIsNilPassesOriginalAmountAndMapsEmptyDescription() async throws {
+        // Arrange
         let sut = MainExpensesProvider(
             expensesService: expensesService,
-            currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: profileStorage
-            )
+            currencyConversionService: currencyConversionService
         )
+        expensesService.listExpensesParametersReturnValue = ExpenseDTOFixtures.makeListResponse(
+            expenses: [
+                ExpenseDTOFixtures.makeExpense(
+                    description: nil,
+                    amount: 24,
+                    currency: "USD",
+                    originalAmount: 2_000,
+                    originalCurrency: "RUB"
+                )
+            ]
+        )
+        currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyReturnValue =
+            UserCurrencyAmount(amount: 2_000, currency: "RUB")
 
+        // Act
         let expenses = try await sut.fetchExpenses()
 
-        XCTAssertEqual(expenses.first?.amount, 200)
-        XCTAssertEqual(expenses.first?.currency, "RUB")
-    }
-}
-
-private extension MainExpensesProviderTests {
-    func makeExpenses(count: Int) -> [ExpenseDTO] {
-        (1...count).map { index in
-            ExpenseDTO(
-                id: "expense-\(index)",
-                title: "Expense \(index)",
-                description: "Description \(index)",
-                amount: Double(index),
-                currency: "USD",
-                category: "category-\(index)",
-                timeOfAdd: .init(timeIntervalSince1970: TimeInterval(1_700_000_000 + index))
-            )
-        }
-    }
-}
-
-private actor ExpensesServiceSpy: MainExpensesContractServicing {
-    private let listResult: Result<ExpensesListResponseDTO, Error>
-    private var parametersHistory: [ExpensesListQueryParameters] = []
-
-    init(listResult: Result<ExpensesListResponseDTO, Error>) {
-        self.listResult = listResult
+        // Assert
+        let conversionArguments = try XCTUnwrap(
+            currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyReceivedArguments
+        )
+        XCTAssertTrue(
+            conversionArguments == (amount: 24, currency: "USD", originalAmount: 2_000, originalCurrency: "RUB")
+        )
+        XCTAssertEqual(
+            expenses,
+            [
+                MainExpenseModel(
+                    id: "expense-1",
+                    title: "Coffee",
+                    description: "",
+                    amount: 2_000,
+                    currency: "RUB",
+                    category: "food",
+                    timeOfAdd: ExpenseDTOFixtures.timeOfAdd
+                )
+            ]
+        )
     }
 
-    func createExpenses(_ request: ExpensesCreateRequestDTO) async throws -> ExpensesCreateResponseDTO {
-        throw StubError.any
-    }
+    func testFetchExpensesWhenServiceFailsRethrowsError() async {
+        // Arrange
+        let sut = MainExpensesProvider(
+            expensesService: expensesService,
+            currencyConversionService: currencyConversionService
+        )
+        expensesService.listExpensesParametersThrowableError = TestError.any
 
-    func listExpenses(parameters: ExpensesListQueryParameters) async throws -> ExpensesListResponseDTO {
-        parametersHistory.append(parameters)
-        return try listResult.get()
-    }
+        // Act
+        let result = await Result { try await sut.fetchExpenses() }
 
-    func deleteExpense(id: String) async throws {
-        throw StubError.any
-    }
-
-    func requestedParameters() -> [ExpensesListQueryParameters] {
-        parametersHistory
-    }
-}
-
-private enum StubError: Error {
-    case any
-}
-
-private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
-    private let lock = NSLock()
-    private var profile: UserProfileDefaults?
-
-    init(profile: UserProfileDefaults?) {
-        self.profile = profile
-    }
-
-    func saveProfile(_ profile: UserProfileDefaults) {
-        lock.lock()
-        self.profile = profile
-        lock.unlock()
-    }
-
-    func loadProfile() -> UserProfileDefaults? {
-        lock.lock()
-        let value = profile
-        lock.unlock()
-        return value
-    }
-
-    func clearProfile() {
-        lock.lock()
-        profile = nil
-        lock.unlock()
+        // Assert
+        XCTAssertEqual(result.failure as? TestError, .any)
+        XCTAssertFalse(currencyConversionService.convertExpenseAmountCurrencyOriginalAmountOriginalCurrencyCalled)
     }
 }

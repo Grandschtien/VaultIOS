@@ -2,7 +2,7 @@
 
 import Foundation
 
-struct SubscriptionFetchData: Sendable {
+struct SubscriptionFetchData: Equatable, Sendable {
     let title: String
     let loadingState: LoadingStatus
     let currentTier: String

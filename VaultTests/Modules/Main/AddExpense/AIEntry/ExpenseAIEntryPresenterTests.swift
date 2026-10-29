@@ -4,11 +4,11 @@ import XCTest
 @MainActor
 final class ExpenseAIEntryPresenterTests: XCTestCase {
     private var sut: ExpenseAIEntryPresenter!
-    private var handler: ExpenseAIEntryHandlerSpy!
+    private var handler: ExpenseAIEntryHandlerMock!
 
     override func setUp() {
         super.setUp()
-        handler = ExpenseAIEntryHandlerSpy()
+        handler = ExpenseAIEntryHandlerMock()
         sut = ExpenseAIEntryPresenter(viewModel: .init())
         sut.handler = handler
     }
@@ -76,14 +76,4 @@ final class ExpenseAIEntryPresenterTests: XCTestCase {
         XCTAssertEqual(sut.viewModel.header.title.text, L10n.expenseAiEntryTitle)
         XCTAssertEqual(sut.viewModel.promptInput.placeholder, L10n.expenseAiEntryPlaceholder)
     }
-}
-
-private final class ExpenseAIEntryHandlerSpy: ExpenseAIEntryHandler, @unchecked Sendable {
-    func handleChangePrompt(_ text: String) async {}
-    func handleStartVoiceRecording() async {}
-    func handleStopVoiceRecording() async {}
-    func handleTapProcess() async {}
-    func handleTapClose() async {}
-    func handleTapAddManually() async {}
-    func handleTapFixPrompt() async {}
 }

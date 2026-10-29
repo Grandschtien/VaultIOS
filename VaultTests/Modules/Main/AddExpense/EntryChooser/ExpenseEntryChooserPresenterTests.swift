@@ -4,11 +4,11 @@ import XCTest
 @MainActor
 final class ExpenseEntryChooserPresenterTests: XCTestCase {
     private var sut: ExpenseEntryChooserPresenter!
-    private var handler: ExpenseEntryChooserHandlerSpy!
+    private var handler: ExpenseEntryChooserHandlerMock!
 
     override func setUp() {
         super.setUp()
-        handler = ExpenseEntryChooserHandlerSpy()
+        handler = ExpenseEntryChooserHandlerMock()
         sut = ExpenseEntryChooserPresenter(viewModel: .init())
         sut.handler = handler
     }
@@ -26,10 +26,4 @@ final class ExpenseEntryChooserPresenterTests: XCTestCase {
         XCTAssertEqual(sut.viewModel.aiButton.title, L10n.expenseEntryChooserEnterWithAi)
         XCTAssertEqual(sut.viewModel.manualButton.title, L10n.expenseEntryChooserEnterManually)
     }
-}
-
-private final class ExpenseEntryChooserHandlerSpy: ExpenseEntryChooserHandler, @unchecked Sendable {
-    func handleTapClose() async {}
-    func handleTapAiEntry() async {}
-    func handleTapManualEntry() async {}
 }

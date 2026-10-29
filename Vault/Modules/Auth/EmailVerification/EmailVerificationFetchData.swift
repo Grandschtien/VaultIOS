@@ -1,6 +1,6 @@
 import Foundation
 
-struct EmailVerificationFetchData: Sendable {
+struct EmailVerificationFetchData: Equatable, Sendable {
     let loadingState: LoadingStatus
     let email: String
     let code: String

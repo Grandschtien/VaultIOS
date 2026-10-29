@@ -4,14 +4,25 @@ import UIKit
 
 @MainActor
 final class CategoryPresenterTests: XCTestCase {
-    private var formatter: MainValueFormatterStub!
-    private var colorProvider: CategoryColorProviderStub!
+    private var formatter: MainValueFormattingMock!
+    private var colorProvider: CategoryColorProvidingMock!
     private var sut: CategoryPresenter!
 
     override func setUp() {
         super.setUp()
-        formatter = MainValueFormatterStub()
-        colorProvider = CategoryColorProviderStub()
+        formatter = MainValueFormattingMock()
+        formatter.formatAmountCurrencyCodeClosure = { "amount-\($0)-\($1)" }
+        formatter.formatExpenseAmountCurrencyCodeClosure = { "-amount-\($0)-\($1)" }
+        formatter.formatSummaryPeriodClosure = { "from-\(Int($0.timeIntervalSince1970))" }
+        formatter.formatSummaryChangeClosure = { "summary-\($0)" }
+        formatter.formatSectionDateNowClosure = { date, _ in "section-\(Int(date.timeIntervalSince1970))" }
+        formatter.formatExpenseTimeNowClosure = { date, _ in "time-\(Int(date.timeIntervalSince1970))" }
+        colorProvider = CategoryColorProvidingMock()
+        colorProvider.colorForReturnValue = .systemTeal
+        colorProvider.summaryColorForReturnValue = .systemTeal
+        colorProvider.accentColorForReturnValue = .systemMint
+        colorProvider.normalizedHexFromClosure = { $0 }
+        colorProvider.hexStringFromReturnValue = "#008080"
         sut = CategoryPresenter(
             viewModel: .init(),
             formatter: formatter,
@@ -211,53 +222,5 @@ extension CategoryPresenterTests {
         }
 
         XCTAssertNotEqual(errorViewModel.tapCommand, .nope)
-    }
-}
-
-private final class MainValueFormatterStub: MainValueFormatting, @unchecked Sendable {
-    func formatAmount(_ amount: Double, currencyCode: String) -> String {
-        "amount-\(amount)-\(currencyCode)"
-    }
-
-    func formatExpenseAmount(_ amount: Double, currencyCode: String) -> String {
-        "-amount-\(amount)-\(currencyCode)"
-    }
-
-    func formatSummaryPeriod(_ date: Date) -> String {
-        "from-\(Int(date.timeIntervalSince1970))"
-    }
-
-    func formatSummaryChange(_ percent: Double) -> String {
-        "summary-\(percent)"
-    }
-
-    func formatSectionDate(_ date: Date, now: Date) -> String {
-        "section-\(Int(date.timeIntervalSince1970))"
-    }
-
-    func formatExpenseTime(_ date: Date, now: Date) -> String {
-        "time-\(Int(date.timeIntervalSince1970))"
-    }
-}
-
-private final class CategoryColorProviderStub: CategoryColorProviding, @unchecked Sendable {
-    func color(for value: String) -> UIColor {
-        .systemTeal
-    }
-
-    func summaryColor(for value: String) -> UIColor {
-        .systemTeal
-    }
-
-    func accentColor(for value: String) -> UIColor {
-        .systemMint
-    }
-
-    func normalizedHex(from value: String) -> String? {
-        value
-    }
-
-    func hexString(from color: UIColor) -> String? {
-        "#008080"
     }
 }

@@ -4,11 +4,11 @@ import XCTest
 @MainActor
 final class ExpenseCategoryPickerPresenterTests: XCTestCase {
     private var sut: ExpenseCategoryPickerPresenter!
-    private var handler: ExpenseCategoryPickerHandlerSpy!
+    private var handler: ExpenseCategoryPickerHandlerMock!
 
     override func setUp() {
         super.setUp()
-        handler = ExpenseCategoryPickerHandlerSpy()
+        handler = ExpenseCategoryPickerHandlerMock()
         sut = ExpenseCategoryPickerPresenter(
             viewModel: .init(),
             colorProvider: CategoryColorProvider()
@@ -73,12 +73,4 @@ final class ExpenseCategoryPickerPresenterTests: XCTestCase {
         XCTAssertEqual(rows.last?.isSelected, true)
         XCTAssertTrue(sut.viewModel.addButton.isEnabled)
     }
-}
-
-private final class ExpenseCategoryPickerHandlerSpy: ExpenseCategoryPickerHandler, @unchecked Sendable {
-    func handleTapCategory(id: String) async {}
-    func handleTapAdd() async {}
-    func handleTapCreateCategory() async {}
-    func handleTapRetry() async {}
-    func handleTapClose() async {}
 }

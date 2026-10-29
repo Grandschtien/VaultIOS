@@ -7,9 +7,9 @@ final class ProfileContractsAPITests: XCTestCase {
 
         XCTAssertEqual(target.path, "/profile")
         XCTAssertEqual(target.method.rawValue, "GET")
-        XCTAssertEqual(target.host, "localhost")
+        XCTAssertEqual(target.host, MainAPIConfiguration.host)
         XCTAssertEqual(target.timeoutInterval, 30)
-        XCTAssertEqual(target.url.absoluteString, "https://localhost:8080/profile")
+        XCTAssertEqual(target.url, MainAPIConfiguration.url(path: "/profile"))
 
         guard case .plain = target.requestType else {
             return XCTFail("Expected plain request type")
@@ -29,9 +29,9 @@ extension ProfileContractsAPITests {
 
         XCTAssertEqual(target.path, "/profile")
         XCTAssertEqual(target.method.rawValue, "PATCH")
-        XCTAssertEqual(target.host, "localhost")
+        XCTAssertEqual(target.host, MainAPIConfiguration.host)
         XCTAssertEqual(target.timeoutInterval, 30)
-        XCTAssertEqual(target.url.absoluteString, "https://localhost:8080/profile")
+        XCTAssertEqual(target.url, MainAPIConfiguration.url(path: "/profile"))
 
         guard case .custonJSON = target.requestType else {
             return XCTFail("Expected custom JSON request type")
@@ -43,9 +43,9 @@ extension ProfileContractsAPITests {
 
         XCTAssertEqual(target.path, "/account")
         XCTAssertEqual(target.method.rawValue, "DELETE")
-        XCTAssertEqual(target.host, "localhost")
+        XCTAssertEqual(target.host, MainAPIConfiguration.host)
         XCTAssertEqual(target.timeoutInterval, 30)
-        XCTAssertEqual(target.url.absoluteString, "https://localhost:8080/account")
+        XCTAssertEqual(target.url, MainAPIConfiguration.url(path: "/account"))
 
         guard case .plain = target.requestType else {
             return XCTFail("Expected plain request type")

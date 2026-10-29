@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct RegisterRequestDTO: Codable, Sendable {
+struct RegisterRequestDTO: Codable, Equatable, Sendable {
     let provider: String
     let email: String
     let password: String

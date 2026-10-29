@@ -1,89 +1,33 @@
 import XCTest
 @testable import Vylok
 
-@MainActor
 final class EmailVerificationInteractorTests: XCTestCase {
-    func testFetchDataPresentsInitialState() async {
-        let presenter = EmailVerificationPresenterSpy()
-        let sut = makeSut(
+    private var authVerificationService: AuthVerificationContractServicingMock!
+    private var presenter: EmailVerificationPresentationLogicMock!
+    private var router: EmailVerificationRoutingLogicMock!
+    private var tokenStorageService: TokenStorageServiceProtocolMock!
+    private var userProfileStorageService: UserProfileStorageServiceProtocolMock!
+    private var subscriptionInitializer: SubscriptionInitializerLogicMock!
+    private var widgetSnapshotSyncService: VylokWidgetSnapshotSyncingMock!
+    private var registrationStorage: RegistrationStorageProtocolMock!
+    private var sut: EmailVerificationInteractor!
+
+    override func setUp() {
+        super.setUp()
+        authVerificationService = AuthVerificationContractServicingMock()
+        presenter = EmailVerificationPresentationLogicMock()
+        router = EmailVerificationRoutingLogicMock()
+        tokenStorageService = TokenStorageServiceProtocolMock()
+        userProfileStorageService = UserProfileStorageServiceProtocolMock()
+        subscriptionInitializer = SubscriptionInitializerLogicMock()
+        widgetSnapshotSyncService = VylokWidgetSnapshotSyncingMock()
+        registrationStorage = RegistrationStorageProtocolMock()
+        sut = EmailVerificationInteractor(
+            authVerificationService: authVerificationService,
             presenter: presenter,
-            context: EmailVerificationContext(
-                source: .login,
-                email: "jane@example.com",
-                expiresIn: 600,
-                resendAvailableIn: 60
-            )
-        )
-
-        await sut.fetchData()
-
-        XCTAssertEqual(presenter.presentedData.last?.email, "jane@example.com")
-        XCTAssertEqual(presenter.presentedData.last?.resendAvailableIn, 60)
-    }
-
-    func testHandleCodeDidChangeWithPartialCodeDoesNotShowValidationError() async {
-        let presenter = EmailVerificationPresenterSpy()
-        let sut = makeSut(presenter: presenter)
-
-        await sut.handleCodeDidChange("123")
-
-        XCTAssertEqual(presenter.presentedData.last?.code, "123")
-        XCTAssertNil(presenter.presentedData.last?.errorMessage)
-    }
-
-    func testHandleCodeDidChangeWithFullCodeAutoVerifiesAndShowsInlineError() async {
-        let presenter = EmailVerificationPresenterSpy()
-        let service = AuthVerificationContractServiceSpy()
-        service.verifyResult = .failure(.invalidCode)
-        let sut = makeSut(
-            service: service,
-            presenter: presenter
-        )
-
-        await sut.handleCodeDidChange("123456")
-
-        XCTAssertEqual(presenter.presentedData.last?.errorMessage, L10n.emailVerificationInvalidCode)
-    }
-
-    func testHandleCodeDidChangeWithFullCodeSuccessSavesSessionClearsRegistrationStorageAndOpensMainFlow() async {
-        let service = AuthVerificationContractServiceSpy()
-        service.verifyResult = .success(
-            LoginResponseDTO(
-                accessToken: "access",
-                refreshToken: "refresh",
-                tokenType: "Bearer",
-                expiresIn: 900,
-                user: .init(
-                    id: "1",
-                    email: "jane@example.com",
-                    emailVerified: true,
-                    name: "Jane Doe",
-                    currency: "USD",
-                    preferredLanguage: "en",
-                    tier: "REGULAR"
-                )
-            )
-        )
-        let router = EmailVerificationRouterSpy()
-        let tokenStorage = TokenStorageSpy()
-        let profileStorage = UserProfileStorageSpy()
-        let registrationStorage = RegistrationStorage()
-        await registrationStorage.saveDraft(
-            RegistrationDraft(
-                email: "jane@example.com",
-                password: "secret123",
-                confirmPassword: "secret123",
-                name: "Jane Doe",
-                currencyCode: "USD"
-            )
-        )
-        let subscriptionInitializer = SubscriptionInitializerSpy()
-        let widgetSnapshotSyncService = WidgetSnapshotSyncSpy()
-        let sut = makeSut(
-            service: service,
             router: router,
-            tokenStorage: tokenStorage,
-            profileStorage: profileStorage,
+            tokenStorageService: tokenStorageService,
+            userProfileStorageService: userProfileStorageService,
             subscriptionInitializer: subscriptionInitializer,
             widgetSnapshotSyncService: widgetSnapshotSyncService,
             context: EmailVerificationContext(
@@ -94,241 +38,307 @@ final class EmailVerificationInteractorTests: XCTestCase {
             ),
             registrationStorage: registrationStorage
         )
-
-        await sut.handleCodeDidChange("123456")
-
-        XCTAssertEqual(router.openMainFlowCallsCount, 1)
-        XCTAssertEqual(
-            tokenStorage.savedToken,
-            AuthTokenDTO(
-                accessToken: "access",
-                refreshToken: "refresh",
-                tokenType: "Bearer",
-                expiresIn: 900
-            )
-        )
-        XCTAssertEqual(
-            profileStorage.savedProfile,
-            UserProfileDefaults(
-                userId: "1",
-                email: "jane@example.com",
-                name: "Jane Doe",
-                currency: "USD",
-                language: "en"
-            )
-        )
-        XCTAssertEqual(await subscriptionInitializer.capturedUserIds(), ["1"])
-        XCTAssertEqual(widgetSnapshotSyncService.syncSnapshotCallsCount, 0)
-        XCTAssertEqual(await registrationStorage.loadDraft(), .init())
     }
 
-    func testHandleTapResendSuccessResetsCodeErrorAndCooldown() async {
-        let presenter = EmailVerificationPresenterSpy()
-        let service = AuthVerificationContractServiceSpy()
-        service.resendResult = .success(
-            EmailVerificationChallengeResponseDTO(
-                status: "code_sent",
-                email: "jane@example.com",
-                expiresIn: 600,
-                resendAvailableIn: 60
-            )
-        )
-        let sut = makeSut(
-            service: service,
-            presenter: presenter,
-            context: EmailVerificationContext(
-                source: .login,
-                email: "jane@example.com",
-                expiresIn: 600,
-                resendAvailableIn: 0
-            )
-        )
-
-        await sut.handleCodeDidChange("123")
-        await sut.handleTapResend()
-
-        XCTAssertEqual(presenter.presentedData.last?.code, "")
-        XCTAssertNil(presenter.presentedData.last?.errorMessage)
-        XCTAssertEqual(presenter.presentedData.last?.resendAvailableIn, 60)
-    }
-
-    func testHandleTapResendFailurePreservesStateAndShowsToastError() async {
-        let presenter = EmailVerificationPresenterSpy()
-        let router = EmailVerificationRouterSpy()
-        let service = AuthVerificationContractServiceSpy()
-        service.resendResult = .failure(.resendTooSoon)
-        let sut = makeSut(
-            service: service,
-            presenter: presenter,
-            router: router,
-            context: EmailVerificationContext(
-                source: .login,
-                email: "jane@example.com",
-                expiresIn: 600,
-                resendAvailableIn: 0
-            )
-        )
-
-        await sut.handleCodeDidChange("123456")
-        await sut.handleTapResend()
-
-        XCTAssertEqual(presenter.presentedData.last?.code, "123456")
-        XCTAssertEqual(router.presentedErrors, [L10n.authVerificationErrorResendTooSoon])
+    override func tearDown() {
+        sut = nil
+        registrationStorage = nil
+        widgetSnapshotSyncService = nil
+        subscriptionInitializer = nil
+        userProfileStorageService = nil
+        tokenStorageService = nil
+        router = nil
+        presenter = nil
+        authVerificationService = nil
+        super.tearDown()
     }
 }
 
-private extension EmailVerificationInteractorTests {
-    @MainActor
-    func makeSut(
-        service: AuthVerificationContractServicing = AuthVerificationContractServiceSpy(),
-        presenter: EmailVerificationPresentationLogic = EmailVerificationPresenterSpy(),
-        router: EmailVerificationRoutingLogic = EmailVerificationRouterSpy(),
-        tokenStorage: TokenStorageServiceProtocol = TokenStorageSpy(),
-        profileStorage: UserProfileStorageServiceProtocol = UserProfileStorageSpy(),
-        subscriptionInitializer: SubscriptionInitializerLogic = SubscriptionInitializerSpy(),
-        widgetSnapshotSyncService: VylokWidgetSnapshotSyncing = WidgetSnapshotSyncSpy(),
-        context: EmailVerificationContext = .init(
-            source: .login,
+// MARK: - fetchData
+
+extension EmailVerificationInteractorTests {
+    func testFetchDataPresentsEmailFromContext() async {
+        // Act
+        await sut.fetchData()
+
+        // Assert
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [EmailVerificationFetchData(loadingState: .idle, email: "jane@example.com")]
+        )
+    }
+}
+
+// MARK: - handleCodeDidChange
+
+extension EmailVerificationInteractorTests {
+    func testHandleCodeDidChangeWhenCodeIsIncompleteKeepsDigitsOnlyAndDoesNotVerify() async {
+        // Act
+        await sut.handleCodeDidChange("12a3")
+
+        // Assert
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [EmailVerificationFetchData(loadingState: .idle, email: "jane@example.com", code: "123")]
+        )
+        XCTAssertFalse(authVerificationService.verifyEmailCalled)
+    }
+
+    func testHandleCodeDidChangeWhenCodeIsCompleteVerifiesAppliesSessionAndOpensMainFlow() async {
+        // Arrange
+        authVerificationService.verifyEmailReturnValue = LoginResponseDTOFixtures.makeResponse()
+
+        // Act
+        await sut.handleCodeDidChange("123456")
+
+        // Assert
+        XCTAssertEqual(
+            authVerificationService.verifyEmailReceivedInvocations,
+            [EmailVerificationRequestDTO(email: "jane@example.com", code: "123456")]
+        )
+        XCTAssertEqual(
+            tokenStorageService.setTokenReceivedInvocations,
+            [AuthTokenDTO(accessToken: "access", refreshToken: "refresh", tokenType: "Bearer", expiresIn: 900)]
+        )
+        XCTAssertEqual(
+            userProfileStorageService.saveProfileReceivedInvocations,
+            [UserProfileDefaults(userId: "user-1", email: "jane@example.com", name: "Jane Doe", currency: "USD", language: "en")]
+        )
+        XCTAssertEqual(subscriptionInitializer.setUserIdReceivedInvocations, ["user-1"])
+        XCTAssertEqual(registrationStorage.clearCallsCount, 1)
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                EmailVerificationFetchData(loadingState: .idle, email: "jane@example.com", code: "123456"),
+                EmailVerificationFetchData(loadingState: .loading, email: "jane@example.com", code: "123456"),
+                EmailVerificationFetchData(loadingState: .loaded, email: "jane@example.com", code: "123456")
+            ]
+        )
+        XCTAssertEqual(router.openMainFlowCallsCount, 1)
+    }
+
+    func testHandleCodeDidChangeWhenSourceIsLoginDoesNotClearRegistrationDraft() async {
+        // Arrange
+        let sut = EmailVerificationInteractor(
+            authVerificationService: authVerificationService,
+            presenter: presenter,
+            router: router,
+            tokenStorageService: tokenStorageService,
+            userProfileStorageService: userProfileStorageService,
+            subscriptionInitializer: subscriptionInitializer,
+            widgetSnapshotSyncService: widgetSnapshotSyncService,
+            context: EmailVerificationContext(
+                source: .login,
+                email: "jane@example.com",
+                expiresIn: 600,
+                resendAvailableIn: 0
+            ),
+            registrationStorage: registrationStorage
+        )
+        authVerificationService.verifyEmailReturnValue = LoginResponseDTOFixtures.makeResponse()
+
+        // Act
+        await sut.handleCodeDidChange("123456")
+
+        // Assert
+        XCTAssertFalse(registrationStorage.clearCalled)
+        XCTAssertEqual(router.openMainFlowCallsCount, 1)
+    }
+
+    func testHandleCodeDidChangeWhenCodeIsInvalidShowsInlineError() async {
+        // Arrange
+        authVerificationService.verifyEmailThrowableError = AuthVerificationContractError.invalidCode
+
+        // Act
+        await sut.handleCodeDidChange("123456")
+
+        // Assert
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                EmailVerificationFetchData(loadingState: .idle, email: "jane@example.com", code: "123456"),
+                EmailVerificationFetchData(loadingState: .loading, email: "jane@example.com", code: "123456"),
+                EmailVerificationFetchData(
+                    loadingState: .idle,
+                    email: "jane@example.com",
+                    code: "123456",
+                    errorMessage: L10n.emailVerificationInvalidCode
+                )
+            ]
+        )
+        XCTAssertFalse(router.presentErrorWithCalled)
+        XCTAssertFalse(router.openMainFlowCalled)
+    }
+
+    func testHandleCodeDidChangeWhenContractErrorHasNoInlineMessagePresentsErrorAlert() async {
+        // Arrange
+        authVerificationService.verifyEmailThrowableError = AuthVerificationContractError.serverError
+
+        // Act
+        await sut.handleCodeDidChange("123456")
+
+        // Assert
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                EmailVerificationFetchData(loadingState: .idle, email: "jane@example.com", code: "123456"),
+                EmailVerificationFetchData(loadingState: .loading, email: "jane@example.com", code: "123456"),
+                EmailVerificationFetchData(loadingState: .idle, email: "jane@example.com", code: "123456")
+            ]
+        )
+        XCTAssertEqual(
+            router.presentErrorWithReceivedInvocations,
+            [AuthVerificationContractError.serverError.localizedDescription]
+        )
+        XCTAssertFalse(router.openMainFlowCalled)
+    }
+
+    func testHandleCodeDidChangeWhenUnexpectedErrorPresentsFailedStateAndErrorAlert() async {
+        // Arrange
+        authVerificationService.verifyEmailThrowableError = TestError.any
+
+        // Act
+        await sut.handleCodeDidChange("123456")
+
+        // Assert
+        let errorDescription = TestError.any.localizedDescription
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                EmailVerificationFetchData(loadingState: .idle, email: "jane@example.com", code: "123456"),
+                EmailVerificationFetchData(loadingState: .loading, email: "jane@example.com", code: "123456"),
+                EmailVerificationFetchData(
+                    loadingState: .failed(.undelinedError(description: errorDescription)),
+                    email: "jane@example.com",
+                    code: "123456"
+                )
+            ]
+        )
+        XCTAssertEqual(router.presentErrorWithReceivedInvocations, [errorDescription])
+        XCTAssertFalse(router.openMainFlowCalled)
+    }
+}
+
+// MARK: - handleTapVerify
+
+extension EmailVerificationInteractorTests {
+    func testHandleTapVerifyWhenCodeIsIncompleteShowsFillFieldError() async {
+        // Act
+        await sut.handleTapVerify()
+
+        // Assert
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                EmailVerificationFetchData(
+                    loadingState: .idle,
+                    email: "jane@example.com",
+                    errorMessage: L10n.commonFillField
+                )
+            ]
+        )
+        XCTAssertFalse(authVerificationService.verifyEmailCalled)
+    }
+}
+
+// MARK: - handleTapResend
+
+extension EmailVerificationInteractorTests {
+    func testHandleTapResendWhenCountdownIsOverResendsAndResetsCode() async {
+        // Arrange
+        authVerificationService.resendEmailVerificationReturnValue = EmailVerificationChallengeResponseDTO(
+            status: "code_sent",
             email: "jane@example.com",
             expiresIn: 600,
             resendAvailableIn: 0
-        ),
-        registrationStorage: RegistrationStorageProtocol? = nil
-    ) -> EmailVerificationInteractor {
-        EmailVerificationInteractor(
-            authVerificationService: service,
-            presenter: presenter,
-            router: router,
-            tokenStorageService: tokenStorage,
-            userProfileStorageService: profileStorage,
-            subscriptionInitializer: subscriptionInitializer,
-            widgetSnapshotSyncService: widgetSnapshotSyncService,
-            context: context,
-            registrationStorage: registrationStorage
+        )
+        await sut.handleCodeDidChange("12")
+
+        // Act
+        await sut.handleTapResend()
+
+        // Assert
+        XCTAssertEqual(
+            authVerificationService.resendEmailVerificationReceivedInvocations,
+            [EmailVerificationResendRequestDTO(email: "jane@example.com")]
+        )
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                EmailVerificationFetchData(loadingState: .idle, email: "jane@example.com", code: "12"),
+                EmailVerificationFetchData(loadingState: .loading, email: "jane@example.com", code: "12"),
+                EmailVerificationFetchData(loadingState: .loaded, email: "jane@example.com")
+            ]
         )
     }
-}
 
-private final class AuthVerificationContractServiceSpy: AuthVerificationContractServicing, @unchecked Sendable {
-    var startRegistrationResult: Result<EmailVerificationChallengeResponseDTO, Error> = .failure(AuthVerificationContractError.serverError)
-    var verifyResult: Result<LoginResponseDTO, Error> = .failure(AuthVerificationContractError.serverError)
-    var resendResult: Result<EmailVerificationChallengeResponseDTO, Error> = .failure(AuthVerificationContractError.serverError)
-    var loginResult: Result<LoginResponseDTO, Error> = .failure(AuthVerificationContractError.serverError)
+    func testHandleTapResendWhenCountdownIsActiveDoesNothing() async {
+        // Arrange
+        let sut = EmailVerificationInteractor(
+            authVerificationService: authVerificationService,
+            presenter: presenter,
+            router: router,
+            tokenStorageService: tokenStorageService,
+            userProfileStorageService: userProfileStorageService,
+            subscriptionInitializer: subscriptionInitializer,
+            widgetSnapshotSyncService: widgetSnapshotSyncService,
+            context: EmailVerificationContext(
+                source: .registration,
+                email: "jane@example.com",
+                expiresIn: 600,
+                resendAvailableIn: 30
+            ),
+            registrationStorage: registrationStorage
+        )
 
-    func startEmailRegistration(_ request: RegisterRequestDTO) async throws -> EmailVerificationChallengeResponseDTO {
-        switch startRegistrationResult {
-        case let .success(response):
-            return response
-        case let .failure(error):
-            throw error
-        }
+        // Act
+        await sut.handleTapResend()
+
+        // Assert
+        XCTAssertFalse(authVerificationService.resendEmailVerificationCalled)
+        XCTAssertFalse(presenter.presentFetchedDataCalled)
     }
 
-    func verifyEmail(_ request: EmailVerificationRequestDTO) async throws -> LoginResponseDTO {
-        switch verifyResult {
-        case let .success(response):
-            return response
-        case let .failure(error):
-            throw error
-        }
+    func testHandleTapResendWhenContractErrorPresentsIdleStateAndErrorAlert() async {
+        // Arrange
+        authVerificationService.resendEmailVerificationThrowableError = AuthVerificationContractError.resendTooSoon
+
+        // Act
+        await sut.handleTapResend()
+
+        // Assert
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                EmailVerificationFetchData(loadingState: .loading, email: "jane@example.com"),
+                EmailVerificationFetchData(loadingState: .idle, email: "jane@example.com")
+            ]
+        )
+        XCTAssertEqual(
+            router.presentErrorWithReceivedInvocations,
+            [AuthVerificationContractError.resendTooSoon.localizedDescription]
+        )
     }
 
-    func resendEmailVerification(_ request: EmailVerificationResendRequestDTO) async throws -> EmailVerificationChallengeResponseDTO {
-        switch resendResult {
-        case let .success(response):
-            return response
-        case let .failure(error):
-            throw error
-        }
-    }
+    func testHandleTapResendWhenUnexpectedErrorPresentsFailedStateAndErrorAlert() async {
+        // Arrange
+        authVerificationService.resendEmailVerificationThrowableError = TestError.any
 
-    func login(_ request: LoginRequestDTO) async throws -> LoginResponseDTO {
-        switch loginResult {
-        case let .success(response):
-            return response
-        case let .failure(error):
-            throw error
-        }
-    }
-}
+        // Act
+        await sut.handleTapResend()
 
-private final class WidgetSnapshotSyncSpy: VylokWidgetSnapshotSyncing, @unchecked Sendable {
-    private(set) var syncSnapshotCallsCount = 0
-
-    func syncSnapshot() async {
-        syncSnapshotCallsCount += 1
-    }
-
-    func clearSnapshot() {}
-}
-
-@MainActor
-private final class EmailVerificationPresenterSpy: EmailVerificationPresentationLogic, @unchecked Sendable {
-    private(set) var presentedData: [EmailVerificationFetchData] = []
-
-    func presentFetchedData(_ data: EmailVerificationFetchData) {
-        presentedData.append(data)
-    }
-}
-
-@MainActor
-private final class EmailVerificationRouterSpy: EmailVerificationRoutingLogic, @unchecked Sendable {
-    private(set) var openMainFlowCallsCount = 0
-    private(set) var presentedErrors: [String] = []
-
-    func openMainFlow() {
-        openMainFlowCallsCount += 1
-    }
-
-    func presentError(with text: String) {
-        presentedErrors.append(text)
-    }
-}
-
-private final class TokenStorageSpy: TokenStorageServiceProtocol, @unchecked Sendable {
-    private(set) var savedToken: AuthTokenDTO?
-
-    func setToken(_ token: AuthTokenDTO) {
-        savedToken = token
-    }
-
-    func getToken() -> AuthTokenDTO? {
-        savedToken
-    }
-
-    func removeToken() {
-        savedToken = nil
-    }
-}
-
-private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
-    private(set) var savedProfile: UserProfileDefaults?
-
-    func saveProfile(_ profile: UserProfileDefaults) {
-        savedProfile = profile
-    }
-
-    func loadProfile() -> UserProfileDefaults? {
-        savedProfile
-    }
-
-    func clearProfile() {
-        savedProfile = nil
-    }
-}
-
-private actor SubscriptionInitializerSpy: SubscriptionInitializerLogic {
-    private var userIds: [String] = []
-
-    func initialize() async {}
-
-    func setUserId(_ id: String) async {
-        userIds.append(id)
-    }
-
-    func logout() async {}
-
-    func capturedUserIds() async -> [String] {
-        userIds
+        // Assert
+        let errorDescription = TestError.any.localizedDescription
+        XCTAssertEqual(
+            presenter.presentFetchedDataReceivedInvocations,
+            [
+                EmailVerificationFetchData(loadingState: .loading, email: "jane@example.com"),
+                EmailVerificationFetchData(
+                    loadingState: .failed(.undelinedError(description: errorDescription)),
+                    email: "jane@example.com"
+                )
+            ]
+        )
+        XCTAssertEqual(router.presentErrorWithReceivedInvocations, [errorDescription])
     }
 }

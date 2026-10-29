@@ -3,18 +3,15 @@ import XCTest
 
 final class CategoryProvidersTests: XCTestCase {
     func testSummaryProviderFetchCategoryMapsResponse() async throws {
-        let service = CategorySummaryServiceSpy(
-            getResult: .success(
-                .init(
-                    category: .init(
-                        id: "cat-1",
-                        name: "Food",
-                        icon: "🍔",
-                        color: "light_orange",
-                        totalSpent: 123.4,
-                        currency: "EUR"
-                    )
-                )
+        let service = MainCategoriesContractServicingMock()
+        service.getCategoryIdReturnValue = .init(
+            category: .init(
+                id: "cat-1",
+                name: "Food",
+                icon: "🍔",
+                color: "light_orange",
+                totalSpent: 123.4,
+                currency: "EUR"
             )
         )
         let sut = CategorySummaryProvider(categoriesService: service)
@@ -27,25 +24,22 @@ final class CategoryProvidersTests: XCTestCase {
         XCTAssertEqual(category.color, "light_orange")
         XCTAssertEqual(category.amount, 123.4)
         XCTAssertEqual(category.currency, "EUR")
-        let requestedCategoryIDs = await service.requestedCategoryIDs()
+        let requestedCategoryIDs = service.getCategoryIdReceivedInvocations
         XCTAssertEqual(requestedCategoryIDs, ["cat-1"])
     }
 }
 
 extension CategoryProvidersTests {
     func testSummaryProviderFallsBackToUsdWhenTotalSpentIsMissing() async throws {
-        let service = CategorySummaryServiceSpy(
-            getResult: .success(
-                .init(
-                    category: .init(
-                        id: "cat-1",
-                        name: "Food",
-                        icon: "🍔",
-                        color: "light_orange",
-                        totalSpentUsd: 19.4,
-                        currency: "KZT"
-                    )
-                )
+        let service = MainCategoriesContractServicingMock()
+        service.getCategoryIdReturnValue = .init(
+            category: .init(
+                id: "cat-1",
+                name: "Food",
+                icon: "🍔",
+                color: "light_orange",
+                totalSpentUsd: 19.4,
+                currency: "KZT"
             )
         )
         let sut = CategorySummaryProvider(categoriesService: service)
@@ -59,17 +53,14 @@ extension CategoryProvidersTests {
 
 extension CategoryProvidersTests {
     func testSummaryProviderMapsUnmappedCategoryName() async throws {
-        let service = CategorySummaryServiceSpy(
-            getResult: .success(
-                .init(
-                    category: .init(
-                        id: "cat-1",
-                        name: "Unmapped",
-                        icon: "❓",
-                        color: "light_blue",
-                        totalSpentUsd: nil
-                    )
-                )
+        let service = MainCategoriesContractServicingMock()
+        service.getCategoryIdReturnValue = .init(
+            category: .init(
+                id: "cat-1",
+                name: "Unmapped",
+                icon: "❓",
+                color: "light_blue",
+                totalSpentUsd: nil
             )
         )
         let sut = CategorySummaryProvider(categoriesService: service)
@@ -83,35 +74,30 @@ extension CategoryProvidersTests {
 
 extension CategoryProvidersTests {
     func testExpensesProviderFetchPageForwardsCategoryCursorAndLimit() async throws {
-        let service = CategoryExpensesServiceSpy(
-            listResult: .success(
+        let service = MainExpensesContractServicingMock()
+        service.listExpensesParametersReturnValue = .init(
+            expenses: [
                 .init(
-                    expenses: [
-                        .init(
-                            id: "exp-1",
-                            title: "Coffee",
-                            description: nil,
-                            amount: 4.5,
-                            currency: "USD",
-                            category: "cat-1",
-                            timeOfAdd: Date(timeIntervalSince1970: 100)
-                        )
-                    ],
-                    nextCursor: "next-1",
-                    hasMore: true
+                    id: "exp-1",
+                    title: "Coffee",
+                    description: nil,
+                    amount: 4.5,
+                    currency: "USD",
+                    category: "cat-1",
+                    timeOfAdd: Date(timeIntervalSince1970: 100)
                 )
-            ),
-            deleteResult: .success(())
+            ],
+            nextCursor: "next-1",
+            hasMore: true
         )
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "EUR",
-                language: "en-US",
-                currencyRate: 2.0
-            )
+        let profileStorage = UserProfileStorageServiceProtocolMock()
+        profileStorage.loadProfileReturnValue = UserProfileDefaults(
+            userId: "user-1",
+            email: "user@example.com",
+            name: "Test User",
+            currency: "EUR",
+            language: "en-US",
+            currencyRate: 2.0
         )
         let sut = CategoryExpensesProvider(
             expensesService: service,
@@ -132,7 +118,7 @@ extension CategoryProvidersTests {
         XCTAssertEqual(page.expenses.first?.currency, "EUR")
         XCTAssertEqual(page.nextCursor, "next-1")
         XCTAssertTrue(page.hasMore)
-        let requestedParameters = await service.requestedListParameters()
+        let requestedParameters = service.listExpensesParametersReceivedInvocations
         XCTAssertEqual(
             requestedParameters,
             [.init(category: "cat-1", cursor: "cursor-1", limit: 20)]
@@ -142,61 +128,52 @@ extension CategoryProvidersTests {
 
 extension CategoryProvidersTests {
     func testExpensesProviderDeleteForwardsExpenseID() async throws {
-        let service = CategoryExpensesServiceSpy(
-            listResult: .success(
-                .init(
-                    expenses: [],
-                    nextCursor: nil,
-                    hasMore: false
-                )
-            ),
-            deleteResult: .success(())
+        let service = MainExpensesContractServicingMock()
+        service.listExpensesParametersReturnValue = .init(
+            expenses: [],
+            nextCursor: nil,
+            hasMore: false
         )
         let sut = CategoryExpensesProvider(
             expensesService: service,
             currencyConversionService: UserCurrencyConversionService(
-                userProfileStorageService: UserProfileStorageSpy(profile: nil)
+                userProfileStorageService: UserProfileStorageServiceProtocolMock()
             )
         )
 
         try await sut.deleteExpense(id: "exp-1")
 
-        let requestedDeleteIDs = await service.requestedDeleteIDs()
+        let requestedDeleteIDs = service.deleteExpenseIdReceivedInvocations
         XCTAssertEqual(requestedDeleteIDs, ["exp-1"])
     }
 
     func testExpensesProviderShowsOriginalAmountWhenOriginalCurrencyMatchesPreferredCurrency() async throws {
-        let service = CategoryExpensesServiceSpy(
-            listResult: .success(
+        let service = MainExpensesContractServicingMock()
+        service.listExpensesParametersReturnValue = .init(
+            expenses: [
                 .init(
-                    expenses: [
-                        .init(
-                            id: "exp-1",
-                            title: "Coffee",
-                            description: nil,
-                            amount: 2.62,
-                            currency: "USD",
-                            originalAmount: 200,
-                            originalCurrency: "RUB",
-                            category: "cat-1",
-                            timeOfAdd: Date(timeIntervalSince1970: 100)
-                        )
-                    ],
-                    nextCursor: nil,
-                    hasMore: false
+                    id: "exp-1",
+                    title: "Coffee",
+                    description: nil,
+                    amount: 2.62,
+                    currency: "USD",
+                    originalAmount: 200,
+                    originalCurrency: "RUB",
+                    category: "cat-1",
+                    timeOfAdd: Date(timeIntervalSince1970: 100)
                 )
-            ),
-            deleteResult: .success(())
+            ],
+            nextCursor: nil,
+            hasMore: false
         )
-        let profileStorage = UserProfileStorageSpy(
-            profile: .init(
-                userId: "user-1",
-                email: "user@example.com",
-                name: "Test User",
-                currency: "RUB",
-                language: "ru",
-                currencyRate: 76.34
-            )
+        let profileStorage = UserProfileStorageServiceProtocolMock()
+        profileStorage.loadProfileReturnValue = UserProfileDefaults(
+            userId: "user-1",
+            email: "user@example.com",
+            name: "Test User",
+            currency: "RUB",
+            language: "ru",
+            currencyRate: 76.34
         )
         let sut = CategoryExpensesProvider(
             expensesService: service,
@@ -214,103 +191,4 @@ extension CategoryProvidersTests {
         XCTAssertEqual(page.expenses.first?.amount, 200)
         XCTAssertEqual(page.expenses.first?.currency, "RUB")
     }
-}
-
-private actor CategorySummaryServiceSpy: MainCategoriesContractServicing {
-    private let getResult: Result<CategoryResponseDTO, Error>
-    private var requestedIDs: [String] = []
-
-    init(getResult: Result<CategoryResponseDTO, Error>) {
-        self.getResult = getResult
-    }
-
-    func createCategory(_ request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO {
-        throw StubError.any
-    }
-
-    func listCategories() async throws -> CategoriesResponseDTO {
-        throw StubError.any
-    }
-
-    func getCategory(id: String) async throws -> CategoryResponseDTO {
-        requestedIDs.append(id)
-        return try getResult.get()
-    }
-
-    func deleteCategory(id: String) async throws {
-        throw StubError.any
-    }
-
-    func requestedCategoryIDs() -> [String] {
-        requestedIDs
-    }
-}
-
-private final class UserProfileStorageSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
-    private let lock = NSLock()
-    private var profile: UserProfileDefaults?
-
-    init(profile: UserProfileDefaults?) {
-        self.profile = profile
-    }
-
-    func saveProfile(_ profile: UserProfileDefaults) {
-        lock.lock()
-        self.profile = profile
-        lock.unlock()
-    }
-
-    func loadProfile() -> UserProfileDefaults? {
-        lock.lock()
-        let value = profile
-        lock.unlock()
-        return value
-    }
-
-    func clearProfile() {
-        lock.lock()
-        profile = nil
-        lock.unlock()
-    }
-}
-
-private actor CategoryExpensesServiceSpy: MainExpensesContractServicing {
-    private let listResult: Result<ExpensesListResponseDTO, Error>
-    private let deleteResult: Result<Void, Error>
-    private var listParametersHistory: [ExpensesListQueryParameters] = []
-    private var deleteIDs: [String] = []
-
-    init(
-        listResult: Result<ExpensesListResponseDTO, Error>,
-        deleteResult: Result<Void, Error>
-    ) {
-        self.listResult = listResult
-        self.deleteResult = deleteResult
-    }
-
-    func createExpenses(_ request: ExpensesCreateRequestDTO) async throws -> ExpensesCreateResponseDTO {
-        throw StubError.any
-    }
-
-    func listExpenses(parameters: ExpensesListQueryParameters) async throws -> ExpensesListResponseDTO {
-        listParametersHistory.append(parameters)
-        return try listResult.get()
-    }
-
-    func deleteExpense(id: String) async throws {
-        deleteIDs.append(id)
-        _ = try deleteResult.get()
-    }
-
-    func requestedListParameters() -> [ExpensesListQueryParameters] {
-        listParametersHistory
-    }
-
-    func requestedDeleteIDs() -> [String] {
-        deleteIDs
-    }
-}
-
-private enum StubError: Error {
-    case any
 }

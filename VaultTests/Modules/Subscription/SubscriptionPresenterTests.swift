@@ -4,11 +4,11 @@ import XCTest
 @MainActor
 final class SubscriptionPresenterTests: XCTestCase {
     private var sut: SubscriptionPresenter!
-    private var handler: SubscriptionHandlerSpy!
+    private var handler: SubscriptionHandlerMock!
 
     override func setUp() {
         super.setUp()
-        handler = SubscriptionHandlerSpy()
+        handler = SubscriptionHandlerMock()
         sut = SubscriptionPresenter(viewModel: .init())
         sut.handler = handler
     }
@@ -211,7 +211,7 @@ extension SubscriptionPresenterTests {
 extension SubscriptionPresenterTests {
     func testPresentFetchedDataRestoreCommandCallsHandler() async {
         let restoreExpectation = expectation(description: "Restore command")
-        handler.onHandleRestorePurchase = {
+        handler.handleTapRestorePurchaseClosure = {
             restoreExpectation.fulfill()
         }
 
@@ -242,10 +242,10 @@ extension SubscriptionPresenterTests {
     func testPresentFetchedDataLegalLinkCommandsCallHandler() async {
         let termsExpectation = expectation(description: "Terms command")
         let privacyExpectation = expectation(description: "Privacy command")
-        handler.onHandleTermsOfUse = {
+        handler.handleTapTermsOfUseClosure = {
             termsExpectation.fulfill()
         }
-        handler.onHandlePrivacyPolicy = {
+        handler.handleTapPrivacyPolicyClosure = {
             privacyExpectation.fulfill()
         }
 
@@ -276,7 +276,7 @@ extension SubscriptionPresenterTests {
 extension SubscriptionPresenterTests {
     func testPresentFetchedDataFailedBuildsRetryState() async {
         let retryExpectation = expectation(description: "Retry command")
-        handler.onHandleRetry = {
+        handler.handleTapRetryClosure = {
             retryExpectation.fulfill()
         }
 
@@ -294,32 +294,5 @@ extension SubscriptionPresenterTests {
         errorViewModel.tapCommand.execute()
 
         await fulfillment(of: [retryExpectation], timeout: 1.0)
-    }
-}
-
-private final class SubscriptionHandlerSpy: SubscriptionHandler, @unchecked Sendable {
-    var onHandleRetry: (() -> Void)?
-    var onHandleRestorePurchase: (() -> Void)?
-    var onHandleTermsOfUse: (() -> Void)?
-    var onHandlePrivacyPolicy: (() -> Void)?
-
-    func handleTapClose() async {}
-
-    func handleTapRetry() async {
-        onHandleRetry?()
-    }
-
-    func handleTapPurchase(planID: String) async {}
-
-    func handleTapRestorePurchase() async {
-        onHandleRestorePurchase?()
-    }
-
-    func handleTapTermsOfUse() async {
-        onHandleTermsOfUse?()
-    }
-
-    func handleTapPrivacyPolicy() async {
-        onHandlePrivacyPolicy?()
     }
 }

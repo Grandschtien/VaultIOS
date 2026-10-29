@@ -5,11 +5,11 @@ import UIKit
 @MainActor
 final class ProfilePresenterTests: XCTestCase {
     private var sut: ProfilePresenter!
-    private var handler: ProfileHandlerSpy!
+    private var handler: ProfileHandlerMock!
 
     override func setUp() {
         super.setUp()
-        handler = ProfileHandlerSpy()
+        handler = ProfileHandlerMock()
         sut = ProfilePresenter(viewModel: .init())
         sut.handler = handler
     }
@@ -253,8 +253,8 @@ extension ProfilePresenterTests {
             return XCTFail("Expected loaded state")
         }
 
-        XCTAssertEqual(content.membership.text, L10n.profileMember)
-        XCTAssertEqual(content.plan.title.text, L10n.profilePlan)
+        XCTAssertEqual(content.membership.text, L10n.profileMemberStatus(L10n.subscriptionFree))
+        XCTAssertEqual(content.plan.title.text, L10n.subscriptionFree)
         XCTAssertEqual(content.plan.subtitle.text, L10n.profileValidUntilUnknown)
     }
 }
@@ -286,13 +286,13 @@ extension ProfilePresenterTests {
         }
 
         XCTAssertEqual(content.logoutButton.title, L10n.profileLogout)
-        XCTAssertEqual(content.logoutButton.titleColor.cgColor, Asset.Colors.errorColor.color.cgColor)
-        XCTAssertEqual(content.logoutButton.backgroundColor.cgColor, Asset.Colors.interactiveInputBackground.color.cgColor)
+        XCTAssertEqual(content.logoutButton.titleColor.cgColor, Asset.Colors.textAndIconPrimary.color.cgColor)
+        XCTAssertEqual(content.logoutButton.backgroundColor.cgColor, UIColor.clear.cgColor)
     }
 
     func testPresentFetchedDataLoadedBuildsDeleteAccountButton() async {
         let deleteExpectation = expectation(description: "Delete account command")
-        handler.onHandleTapDeleteAccount = {
+        handler.handleTapDeleteAccountClosure = {
             deleteExpectation.fulfill()
         }
 
@@ -316,7 +316,7 @@ extension ProfilePresenterTests {
 extension ProfilePresenterTests {
     func testPresentFetchedDataFailedBuildsRetryErrorState() async {
         let retryExpectation = expectation(description: "Retry command")
-        handler.onHandleRetry = {
+        handler.handleTapRetryClosure = {
             retryExpectation.fulfill()
         }
 
@@ -342,38 +342,5 @@ private extension ProfilePresenterTests {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd.MM.yyyy"
         return L10n.profileValidUntil(formatter.string(from: date))
-    }
-}
-
-private final class ProfileHandlerSpy: ProfileHandler, @unchecked Sendable {
-    var onHandleRetry: (() -> Void)?
-    var onHandleLogout: (() -> Void)?
-    var onHandleTapDeleteAccount: (() -> Void)?
-    var onHandleTapCurrency: (() -> Void)?
-    var onHandleTapSaveCurrency: (() -> Void)?
-    var onHandleTapSubscription: (() -> Void)?
-
-    func handleTapRetry() async {
-        onHandleRetry?()
-    }
-
-    func handleTapLogout() async {
-        onHandleLogout?()
-    }
-
-    func handleTapDeleteAccount() async {
-        onHandleTapDeleteAccount?()
-    }
-
-    func handleTapCurrency() async {
-        onHandleTapCurrency?()
-    }
-
-    func handleTapSaveCurrency() async {
-        onHandleTapSaveCurrency?()
-    }
-
-    func handleTapSubscription() async {
-        onHandleTapSubscription?()
     }
 }

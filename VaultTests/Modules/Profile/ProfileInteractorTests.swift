@@ -4,9 +4,9 @@ import XCTest
 @MainActor
 final class ProfileInteractorTests: XCTestCase {
     func testFetchDataSuccessPublishesLoadingThenLoaded() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(
             results: [
                 .success(
                     .init(
@@ -25,7 +25,7 @@ final class ProfileInteractorTests: XCTestCase {
             presenter: presenter,
             router: router,
             profileService: profileService,
-            subscriptionAccessService: SubscriptionAccessServiceSpy(
+            subscriptionAccessService: Self.makeSubscriptionAccessService(
                 refreshedSnapshotResult: .init(
                     tier: .premium,
                     status: .active,
@@ -40,8 +40,8 @@ final class ProfileInteractorTests: XCTestCase {
 
         await sut.fetchData()
 
-        guard let first = presenter.presentedData.first,
-              let last = presenter.presentedData.last else {
+        guard let first = presenter.presentFetchedDataReceivedInvocations.first,
+              let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter updates")
         }
 
@@ -49,7 +49,7 @@ final class ProfileInteractorTests: XCTestCase {
         assertStatus(last.loadingState, is: .loaded)
         XCTAssertEqual(last.profile?.name, "Sarah Connor")
 
-        let serviceCallsCount = await profileService.callsCount()
+        let serviceCallsCount = profileService.getProfileCallsCount
         XCTAssertEqual(serviceCallsCount, 1)
     }
 }
@@ -57,9 +57,9 @@ final class ProfileInteractorTests: XCTestCase {
 extension ProfileInteractorTests {
     func testSubscriptionAccessDidChangeUpdatesPresentedUsageWithoutRefetchingProfile() async {
         let notificationCenter = NotificationCenter()
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(
             results: [
                 .success(
                     .init(
@@ -87,7 +87,7 @@ extension ProfileInteractorTests {
             presenter: presenter,
             router: router,
             profileService: profileService,
-            subscriptionAccessService: SubscriptionAccessServiceSpy(
+            subscriptionAccessService: Self.makeSubscriptionAccessService(
                 refreshedSnapshotResult: initialSnapshot
             ),
             notificationCenter: notificationCenter
@@ -105,27 +105,28 @@ extension ProfileInteractorTests {
             statusVersion: 42
         )
 
-        await MainActor.run {
-            notificationCenter.post(
-                name: .subscriptionAccessDidChange,
-                object: updatedSnapshot
-            )
+        let usageUpdated = presentationExpectation(on: presenter) { data in
+            data.subscription?.aiRequestsRemaining == 272
         }
-        await Task.yield()
-        await Task.yield()
 
-        XCTAssertEqual(presenter.presentedData.last?.subscription?.aiRequestsRemaining, 272)
-        assertStatus(presenter.presentedData.last?.loadingState ?? .idle, is: .loaded)
-        let serviceCallsCount = await profileService.callsCount()
+        notificationCenter.post(
+            name: .subscriptionAccessDidChange,
+            object: updatedSnapshot
+        )
+        await fulfillment(of: [usageUpdated], timeout: 1)
+
+        XCTAssertEqual(presenter.presentFetchedDataReceivedInvocations.last?.subscription?.aiRequestsRemaining, 272)
+        assertStatus(presenter.presentFetchedDataReceivedInvocations.last?.loadingState ?? .idle, is: .loaded)
+        let serviceCallsCount = profileService.getProfileCallsCount
         XCTAssertEqual(serviceCallsCount, 1)
     }
 }
 
 extension ProfileInteractorTests {
     func testFetchDataInitialLoadingUsesCurrencyFromLocalProfileStorage() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(
             results: [
                 .success(
                     .init(
@@ -140,7 +141,7 @@ extension ProfileInteractorTests {
                 )
             ]
         )
-        let localProfileStorage = UserProfileStorageServiceSpy(
+        let localProfileStorage = Self.makeProfileStorage(
             storedProfile: .init(
                 userId: "local-1",
                 email: "local@example.com",
@@ -158,12 +159,12 @@ extension ProfileInteractorTests {
 
         await sut.fetchData()
 
-        guard presenter.presentedData.count >= 2 else {
+        guard presenter.presentFetchedDataReceivedInvocations.count >= 2 else {
             return XCTFail("Expected loading and loaded presenter states")
         }
 
-        let loadingState = presenter.presentedData[0]
-        let loadedState = presenter.presentedData[1]
+        let loadingState = presenter.presentFetchedDataReceivedInvocations[0]
+        let loadedState = presenter.presentFetchedDataReceivedInvocations[1]
 
         XCTAssertEqual(loadingState.selectedCurrencyCode, "KZT")
         XCTAssertEqual(loadedState.selectedCurrencyCode, "USD")
@@ -172,9 +173,9 @@ extension ProfileInteractorTests {
 
 extension ProfileInteractorTests {
     func testFetchDataFailurePublishesFailedState() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(
             results: [.failure(StubError.any)]
         )
         let sut = makeSut(
@@ -185,24 +186,24 @@ extension ProfileInteractorTests {
 
         await sut.fetchData()
 
-        guard let first = presenter.presentedData.first,
-              let last = presenter.presentedData.last else {
+        guard let first = presenter.presentFetchedDataReceivedInvocations.first,
+              let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter updates")
         }
 
         assertStatus(first.loadingState, is: .loading)
         assertStatus(last.loadingState, is: .failed)
 
-        let serviceCallsCount = await profileService.callsCount()
+        let serviceCallsCount = profileService.getProfileCallsCount
         XCTAssertEqual(serviceCallsCount, 1)
     }
 }
 
 extension ProfileInteractorTests {
     func testHandleTapRetryRepeatsFetchFlow() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(
             results: [
                 .failure(StubError.any),
                 .success(
@@ -227,24 +228,24 @@ extension ProfileInteractorTests {
         await sut.fetchData()
         await sut.handleTapRetry()
 
-        guard let last = presenter.presentedData.last else {
+        guard let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter updates")
         }
 
         assertStatus(last.loadingState, is: .loaded)
         XCTAssertEqual(last.profile?.tier, "ACTIVE")
 
-        let serviceCallsCount = await profileService.callsCount()
+        let serviceCallsCount = profileService.getProfileCallsCount
         XCTAssertEqual(serviceCallsCount, 2)
     }
 }
 
 extension ProfileInteractorTests {
     func testHandleTapLogoutOpensConfirmationWithoutStartingLogout() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(results: [])
-        let authSessionService = AuthSessionServiceSpy(logoutResult: .success(()))
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(results: [])
+        let authSessionService = Self.makeAuthSessionService(logoutResult: .success(()))
         let sut = makeSut(
             presenter: presenter,
             router: router,
@@ -254,23 +255,23 @@ extension ProfileInteractorTests {
 
         await sut.handleTapLogout()
 
-        XCTAssertEqual(router.openConfirmationCallsCount, 1)
-        XCTAssertEqual(router.lastConfirmationContext?.title, L10n.profileLogoutConfirmationTitle)
-        XCTAssertEqual(router.lastConfirmationContext?.confirmButtonTitle, L10n.commonConfirm)
-        XCTAssertEqual(router.lastConfirmationContext?.cancelButtonTitle, L10n.commonCancel)
-        XCTAssertTrue(router.presentedErrors.isEmpty)
-        let logoutCallsCount = await authSessionService.currentLogoutFromBackendCallsCount()
+        XCTAssertEqual(router.openConfirmationContextCallsCount, 1)
+        XCTAssertEqual(router.openConfirmationContextReceivedInvocations.last?.title, L10n.profileLogoutConfirmationTitle)
+        XCTAssertEqual(router.openConfirmationContextReceivedInvocations.last?.confirmButtonTitle, L10n.commonConfirm)
+        XCTAssertEqual(router.openConfirmationContextReceivedInvocations.last?.cancelButtonTitle, L10n.commonCancel)
+        XCTAssertTrue(router.presentErrorWithReceivedInvocations.isEmpty)
+        let logoutCallsCount = authSessionService.logoutFromBackendCallsCount
         XCTAssertEqual(logoutCallsCount, 0)
-        XCTAssertTrue(presenter.presentedData.isEmpty)
+        XCTAssertTrue(presenter.presentFetchedDataReceivedInvocations.isEmpty)
     }
 }
 
 extension ProfileInteractorTests {
     func testHandleTapLogoutConfirmWhenBackendRequestSucceedsDoesNotPresentError() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(results: [])
-        let authSessionService = AuthSessionServiceSpy(logoutResult: .success(()))
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(results: [])
+        let authSessionService = Self.makeAuthSessionService(logoutResult: .success(()))
         let sut = makeSut(
             presenter: presenter,
             router: router,
@@ -279,22 +280,22 @@ extension ProfileInteractorTests {
         )
 
         await sut.handleTapLogout()
-        router.lastConfirmationContext?.confirmCommand.execute()
+        router.openConfirmationContextReceivedInvocations.last?.confirmCommand.execute()
         await waitForCommandExecution()
 
-        XCTAssertTrue(router.presentedErrors.isEmpty)
-        XCTAssertEqual(presenter.presentedData.last?.isLoggingOut, true)
-        let logoutCallsCount = await authSessionService.currentLogoutFromBackendCallsCount()
+        XCTAssertTrue(router.presentErrorWithReceivedInvocations.isEmpty)
+        XCTAssertEqual(presenter.presentFetchedDataReceivedInvocations.last?.isLoggingOut, true)
+        let logoutCallsCount = authSessionService.logoutFromBackendCallsCount
         XCTAssertEqual(logoutCallsCount, 1)
     }
 }
 
 extension ProfileInteractorTests {
     func testHandleTapLogoutConfirmWhenBackendRequestFailsPresentsErrorToast() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(results: [])
-        let authSessionService = AuthSessionServiceSpy(logoutResult: .failure(StubError.any))
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(results: [])
+        let authSessionService = Self.makeAuthSessionService(logoutResult: .failure(StubError.any))
         let sut = makeSut(
             presenter: presenter,
             router: router,
@@ -303,24 +304,24 @@ extension ProfileInteractorTests {
         )
 
         await sut.handleTapLogout()
-        router.lastConfirmationContext?.confirmCommand.execute()
+        router.openConfirmationContextReceivedInvocations.last?.confirmCommand.execute()
         await waitForCommandExecution()
 
-        XCTAssertEqual(router.presentedErrors.count, 1)
-        XCTAssertGreaterThanOrEqual(presenter.presentedData.count, 2)
-        XCTAssertEqual(presenter.presentedData[0].isLoggingOut, true)
-        XCTAssertEqual(presenter.presentedData[1].isLoggingOut, false)
-        let logoutCallsCount = await authSessionService.currentLogoutFromBackendCallsCount()
+        XCTAssertEqual(router.presentErrorWithReceivedInvocations.count, 1)
+        XCTAssertGreaterThanOrEqual(presenter.presentFetchedDataReceivedInvocations.count, 2)
+        XCTAssertEqual(presenter.presentFetchedDataReceivedInvocations[0].isLoggingOut, true)
+        XCTAssertEqual(presenter.presentFetchedDataReceivedInvocations[1].isLoggingOut, false)
+        let logoutCallsCount = authSessionService.logoutFromBackendCallsCount
         XCTAssertEqual(logoutCallsCount, 1)
     }
 }
 
 extension ProfileInteractorTests {
     func testHandleTapDeleteAccountOpensDestructiveConfirmationWithoutStartingDeletion() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(results: [])
-        let authSessionService = AuthSessionServiceSpy(logoutResult: .success(()))
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(results: [])
+        let authSessionService = Self.makeAuthSessionService(logoutResult: .success(()))
         let sut = makeSut(
             presenter: presenter,
             router: router,
@@ -330,32 +331,32 @@ extension ProfileInteractorTests {
 
         await sut.handleTapDeleteAccount()
 
-        XCTAssertEqual(router.openConfirmationCallsCount, 1)
-        XCTAssertEqual(router.lastConfirmationContext?.title, L10n.profileDeleteAccount)
-        XCTAssertEqual(router.lastConfirmationContext?.subtitle, L10n.profileDeleteAccountConfirmationTitle)
-        XCTAssertEqual(router.lastConfirmationContext?.confirmButtonTitle, L10n.profileDeleteAccount)
-        XCTAssertEqual(router.lastConfirmationContext?.confirmButtonStyle, .destructive)
-        XCTAssertEqual(router.lastConfirmationContext?.cancelButtonTitle, L10n.commonCancel)
-        XCTAssertEqual(router.lastConfirmationContext?.cancelButtonStyle, .primary)
-        XCTAssertTrue(router.presentedErrors.isEmpty)
+        XCTAssertEqual(router.openConfirmationContextCallsCount, 1)
+        XCTAssertEqual(router.openConfirmationContextReceivedInvocations.last?.title, L10n.profileDeleteAccount)
+        XCTAssertEqual(router.openConfirmationContextReceivedInvocations.last?.subtitle, L10n.profileDeleteAccountConfirmationTitle)
+        XCTAssertEqual(router.openConfirmationContextReceivedInvocations.last?.confirmButtonTitle, L10n.profileDeleteAccount)
+        XCTAssertEqual(router.openConfirmationContextReceivedInvocations.last?.confirmButtonStyle, .destructive)
+        XCTAssertEqual(router.openConfirmationContextReceivedInvocations.last?.cancelButtonTitle, L10n.commonCancel)
+        XCTAssertEqual(router.openConfirmationContextReceivedInvocations.last?.cancelButtonStyle, .primary)
+        XCTAssertTrue(router.presentErrorWithReceivedInvocations.isEmpty)
 
-        let deleteCallsCount = await profileService.currentDeleteAccountCallsCount()
-        let logoutCallsCount = await authSessionService.currentLogoutCallsCount()
+        let deleteCallsCount = profileService.deleteAccountCallsCount
+        let logoutCallsCount = authSessionService.logoutCallsCount
         XCTAssertEqual(deleteCallsCount, 0)
         XCTAssertEqual(logoutCallsCount, 0)
-        XCTAssertTrue(presenter.presentedData.isEmpty)
+        XCTAssertTrue(presenter.presentFetchedDataReceivedInvocations.isEmpty)
     }
 }
 
 extension ProfileInteractorTests {
     func testHandleTapDeleteAccountConfirmWhenRequestSucceedsLogsOutLocally() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(
             results: [],
             deleteAccountResult: .success(())
         )
-        let authSessionService = AuthSessionServiceSpy(logoutResult: .success(()))
+        let authSessionService = Self.makeAuthSessionService(logoutResult: .success(()))
         let sut = makeSut(
             presenter: presenter,
             router: router,
@@ -364,14 +365,14 @@ extension ProfileInteractorTests {
         )
 
         await sut.handleTapDeleteAccount()
-        router.lastConfirmationContext?.confirmCommand.execute()
+        router.openConfirmationContextReceivedInvocations.last?.confirmCommand.execute()
         await waitForCommandExecution()
 
-        XCTAssertTrue(router.presentedErrors.isEmpty)
+        XCTAssertTrue(router.presentErrorWithReceivedInvocations.isEmpty)
 
-        let deleteCallsCount = await profileService.currentDeleteAccountCallsCount()
-        let logoutCallsCount = await authSessionService.currentLogoutCallsCount()
-        let logoutFromBackendCallsCount = await authSessionService.currentLogoutFromBackendCallsCount()
+        let deleteCallsCount = profileService.deleteAccountCallsCount
+        let logoutCallsCount = authSessionService.logoutCallsCount
+        let logoutFromBackendCallsCount = authSessionService.logoutFromBackendCallsCount
         XCTAssertEqual(deleteCallsCount, 1)
         XCTAssertEqual(logoutCallsCount, 1)
         XCTAssertEqual(logoutFromBackendCallsCount, 0)
@@ -380,13 +381,13 @@ extension ProfileInteractorTests {
 
 extension ProfileInteractorTests {
     func testHandleTapDeleteAccountConfirmWhenRequestFailsPresentsErrorWithoutLogout() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(
             results: [],
             deleteAccountResult: .failure(StubError.any)
         )
-        let authSessionService = AuthSessionServiceSpy(logoutResult: .success(()))
+        let authSessionService = Self.makeAuthSessionService(logoutResult: .success(()))
         let sut = makeSut(
             presenter: presenter,
             router: router,
@@ -395,13 +396,13 @@ extension ProfileInteractorTests {
         )
 
         await sut.handleTapDeleteAccount()
-        router.lastConfirmationContext?.confirmCommand.execute()
+        router.openConfirmationContextReceivedInvocations.last?.confirmCommand.execute()
         await waitForCommandExecution()
 
-        XCTAssertEqual(router.presentedErrors.count, 1)
+        XCTAssertEqual(router.presentErrorWithReceivedInvocations.count, 1)
 
-        let deleteCallsCount = await profileService.currentDeleteAccountCallsCount()
-        let logoutCallsCount = await authSessionService.currentLogoutCallsCount()
+        let deleteCallsCount = profileService.deleteAccountCallsCount
+        let logoutCallsCount = authSessionService.logoutCallsCount
         XCTAssertEqual(deleteCallsCount, 1)
         XCTAssertEqual(logoutCallsCount, 0)
     }
@@ -409,9 +410,9 @@ extension ProfileInteractorTests {
 
 extension ProfileInteractorTests {
     func testHandleTapCurrencyWhenProfileLoadedOpensCurrencySelection() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(
             results: [
                 .success(
                     .init(
@@ -435,16 +436,16 @@ extension ProfileInteractorTests {
         await sut.fetchData()
         await sut.handleTapCurrency()
 
-        XCTAssertEqual(router.openCurrencySelectionCallsCount, 1)
-        XCTAssertEqual(router.lastOpenedCurrencyCode, "KZT")
+        XCTAssertEqual(router.openCurrencySelectionCurrentCurrencyCodeOutputCallsCount, 1)
+        XCTAssertEqual(router.openCurrencySelectionCurrentCurrencyCodeOutputReceivedInvocations.last?.currentCurrencyCode, "KZT")
     }
 }
 
 extension ProfileInteractorTests {
     func testHandleTapSubscriptionWhenProfileLoadedOpensSubscription() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(
             results: [
                 .success(
                     .init(
@@ -468,16 +469,16 @@ extension ProfileInteractorTests {
         await sut.fetchData()
         await sut.handleTapSubscription()
 
-        XCTAssertEqual(router.openSubscriptionCallsCount, 1)
-        XCTAssertEqual(router.lastOpenedSubscriptionTier, .premium)
+        XCTAssertEqual(router.openSubscriptionCurrentTierOutputCallsCount, 1)
+        XCTAssertEqual(router.openSubscriptionCurrentTierOutputReceivedInvocations.last?.currentTier, .premium)
     }
 }
 
 extension ProfileInteractorTests {
     func testHandleSubscriptionDidSyncRefreshesTierAccessAndReloadsProfile() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(
             results: [
                 .success(
                     .init(
@@ -492,7 +493,7 @@ extension ProfileInteractorTests {
                 )
             ]
         )
-        let subscriptionAccessService = SubscriptionAccessServiceSpy()
+        let subscriptionAccessService = Self.makeSubscriptionAccessService()
         let sut = makeSut(
             presenter: presenter,
             router: router,
@@ -502,21 +503,21 @@ extension ProfileInteractorTests {
 
         await sut.handleSubscriptionDidSync()
 
-        let refreshCallsCount = await subscriptionAccessService.refreshCurrentTierCallsCount()
-        let serviceCallsCount = await profileService.callsCount()
+        let refreshCallsCount = (subscriptionAccessService.refreshCurrentSubscriptionSnapshotCallsCount + subscriptionAccessService.refreshCurrentTierStateCallsCount + subscriptionAccessService.refreshCurrentTierSourceStateCallsCount)
+        let serviceCallsCount = profileService.getProfileCallsCount
 
         XCTAssertEqual(refreshCallsCount, 1)
         XCTAssertEqual(serviceCallsCount, 1)
-        XCTAssertEqual(presenter.presentedData.last?.profile?.tier, "PLUS")
-        assertStatus(presenter.presentedData.last?.loadingState ?? .idle, is: .loaded)
+        XCTAssertEqual(presenter.presentFetchedDataReceivedInvocations.last?.profile?.tier, "PLUS")
+        assertStatus(presenter.presentFetchedDataReceivedInvocations.last?.loadingState ?? .idle, is: .loaded)
     }
 }
 
 extension ProfileInteractorTests {
     func testHandleTapSaveCurrencyPostsCurrencyChangedNotificationAndPersistsProfile() async {
-        let presenter = ProfilePresenterSpy()
-        let router = ProfileRouterSpy()
-        let profileService = ProfileServiceStub(
+        let presenter = ProfilePresentationLogicMock()
+        let router = ProfileRoutingLogicMock()
+        let profileService = Self.makeProfileService(
             results: [
                 .success(
                     .init(
@@ -544,7 +545,7 @@ extension ProfileInteractorTests {
                 )
             ]
         )
-        let localProfileStorage = UserProfileStorageServiceSpy(
+        let localProfileStorage = Self.makeProfileStorage(
             storedProfile: .init(
                 userId: "user-1",
                 email: "sarah@example.com",
@@ -605,24 +606,40 @@ private extension ProfileInteractorTests {
         case failed
     }
 
+    func presentationExpectation(
+        on presenter: ProfilePresentationLogicMock,
+        where predicate: @escaping (ProfileFetchData) -> Bool
+    ) -> XCTestExpectation {
+        let expectation = expectation(description: "Presenter received expected data")
+        expectation.assertForOverFulfill = false
+        presenter.presentFetchedDataClosure = { data in
+            guard predicate(data) else {
+                return
+            }
+
+            expectation.fulfill()
+        }
+        return expectation
+    }
+
     func makeSut(
         presenter: ProfilePresentationLogic,
         router: ProfileRoutingLogic,
         profileService: ProfileContractServicing,
-        localProfileStorage: UserProfileStorageServiceProtocol = UserProfileStorageServiceSpy(),
-        authSessionService: AuthSessionServiceProtocol = AuthSessionServiceSpy(logoutResult: .success(())),
-        subscriptionAccessService: SubscriptionAccessServicing = SubscriptionAccessServiceSpy(),
+        localProfileStorage: UserProfileStorageServiceProtocol = ProfileInteractorTests.makeProfileStorage(),
+        authSessionService: AuthSessionServiceProtocol = ProfileInteractorTests.makeAuthSessionService(logoutResult: .success(())),
+        subscriptionAccessService: SubscriptionAccessServicing = ProfileInteractorTests.makeSubscriptionAccessService(),
         notificationCenter: NotificationCenter = .default
     ) -> ProfileInteractor {
         ProfileInteractor(
             presenter: presenter,
             router: router,
             profileService: profileService,
-            currencyRateService: CurrencyRateServiceStub(),
+            currencyRateService: Self.makeCurrencyRateService(),
             userProfileStorageService: localProfileStorage,
             authSessionService: authSessionService,
             subscriptionAccessService: subscriptionAccessService,
-            applogSink: AppLogSinkProtocolStub(),
+            applogSink: Self.makeAppLogSink(),
             notificationCenter: notificationCenter
         )
     }
@@ -648,246 +665,103 @@ private extension ProfileInteractorTests {
     }
 }
 
-@MainActor
-private final class ProfilePresenterSpy: ProfilePresentationLogic {
-    private(set) var presentedData: [ProfileFetchData] = []
-
-    func presentFetchedData(_ data: ProfileFetchData) {
-        presentedData.append(data)
-    }
-}
-
-@MainActor
-private final class ProfileRouterSpy: ProfileRoutingLogic {
-    private(set) var openConfirmationCallsCount = 0
-    private(set) var openCurrencySelectionCallsCount = 0
-    private(set) var openSubscriptionCallsCount = 0
-    private(set) var lastConfirmationContext: CommonConfirmationContext?
-    private(set) var lastOpenedCurrencyCode: String?
-    private(set) var lastOpenedSubscriptionTier: SubscriptionTier?
-    private(set) var presentedErrors: [String] = []
-
-    func openConfirmation(context: CommonConfirmationContext) {
-        openConfirmationCallsCount += 1
-        lastConfirmationContext = context
-    }
-
-    func openCurrencySelection(
-        currentCurrencyCode: String,
-        output: ProfileCurrencySelectionOutput
-    ) {
-        openCurrencySelectionCallsCount += 1
-        lastOpenedCurrencyCode = currentCurrencyCode
-    }
-
-    func openSubscription(
-        currentTier: SubscriptionTier,
-        output: SubscriptionOutput
-    ) {
-        openSubscriptionCallsCount += 1
-        lastOpenedSubscriptionTier = currentTier
-    }
-
-    func presentError(with text: String) {
-        presentedErrors.append(text)
-    }
-
-    func openActivity(with link: URL) {}
-}
-
-private actor AuthSessionServiceSpy: AuthSessionServiceProtocol {
-    private let logoutResult: Result<Void, Error>
-    private var logoutFromBackendCallsCount = 0
-    private var logoutCallsCount = 0
-
-    init(logoutResult: Result<Void, Error>) {
-        self.logoutResult = logoutResult
-    }
-
-    func hasValidSession() async -> Bool {
-        false
-    }
-
-    func refreshAccessToken() async throws -> AuthTokenDTO {
-        throw StubError.any
-    }
-
-    func accessToken() async -> String? {
-        nil
-    }
-
-    func logoutFromBackend() async throws {
-        logoutFromBackendCallsCount += 1
-
-        switch logoutResult {
-        case .success:
-            return
-        case let .failure(error):
-            throw error
-        }
-    }
-
-    func logout() async {
-        logoutCallsCount += 1
-    }
-
-    func currentLogoutFromBackendCallsCount() -> Int {
-        logoutFromBackendCallsCount
-    }
-
-    func currentLogoutCallsCount() -> Int {
-        logoutCallsCount
-    }
-}
-
-private actor SubscriptionAccessServiceSpy: SubscriptionAccessServicing {
-    private let currentTierResult: String
-    private let refreshTierResult: String
-    private let currentSnapshotResult: SubscriptionAccessSnapshot?
-    private let refreshedSnapshotResult: SubscriptionAccessSnapshot?
-    private var refreshCallsCount = 0
-
-    init(
-        currentTierResult: String = "REGULAR",
-        refreshTierResult: String = "PLUS",
-        currentSnapshotResult: SubscriptionAccessSnapshot? = nil,
-        refreshedSnapshotResult: SubscriptionAccessSnapshot? = nil
-    ) {
-        self.currentTierResult = currentTierResult
-        self.refreshTierResult = refreshTierResult
-        self.currentSnapshotResult = currentSnapshotResult ?? Self.makeSnapshot(tier: currentTierResult)
-        self.refreshedSnapshotResult = refreshedSnapshotResult ?? Self.makeSnapshot(tier: refreshTierResult)
-    }
-
-    func currentTierState() async -> SubscriptionTierState {
-        .resolved(Self.makeTier(from: currentTierResult))
-    }
-
-    func refreshCurrentTierState() async -> SubscriptionTierState {
-        refreshCallsCount += 1
-        return .resolved(Self.makeTier(from: refreshTierResult))
-    }
-
-    func refreshCurrentTierSourceState() async -> SubscriptionTierRefreshState {
-        refreshCallsCount += 1
-        return .network(Self.makeTier(from: refreshTierResult))
-    }
-
-    func currentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
-        currentSnapshotResult
-    }
-
-    func refreshCurrentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
-        refreshCallsCount += 1
-        return refreshedSnapshotResult
-    }
-
-    func refreshCurrentTierCallsCount() -> Int {
-        refreshCallsCount
-    }
-
-    nonisolated private static func makeSnapshot(tier: String) -> SubscriptionAccessSnapshot? {
-        guard !tier.isEmpty else {
-            return nil
-        }
-
-        return SubscriptionAccessSnapshot(
-            tier: makeTier(from: tier),
-            status: .active,
-            paidAccessUntil: nil,
-            capabilities: [],
-            aiRequestsLimit: 0,
-            aiRequestsRemaining: 0,
-            statusVersion: 42
-        )
-    }
-
-    nonisolated private static func makeTier(from rawTier: String) -> SubscriptionTier {
-        rawTier == "REGULAR" ? .regular : .premium
-    }
-}
-
-private actor ProfileServiceStub: ProfileContractServicing {
-    private var results: [Result<ProfileResponseDTO, Error>]
-    private let updateResults: [Result<ProfileResponseDTO, Error>]
-    private let deleteAccountResult: Result<Void, Error>
-    private var getProfileCallsCount = 0
-    private var updateProfileCallsCount = 0
-    private var deleteAccountCallsCount = 0
-
-    init(
-        results: [Result<ProfileResponseDTO, Error>],
-        updateResults: [Result<ProfileResponseDTO, Error>] = [.failure(StubError.any)],
-        deleteAccountResult: Result<Void, Error> = .success(())
-    ) {
-        self.results = results
-        self.updateResults = updateResults
-        self.deleteAccountResult = deleteAccountResult
-    }
-
-    func getProfile() async throws -> ProfileResponseDTO {
-        getProfileCallsCount += 1
-
-        guard !results.isEmpty else {
-            throw StubError.any
-        }
-
-        let result = results.removeFirst()
-        return try result.get()
-    }
-
-    func updateProfile(_ request: ProfileUpdateRequestDTO) async throws -> ProfileResponseDTO {
-        let index = min(updateProfileCallsCount, max(updateResults.count - 1, .zero))
-        updateProfileCallsCount += 1
-        return try updateResults[index].get()
-    }
-
-    func deleteAccount() async throws {
-        deleteAccountCallsCount += 1
-        try deleteAccountResult.get()
-    }
-
-    func callsCount() -> Int {
-        getProfileCallsCount
-    }
-
-    func currentDeleteAccountCallsCount() -> Int {
-        deleteAccountCallsCount
-    }
-}
-
-private struct CurrencyRateServiceStub: MainCurrencyRateContractServicing {
-    func getCurrencyRate(currency: String) async throws -> CurrencyRateResponseDTO {
-        .init(currency: currency, rateToUsd: 1, asOf: "")
-    }
-}
-
-private final class UserProfileStorageServiceSpy: UserProfileStorageServiceProtocol, @unchecked Sendable {
-    private var storedProfile: UserProfileDefaults?
-
-    init(storedProfile: UserProfileDefaults? = nil) {
-        self.storedProfile = storedProfile
-    }
-
-    func saveProfile(_ profile: UserProfileDefaults) {
-        storedProfile = profile
-    }
-
-    func loadProfile() -> UserProfileDefaults? {
-        storedProfile
-    }
-
-    func clearProfile() {}
-}
-
 private enum StubError: Error {
     case any
 }
 
-private struct AppLogSinkProtocolStub: AppLogSinkProtocol {
-    func write(_ entry: AppLogEntry) {}
+private extension ProfileInteractorTests {
+    nonisolated static func makeProfileService(
+        results: [Result<ProfileResponseDTO, Error>],
+        updateResults: [Result<ProfileResponseDTO, Error>] = [.failure(StubError.any)],
+        deleteAccountResult: Result<Void, Error> = .success(())
+    ) -> ProfileContractServicingMock {
+        let profileService = ProfileContractServicingMock()
+        profileService.getProfileClosure = { [unowned profileService] in
+            let index = profileService.getProfileCallsCount - 1
+            guard index < results.count else {
+                throw StubError.any
+            }
 
-    func exportLogFile(completion: @escaping (Result<URL, Error>) -> Void) {
-        completion(.failure(StubError.any))
+            return try results[index].get()
+        }
+        profileService.refreshProfileClosure = { [unowned profileService] in
+            try await profileService.getProfile()
+        }
+        profileService.updateProfileClosure = { [unowned profileService] _ in
+            let index = min(profileService.updateProfileCallsCount - 1, max(updateResults.count - 1, .zero))
+            return try updateResults[index].get()
+        }
+        if case let .failure(error) = deleteAccountResult {
+            profileService.deleteAccountThrowableError = error
+        }
+        return profileService
+    }
+
+    nonisolated static func makeAuthSessionService(logoutResult: Result<Void, Error>) -> AuthSessionServiceProtocolMock {
+        let authSessionService = AuthSessionServiceProtocolMock()
+        authSessionService.hasValidSessionReturnValue = false
+        authSessionService.refreshAccessTokenThrowableError = StubError.any
+        if case let .failure(error) = logoutResult {
+            authSessionService.logoutFromBackendThrowableError = error
+        }
+        return authSessionService
+    }
+
+    nonisolated static func makeSubscriptionAccessService(
+        currentTierResult: String = "REGULAR",
+        refreshTierResult: String = "PLUS",
+        currentSnapshotResult: SubscriptionAccessSnapshot? = nil,
+        refreshedSnapshotResult: SubscriptionAccessSnapshot? = nil
+    ) -> SubscriptionAccessServicingMock {
+        let subscriptionAccessService = SubscriptionAccessServicingMock()
+        subscriptionAccessService.currentTierStateReturnValue = .resolved(makeTier(from: currentTierResult))
+        subscriptionAccessService.refreshCurrentTierStateReturnValue = .resolved(makeTier(from: refreshTierResult))
+        subscriptionAccessService.refreshCurrentTierSourceStateReturnValue = .network(makeTier(from: refreshTierResult))
+        subscriptionAccessService.currentSubscriptionSnapshotReturnValue = currentSnapshotResult
+            ?? makeSnapshot(tier: currentTierResult)
+        subscriptionAccessService.refreshCurrentSubscriptionSnapshotReturnValue = refreshedSnapshotResult
+            ?? makeSnapshot(tier: refreshTierResult)
+        return subscriptionAccessService
+    }
+
+    nonisolated static func makeProfileStorage(storedProfile: UserProfileDefaults? = nil) -> UserProfileStorageServiceProtocolMock {
+        var currentProfile = storedProfile
+        let profileStorage = UserProfileStorageServiceProtocolMock()
+        profileStorage.loadProfileClosure = { currentProfile }
+        profileStorage.saveProfileClosure = { currentProfile = $0 }
+        return profileStorage
+    }
+
+    nonisolated static func makeCurrencyRateService() -> MainCurrencyRateContractServicingMock {
+        let currencyRateService = MainCurrencyRateContractServicingMock()
+        currencyRateService.getCurrencyRateCurrencyClosure = { .init(currency: $0, rateToUsd: 1, asOf: "") }
+        return currencyRateService
+    }
+
+    nonisolated static func makeAppLogSink() -> AppLogSinkProtocolMock {
+        let appLogSink = AppLogSinkProtocolMock()
+        appLogSink.exportLogFileCompletionClosure = { completion in
+            completion(.failure(StubError.any))
+        }
+        return appLogSink
+    }
+
+    nonisolated static func makeSnapshot(tier: String) -> SubscriptionAccessSnapshot? {
+        guard !tier.isEmpty else {
+            return nil
+        }
+
+        return SubscriptionAccessSnapshotFixtures.makeSnapshot(
+            tier: makeTier(from: tier),
+            capabilities: [],
+            aiRequestsLimit: 0,
+            aiRequestsRemaining: 0,
+            statusVersion: 42,
+            hasAiRequestsLimit: nil
+        )
+    }
+
+    nonisolated static func makeTier(from rawTier: String) -> SubscriptionTier {
+        rawTier == "REGULAR" ? .regular : .premium
     }
 }

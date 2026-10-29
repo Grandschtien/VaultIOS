@@ -3,27 +3,49 @@ import XCTest
 
 @MainActor
 final class MainInteractorTests: XCTestCase {
+    private var store: MainFlowDomainStore!
+    private var observer: MainFlowDomainObserver!
+
+    override func setUp() {
+        super.setUp()
+        store = MainFlowDomainStore()
+        observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
+    }
+
+    override func tearDown() {
+        observer = nil
+        store = nil
+        super.tearDown()
+    }
+}
+
+extension MainInteractorTests {
     func testFetchDataHappyPathLoadsAllSections() async {
-        let presenter = MainPresenterSpy()
-        let repository = MainRepositoryStub(
+        let presenter = MainPresentationLogicMock()
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([makeCategory(id: "cat-1", amount: 10)])],
             recentExpensesResults: [.success([makeExpense(id: "exp-1", category: "cat-1", time: 100)])]
         )
         let sut = makeSut(
             presenter: presenter,
-            router: MainRouterSpy(),
-            summaryProvider: MainSummaryProviderStub(
+            router: MainRoutingLogicMock(),
+            summaryProvider: Self.makeSummaryProvider(
                 result: .success(.init(totalAmount: 2450.8, currency: "USD", changePercent: 12))
             ),
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
+        let loaded = presentationExpectation(on: presenter) { data in
+            data.categories.count == 1 && data.expenseGroups.flatMap(\.expenses).count == 1
+        }
 
         await sut.fetchData()
-        await waitForUpdates()
+        await fulfillment(of: [loaded], timeout: 1)
 
-        guard let first = presenter.presentedData.first,
-              let last = presenter.presentedData.last else {
+        guard let first = presenter.presentFetchedDataReceivedInvocations.first,
+              let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter updates")
         }
 
@@ -39,22 +61,24 @@ final class MainInteractorTests: XCTestCase {
     }
 
     func testFetchDataTracksMainScreenOpenOnlyOnce() async {
-        let analytics = MainAnalyticsTrackingSpy()
-        let repository = MainRepositoryStub(
+        let analytics = MainAnalyticsTrackingMock()
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([]), .success([])],
             recentExpensesResults: [.success([]), .success([])]
         )
         let sut = makeSut(
-            presenter: MainPresenterSpy(),
-            router: MainRouterSpy(),
-            summaryProvider: MainSummaryProviderStub(
+            presenter: MainPresentationLogicMock(),
+            router: MainRoutingLogicMock(),
+            summaryProvider: Self.makeSummaryProvider(
                 results: [
                     .success(.init(totalAmount: 0, currency: "USD", changePercent: 0)),
                     .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
                 ]
             ),
             repository: repository,
-            observer: repository.observer,
+            observer: observer,
             analytics: analytics
         )
 
@@ -67,26 +91,28 @@ final class MainInteractorTests: XCTestCase {
 
 extension MainInteractorTests {
     func testFetchDataWhenCurrencyRateFailsShowsBlockingErrorAndSkipsDomainRefresh() async {
-        let presenter = MainPresenterSpy()
-        let repository = MainRepositoryStub(
+        let presenter = MainPresentationLogicMock()
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([])],
             recentExpensesResults: [.success([])]
         )
-        let currencyRateProvider = MainCurrencyRateProviderStub(result: .failure(StubError.any))
+        let currencyRateProvider = Self.makeCurrencyRateProvider(result: .failure(StubError.any))
         let sut = makeSut(
             presenter: presenter,
-            router: MainRouterSpy(),
+            router: MainRoutingLogicMock(),
             currencyRateProvider: currencyRateProvider,
-            summaryProvider: MainSummaryProviderStub(
+            summaryProvider: Self.makeSummaryProvider(
                 result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
             ),
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.fetchData()
 
-        guard let last = presenter.presentedData.last else {
+        guard let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter update")
         }
 
@@ -94,8 +120,8 @@ extension MainInteractorTests {
         assertStatus(last.summaryState, is: .idle)
         assertStatus(last.categoriesState, is: .idle)
         assertStatus(last.expensesState, is: .idle)
-        let categoriesCalls = await repository.refreshCategoriesCalls()
-        let expensesCalls = await repository.refreshRecentExpensesCalls()
+        let categoriesCalls = repository.refreshCategoriesCallsCount
+        let expensesCalls = repository.refreshRecentExpensesCallsCount
         XCTAssertEqual(categoriesCalls, 0)
         XCTAssertEqual(expensesCalls, 0)
     }
@@ -103,8 +129,10 @@ extension MainInteractorTests {
 
 extension MainInteractorTests {
     func testHandleTapRetryCategoriesReloadsOnlyCategoriesSection() async {
-//        let presenter = MainPresenterSpy()
-//        let repository = MainRepositoryStub(
+//        let presenter = MainPresentationLogicMock()
+//        let repository = Self.makeRepository(
+//            store: store,
+//            observer: observer,
 //            categoriesResults: [
 //                .failure(StubError.any),
 //                .success([makeCategory(id: "cat-1", amount: 10)])
@@ -113,19 +141,19 @@ extension MainInteractorTests {
 //        )
 //        let sut = makeSut(
 //            presenter: presenter,
-//            router: MainRouterSpy(),
-//            summaryProvider: MainSummaryProviderStub(
+//            router: MainRoutingLogicMock(),
+//            summaryProvider: Self.makeSummaryProvider(
 //                result: .success(.init(totalAmount: 100, currency: "USD", changePercent: 0))
 //            ),
 //            repository: repository,
-//            observer: repository.observer
+//            observer: observer
 //        )
 //
 //        await sut.fetchData()
 //        await sut.handleTapRetryCategories()
 //        await waitForUpdates()
 //
-//        guard let last = presenter.presentedData.last else {
+//        guard let last = presenter.presentFetchedDataReceivedInvocations.last else {
 //            return XCTFail("Expected presenter update")
 //        }
 //
@@ -133,21 +161,23 @@ extension MainInteractorTests {
 //        assertStatus(last.categoriesState, is: .loaded)
 //        assertStatus(last.expensesState, is: .loaded)
 //        XCTAssertEqual(last.categories.count, 1)
-//        let categoriesCalls = await repository.refreshCategoriesCalls()
-//        let expensesCalls = await repository.refreshRecentExpensesCalls()
+//        let categoriesCalls = repository.refreshCategoriesCallsCount
+//        let expensesCalls = repository.refreshRecentExpensesCallsCount
 //        XCTAssertEqual(categoriesCalls, 2)
 //        XCTAssertEqual(expensesCalls, 1)
     }
 
     func testHandlePullToRefreshPreservesContentAndReloadsData() async {
-        let presenter = MainPresenterSpy()
-        let summaryProvider = MainSummaryProviderStub(
+        let presenter = MainPresentationLogicMock()
+        let summaryProvider = Self.makeSummaryProvider(
             results: [
-                .success(.init(totalAmount: 100, currency: "USD", changePercent: 0)),
-                .success(.init(totalAmount: 200, currency: "USD", changePercent: 0))
+                .success(.init(totalAmount: 10, currency: "USD", changePercent: 0)),
+                .success(.init(totalAmount: 20, currency: "USD", changePercent: 0))
             ]
         )
-        let repository = MainRepositoryStub(
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [
                 .success([makeCategory(id: "cat-1", amount: 10)]),
                 .success([makeCategory(id: "cat-1", amount: 20)])
@@ -159,40 +189,44 @@ extension MainInteractorTests {
         )
         let sut = makeSut(
             presenter: presenter,
-            router: MainRouterSpy(),
+            router: MainRoutingLogicMock(),
             summaryProvider: summaryProvider,
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.fetchData()
-        await waitForUpdates()
 
-        let initialUpdatesCount = presenter.presentedData.count
+        let initialUpdatesCount = presenter.presentFetchedDataReceivedInvocations.count
+        let refreshFinished = presentationExpectation(on: presenter) { data in
+            !data.isRefreshing
+                && data.summary?.totalAmount == 20
+                && data.expenseGroups.flatMap(\.expenses).first?.id == "exp-2"
+        }
 
         await sut.handlePullToRefresh()
-        await waitForUpdates()
+        await fulfillment(of: [refreshFinished], timeout: 1)
 
-        guard let refreshingUpdate = presenter.presentedData[initialUpdatesCount...].first(where: { $0.isRefreshing }),
-              let last = presenter.presentedData.last else {
+        guard let refreshingUpdate = presenter.presentFetchedDataReceivedInvocations[initialUpdatesCount...].first(where: { $0.isRefreshing }),
+              let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter updates for pull to refresh")
         }
 
         assertStatus(refreshingUpdate.summaryState, is: .loaded)
         assertStatus(refreshingUpdate.categoriesState, is: .loaded)
         assertStatus(refreshingUpdate.expensesState, is: .loaded)
-        XCTAssertEqual(refreshingUpdate.summary?.totalAmount, 100)
+        XCTAssertEqual(refreshingUpdate.summary?.totalAmount, 10)
         XCTAssertEqual(refreshingUpdate.categories.first?.amount, 10)
         XCTAssertEqual(refreshingUpdate.expenseGroups.flatMap(\.expenses).first?.id, "exp-1")
 
         XCTAssertFalse(last.isRefreshing)
-        XCTAssertEqual(last.summary?.totalAmount, 200)
+        XCTAssertEqual(last.summary?.totalAmount, 20)
         XCTAssertEqual(last.categories.first?.amount, 20)
         XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).first?.id, "exp-2")
 
-        let summaryFetchCalls = await summaryProvider.recordedFetchCallsCount()
-        let categoriesCalls = await repository.refreshCategoriesCalls()
-        let expensesCalls = await repository.refreshRecentExpensesCalls()
+        let summaryFetchCalls = summaryProvider.fetchSummaryCallsCount
+        let categoriesCalls = repository.refreshCategoriesCallsCount
+        let expensesCalls = repository.refreshRecentExpensesCallsCount
 
         XCTAssertEqual(summaryFetchCalls, 2)
         XCTAssertEqual(categoriesCalls, 2)
@@ -200,20 +234,28 @@ extension MainInteractorTests {
     }
 
     func testFetchDataCancelsInFlightPullToRefresh() async {
-        let presenter = MainPresenterSpy()
-        let summaryProvider = MainSummaryProviderStub(
+        let presenter = MainPresentationLogicMock()
+        let refreshRequestsStarted = expectation(description: "Pull to refresh requests started")
+        refreshRequestsStarted.expectedFulfillmentCount = 3
+        let refreshRequestsCancelled = expectation(description: "Pull to refresh requests cancelled")
+        refreshRequestsCancelled.expectedFulfillmentCount = 3
+        let summaryProvider = Self.makeSummaryProvider(
             results: [
-                .success(.init(totalAmount: 100, currency: "USD", changePercent: 0)),
-                .success(.init(totalAmount: 200, currency: "USD", changePercent: 0)),
-                .success(.init(totalAmount: 300, currency: "USD", changePercent: 0))
+                .success(.init(totalAmount: 10, currency: "USD", changePercent: 0)),
+                .success(.init(totalAmount: 20, currency: "USD", changePercent: 0)),
+                .success(.init(totalAmount: 30, currency: "USD", changePercent: 0))
             ],
             delaysInNanoseconds: [
                 0,
                 5_000_000_000,
                 0
-            ]
+            ],
+            onDelayStarted: { refreshRequestsStarted.fulfill() },
+            onDelayCancelled: { refreshRequestsCancelled.fulfill() }
         )
-        let repository = MainRepositoryStub(
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [
                 .success([makeCategory(id: "cat-1", amount: 10)]),
                 .success([makeCategory(id: "cat-1", amount: 20)]),
@@ -233,60 +275,61 @@ extension MainInteractorTests {
                 0,
                 5_000_000_000,
                 0
-            ]
+            ],
+            onDelayStarted: { refreshRequestsStarted.fulfill() },
+            onDelayCancelled: { refreshRequestsCancelled.fulfill() }
         )
         let sut = makeSut(
             presenter: presenter,
-            router: MainRouterSpy(),
+            router: MainRoutingLogicMock(),
             summaryProvider: summaryProvider,
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.fetchData()
-        await waitForUpdates()
-
         await sut.handlePullToRefresh()
-        await waitForUpdates()
-        await sut.fetchData()
-        await waitForUpdates()
+        await fulfillment(of: [refreshRequestsStarted], timeout: 1)
 
-        guard let last = presenter.presentedData.last else {
+        let reloaded = presentationExpectation(on: presenter) { data in
+            !data.isRefreshing
+                && data.summary?.totalAmount == 30
+                && data.expenseGroups.flatMap(\.expenses).first?.id == "exp-3"
+        }
+
+        await sut.fetchData()
+        await fulfillment(of: [reloaded, refreshRequestsCancelled], timeout: 1)
+
+        guard let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter updates")
         }
 
         XCTAssertFalse(last.isRefreshing)
-        XCTAssertEqual(last.summary?.totalAmount, 300)
+        XCTAssertEqual(last.summary?.totalAmount, 30)
         XCTAssertEqual(last.categories.first?.amount, 30)
         XCTAssertEqual(last.expenseGroups.flatMap(\.expenses).first?.id, "exp-3")
-
-        let cancelledSummaryCalls = await summaryProvider.cancelledFetchCallsCount()
-        let cancelledCategoriesCalls = await repository.refreshCategoriesCancelledCalls()
-        let cancelledExpensesCalls = await repository.refreshRecentExpensesCancelledCalls()
-
-        XCTAssertGreaterThanOrEqual(cancelledSummaryCalls, 1)
-        XCTAssertGreaterThanOrEqual(cancelledCategoriesCalls, 1)
-        XCTAssertGreaterThanOrEqual(cancelledExpensesCalls, 1)
     }
 
     func testFetchDataUsesObservedSummaryWhenSummaryRequestFails() async {
-        let presenter = MainPresenterSpy()
-        let repository = MainRepositoryStub(
+        let presenter = MainPresentationLogicMock()
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([makeCategory(id: "cat-1", amount: 10)])],
             recentExpensesResults: [.success([])]
         )
         let sut = makeSut(
             presenter: presenter,
-            router: MainRouterSpy(),
-            summaryProvider: MainSummaryProviderStub(result: .failure(StubError.any)),
+            router: MainRoutingLogicMock(),
+            summaryProvider: Self.makeSummaryProvider(result: .failure(StubError.any)),
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.fetchData()
         await waitForUpdates()
 
-        guard let last = presenter.presentedData.last else {
+        guard let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter update")
         }
 
@@ -298,29 +341,35 @@ extension MainInteractorTests {
 
 extension MainInteractorTests {
     func testObserverUpdatesLoadedStateAfterExternalMutation() async {
-        let presenter = MainPresenterSpy()
-        let repository = MainRepositoryStub(
+        let presenter = MainPresentationLogicMock()
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([makeCategory(id: "cat-1", amount: 10)])],
             recentExpensesResults: [.success([makeExpense(id: "exp-1", category: "cat-1", time: 100)])]
         )
         let sut = makeSut(
             presenter: presenter,
-            router: MainRouterSpy(),
-            summaryProvider: MainSummaryProviderStub(
+            router: MainRoutingLogicMock(),
+            summaryProvider: Self.makeSummaryProvider(
                 result: .success(.init(totalAmount: 100, currency: "USD", changePercent: 0))
             ),
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.fetchData()
-        await repository.emitOverview(
+        let overviewUpdated = presentationExpectation(on: presenter) { data in
+            data.expenseGroups.flatMap(\.expenses).first?.id == "exp-2"
+        }
+
+        emitOverview(
             categories: [makeCategory(id: "cat-1", amount: 50)],
             expenses: [makeExpense(id: "exp-2", category: "cat-1", time: 200)]
         )
-        await waitForUpdates()
+        await fulfillment(of: [overviewUpdated], timeout: 1)
 
-        guard let last = presenter.presentedData.last else {
+        guard let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter update")
         }
 
@@ -330,26 +379,31 @@ extension MainInteractorTests {
     }
 
     func testObserverResetsSummaryToZeroWhenObservedCategoriesBecomeEmpty() async {
-        let presenter = MainPresenterSpy()
-        let repository = MainRepositoryStub(
+        let presenter = MainPresentationLogicMock()
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([makeCategory(id: "cat-1", amount: 10)])],
             recentExpensesResults: [.success([])]
         )
         let sut = makeSut(
             presenter: presenter,
-            router: MainRouterSpy(),
-            summaryProvider: MainSummaryProviderStub(
+            router: MainRoutingLogicMock(),
+            summaryProvider: Self.makeSummaryProvider(
                 result: .success(.init(totalAmount: 100, currency: "USD", changePercent: 12))
             ),
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.fetchData()
-        await repository.emitOverview(categories: [], expenses: [])
-        await waitForUpdates()
+        let summaryReset = presentationExpectation(on: presenter) { data in
+            data.summary?.totalAmount == .zero
+        }
+        emitOverview(categories: [], expenses: [])
+        await fulfillment(of: [summaryReset], timeout: 1)
 
-        guard let last = presenter.presentedData.last else {
+        guard let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter update")
         }
 
@@ -361,56 +415,60 @@ extension MainInteractorTests {
 
 extension MainInteractorTests {
     func testHandleTapCategoryCallsRouter() async {
-        let router = MainRouterSpy()
-        let repository = MainRepositoryStub(
+        let router = MainRoutingLogicMock()
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([])],
             recentExpensesResults: [.success([])]
         )
         let sut = makeSut(
-            presenter: MainPresenterSpy(),
+            presenter: MainPresentationLogicMock(),
             router: router,
-            summaryProvider: MainSummaryProviderStub(
+            summaryProvider: Self.makeSummaryProvider(
                 result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
             ),
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.handleTapCategory(id: "cat-1", name: "Food")
 
-        XCTAssertEqual(router.openCategoryCalls.count, 1)
-        XCTAssertEqual(router.openCategoryCalls.first?.id, "cat-1")
-        XCTAssertEqual(router.openCategoryCalls.first?.name, "Food")
+        XCTAssertEqual(router.openCategoryIdNameReceivedInvocations.count, 1)
+        XCTAssertEqual(router.openCategoryIdNameReceivedInvocations.first?.id, "cat-1")
+        XCTAssertEqual(router.openCategoryIdNameReceivedInvocations.first?.name, "Food")
     }
 
     func testHandleTapPeriodButtonOpensPickerFromCurrentPeriod() async {
-        let router = MainRouterSpy()
-        let summaryPeriodProvider = MainSummaryPeriodServiceStub(
+        let router = MainRoutingLogicMock()
+        let summaryPeriodProvider = Self.makeSummaryPeriodService(
             period: .init(
                 from: Date(timeIntervalSince1970: 10),
                 to: Date(timeIntervalSince1970: 20)
             )
         )
-        let repository = MainRepositoryStub(
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([])],
             recentExpensesResults: [.success([])]
         )
         let sut = makeSut(
-            presenter: MainPresenterSpy(),
+            presenter: MainPresentationLogicMock(),
             router: router,
-            summaryProvider: MainSummaryProviderStub(
+            summaryProvider: Self.makeSummaryProvider(
                 result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
             ),
             summaryPeriodProvider: summaryPeriodProvider,
-            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PREMIUM"),
+            subscriptionAccessService: Self.makeSubscriptionAccessService(currentTier: "PREMIUM"),
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.handleTapPeriodButton()
 
         XCTAssertEqual(
-            router.openPeriodPickerCalls,
+            router.openPeriodPickerSelectedFromDateSelectedToDateOutputReceivedInvocations.map { MainSummaryPeriod(from: $0.selectedFromDate, to: $0.selectedToDate) },
             [
                 .init(
                     from: Date(timeIntervalSince1970: 10),
@@ -421,42 +479,46 @@ extension MainInteractorTests {
     }
 
     func testHandleTapPeriodButtonWithRegularTierOpensSubscription() async {
-        let router = MainRouterSpy()
-        let repository = MainRepositoryStub(
+        let router = MainRoutingLogicMock()
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([])],
             recentExpensesResults: [.success([])]
         )
-        let subscriptionAccessService = SubscriptionAccessServiceStub(currentTier: "REGULAR")
+        let subscriptionAccessService = Self.makeSubscriptionAccessService(currentTier: "REGULAR")
         let sut = makeSut(
-            presenter: MainPresenterSpy(),
+            presenter: MainPresentationLogicMock(),
             router: router,
-            summaryProvider: MainSummaryProviderStub(
+            summaryProvider: Self.makeSummaryProvider(
                 result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
             ),
             subscriptionAccessService: subscriptionAccessService,
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.handleTapPeriodButton()
 
-        XCTAssertTrue(router.openPeriodPickerCalls.isEmpty)
-        XCTAssertEqual(router.lastOpenedSubscriptionTier, .regular)
+        XCTAssertTrue(router.openPeriodPickerSelectedFromDateSelectedToDateOutputReceivedInvocations.map { MainSummaryPeriod(from: $0.selectedFromDate, to: $0.selectedToDate) }.isEmpty)
+        XCTAssertEqual(router.openSubscriptionCurrentTierOutputReceivedInvocations.last?.currentTier, .regular)
     }
 
     func testHandleTapPeriodButtonUsesCustomDateRangeCapabilityInsteadOfTier() async {
-        let router = MainRouterSpy()
-        let repository = MainRepositoryStub(
+        let router = MainRoutingLogicMock()
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([])],
             recentExpensesResults: [.success([])]
         )
-        let summaryPeriodProvider = MainSummaryPeriodServiceStub(
+        let summaryPeriodProvider = Self.makeSummaryPeriodService(
             period: .init(
                 from: Date(timeIntervalSince1970: 10),
                 to: Date(timeIntervalSince1970: 20)
             )
         )
-        let subscriptionAccessService = SubscriptionAccessServiceStub(
+        let subscriptionAccessService = Self.makeSubscriptionAccessService(
             currentTier: "REGULAR",
             currentSnapshot: .init(
                 tier: .regular,
@@ -469,61 +531,65 @@ extension MainInteractorTests {
             )
         )
         let sut = makeSut(
-            presenter: MainPresenterSpy(),
+            presenter: MainPresentationLogicMock(),
             router: router,
-            summaryProvider: MainSummaryProviderStub(
+            summaryProvider: Self.makeSummaryProvider(
                 result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
             ),
             summaryPeriodProvider: summaryPeriodProvider,
             subscriptionAccessService: subscriptionAccessService,
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.handleTapPeriodButton()
 
-        XCTAssertEqual(router.openPeriodPickerCalls, [summaryPeriodProvider.currentMonthPeriod()])
-        XCTAssertNil(router.lastOpenedSubscriptionTier)
+        XCTAssertEqual(router.openPeriodPickerSelectedFromDateSelectedToDateOutputReceivedInvocations.map { MainSummaryPeriod(from: $0.selectedFromDate, to: $0.selectedToDate) }, [summaryPeriodProvider.currentMonthPeriod()])
+        XCTAssertNil(router.openSubscriptionCurrentTierOutputReceivedInvocations.last?.currentTier)
     }
 
     func testHandleTapPeriodButtonWithPlusTierOpensPeriodPicker() async {
-        let router = MainRouterSpy()
-        let repository = MainRepositoryStub(
+        let router = MainRoutingLogicMock()
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([])],
             recentExpensesResults: [.success([])]
         )
-        let summaryPeriodProvider = MainSummaryPeriodServiceStub(
+        let summaryPeriodProvider = Self.makeSummaryPeriodService(
             period: .init(
                 from: Date(timeIntervalSince1970: 10),
                 to: Date(timeIntervalSince1970: 20)
             )
         )
-        let subscriptionAccessService = SubscriptionAccessServiceStub(currentTier: "PLUS")
+        let subscriptionAccessService = Self.makeSubscriptionAccessService(currentTier: "PLUS")
         let sut = makeSut(
-            presenter: MainPresenterSpy(),
+            presenter: MainPresentationLogicMock(),
             router: router,
-            summaryProvider: MainSummaryProviderStub(
+            summaryProvider: Self.makeSummaryProvider(
                 result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
             ),
             summaryPeriodProvider: summaryPeriodProvider,
             subscriptionAccessService: subscriptionAccessService,
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.handleTapPeriodButton()
 
-        XCTAssertEqual(router.openPeriodPickerCalls, [summaryPeriodProvider.currentMonthPeriod()])
-        XCTAssertNil(router.lastOpenedSubscriptionTier)
+        XCTAssertEqual(router.openPeriodPickerSelectedFromDateSelectedToDateOutputReceivedInvocations.map { MainSummaryPeriod(from: $0.selectedFromDate, to: $0.selectedToDate) }, [summaryPeriodProvider.currentMonthPeriod()])
+        XCTAssertNil(router.openSubscriptionCurrentTierOutputReceivedInvocations.last?.currentTier)
     }
 
     func testFetchDataWithPlusTierKeepsSelectedPeriod() async {
-        let presenter = MainPresenterSpy()
-        let repository = MainRepositoryStub(
+        let presenter = MainPresentationLogicMock()
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([])],
             recentExpensesResults: [.success([])]
         )
-        let summaryPeriodProvider = MainSummaryPeriodServiceStub(
+        let summaryPeriodProvider = Self.makeSummaryPeriodService(
             period: .init(
                 from: Date(timeIntervalSince1970: 10),
                 to: Date(timeIntervalSince1970: 20)
@@ -535,14 +601,14 @@ extension MainInteractorTests {
         )
         let sut = makeSut(
             presenter: presenter,
-            router: MainRouterSpy(),
-            summaryProvider: MainSummaryProviderStub(
+            router: MainRoutingLogicMock(),
+            summaryProvider: Self.makeSummaryProvider(
                 result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
             ),
             summaryPeriodProvider: summaryPeriodProvider,
-            subscriptionAccessService: SubscriptionAccessServiceStub(currentTier: "PLUS"),
+            subscriptionAccessService: Self.makeSubscriptionAccessService(currentTier: "PLUS"),
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.fetchData()
@@ -550,50 +616,54 @@ extension MainInteractorTests {
 
         XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod().from, Date(timeIntervalSince1970: 10))
         XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod().to, Date(timeIntervalSince1970: 20))
-        XCTAssertEqual(summaryPeriodProvider.resetCallsCount, 0)
-        XCTAssertFalse(presenter.presentedData.isEmpty)
+        XCTAssertEqual(summaryPeriodProvider.resetToCurrentMonthCallsCount, 0)
+        XCTAssertFalse(presenter.presentFetchedDataReceivedInvocations.isEmpty)
     }
 
     func testHandleSubscriptionDidSyncRefreshesCurrentTier() async {
-        let repository = MainRepositoryStub(
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([])],
             recentExpensesResults: [.success([])]
         )
-        let subscriptionAccessService = SubscriptionAccessServiceStub(currentTier: "REGULAR")
+        let subscriptionAccessService = Self.makeSubscriptionAccessService(currentTier: "REGULAR")
         let sut = makeSut(
-            presenter: MainPresenterSpy(),
-            router: MainRouterSpy(),
-            summaryProvider: MainSummaryProviderStub(
+            presenter: MainPresentationLogicMock(),
+            router: MainRoutingLogicMock(),
+            summaryProvider: Self.makeSummaryProvider(
                 result: .success(.init(totalAmount: 0, currency: "USD", changePercent: 0))
             ),
             subscriptionAccessService: subscriptionAccessService,
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         await sut.handleSubscriptionDidSync()
-        let refreshCallsCount = await subscriptionAccessService.refreshCallsCount()
+        let refreshCallsCount = subscriptionAccessService.refreshCurrentSubscriptionSnapshotCallsCount + subscriptionAccessService.refreshCurrentTierStateCallsCount + subscriptionAccessService.refreshCurrentTierSourceStateCallsCount
 
         XCTAssertEqual(refreshCallsCount, 1)
     }
 
     func testHandleDidConfirmCategoryPeriodUpdatesPeriodAndReloadsMainData() async {
-        let presenter = MainPresenterSpy()
-        let summaryProvider = MainSummaryProviderStub(
+        let presenter = MainPresentationLogicMock()
+        let summaryProvider = Self.makeSummaryProvider(
             result: .success(.init(totalAmount: 100, currency: "USD", changePercent: 0))
         )
-        let summaryPeriodProvider = MainSummaryPeriodServiceStub()
-        let repository = MainRepositoryStub(
+        let summaryPeriodProvider = Self.makeSummaryPeriodService()
+        let repository = Self.makeRepository(
+            store: store,
+            observer: observer,
             categoriesResults: [.success([])],
             recentExpensesResults: [.success([])]
         )
         let sut = makeSut(
             presenter: presenter,
-            router: MainRouterSpy(),
+            router: MainRoutingLogicMock(),
             summaryProvider: summaryProvider,
             summaryPeriodProvider: summaryPeriodProvider,
             repository: repository,
-            observer: repository.observer
+            observer: observer
         )
 
         let expectedPeriod = MainSummaryPeriod(
@@ -607,17 +677,17 @@ extension MainInteractorTests {
         )
         await waitForUpdates()
 
-        let summaryFetchCalls = await summaryProvider.recordedFetchCallsCount()
-        let refreshCategoriesCalls = await repository.refreshCategoriesCalls()
-        let refreshRecentExpensesCalls = await repository.refreshRecentExpensesCalls()
-        let refreshLoadedModulesCalls = await repository.refreshLoadedPeriodDependentModulesCalls()
+        let summaryFetchCalls = summaryProvider.fetchSummaryCallsCount
+        let refreshCategoriesCalls = repository.refreshCategoriesCallsCount
+        let refreshRecentExpensesCalls = repository.refreshRecentExpensesCallsCount
+        let refreshLoadedModulesCalls = repository.refreshLoadedPeriodDependentModulesCallsCount
 
         XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod(), expectedPeriod)
         XCTAssertEqual(summaryFetchCalls, 1)
         XCTAssertEqual(refreshCategoriesCalls, 1)
         XCTAssertEqual(refreshRecentExpensesCalls, 1)
         XCTAssertEqual(refreshLoadedModulesCalls, 1)
-        XCTAssertEqual(presenter.presentedData.last?.summary?.totalAmount, 100)
+        XCTAssertEqual(presenter.presentFetchedDataReceivedInvocations.last?.summary?.totalAmount, 100)
     }
 }
 
@@ -636,10 +706,10 @@ private extension MainInteractorTests {
     func makeSut(
         presenter: MainPresentationLogic,
         router: MainRoutingLogic,
-        currencyRateProvider: MainCurrencyRateProviding = MainCurrencyRateProviderStub(result: .success(())),
+        currencyRateProvider: MainCurrencyRateProviding = MainCurrencyRateProvidingMock(),
         summaryProvider: MainSummaryProviding,
-        summaryPeriodProvider: MainSummaryPeriodServicing = MainSummaryPeriodServiceStub(),
-        subscriptionAccessService: SubscriptionAccessServicing = SubscriptionAccessServiceStub(currentTier: "PREMIUM"),
+        summaryPeriodProvider: MainSummaryPeriodServicing = MainInteractorTests.makeSummaryPeriodService(),
+        subscriptionAccessService: SubscriptionAccessServicing = MainInteractorTests.makeSubscriptionAccessService(currentTier: "PREMIUM"),
         repository: MainFlowDomainRepositoryProtocol,
         observer: MainFlowDomainObserverProtocol,
         analytics: MainAnalyticsTracking? = nil
@@ -685,6 +755,22 @@ private extension MainInteractorTests {
         await Task.yield()
     }
 
+    func presentationExpectation(
+        on presenter: MainPresentationLogicMock,
+        where predicate: @escaping (MainFetchData) -> Bool
+    ) -> XCTestExpectation {
+        let expectation = expectation(description: "Presenter received expected data")
+        expectation.assertForOverFulfill = false
+        presenter.presentFetchedDataClosure = { data in
+            guard predicate(data) else {
+                return
+            }
+
+            expectation.fulfill()
+        }
+        return expectation
+    }
+
     func assertStatus(
         _ status: LoadingStatus,
         is expected: StatusCase,
@@ -709,355 +795,148 @@ private extension MainInteractorTests {
     }
 }
 
-@MainActor
-private final class MainPresenterSpy: MainPresentationLogic, @unchecked Sendable {
-    private(set) var presentedData: [MainFetchData] = []
-
-    func presentFetchedData(_ data: MainFetchData) {
-        presentedData.append(data)
-    }
-}
-
-private final class MainAnalyticsTrackingSpy: MainAnalyticsTracking, @unchecked Sendable {
-    private(set) var trackScreenOpenCallsCount = 0
-
-    func trackScreenOpen() {
-        trackScreenOpenCallsCount += 1
-    }
-}
-
-@MainActor
-private final class MainRouterSpy: MainRoutingLogic, @unchecked Sendable {
-    private(set) var openCategoriesCount: Int = .zero
-    private(set) var openExpensesCount: Int = .zero
-    private(set) var openCategoryCalls: [(id: String, name: String)] = []
-    private(set) var openPeriodPickerCalls: [MainSummaryPeriod] = []
-    private(set) var lastOpenedSubscriptionTier: SubscriptionTier?
-
-    func openAllCategories() {
-        openCategoriesCount += 1
-    }
-
-    func openAllExpenses() {
-        openExpensesCount += 1
-    }
-
-    func openCategory(id: String, name: String) {
-        openCategoryCalls.append((id, name))
-    }
-
-    func openSubscription(
-        currentTier: SubscriptionTier,
-        output: SubscriptionOutput
-    ) {
-        lastOpenedSubscriptionTier = currentTier
-    }
-
-    func openPeriodPicker(
-        selectedFromDate: Date,
-        selectedToDate: Date,
-        output: CategoryPeriodPickerOutput
-    ) {
-        openPeriodPickerCalls.append(
-            .init(
-                from: selectedFromDate,
-                to: selectedToDate
-            )
-        )
-    }
-}
-
-private actor MainSummaryProviderStub: MainSummaryProviding {
-    let results: [Result<MainSummaryModel, Error>]
-    let delaysInNanoseconds: [UInt64]
-    private var fetchCallsCount: Int = .zero
-    private var cancelledCallsCount: Int = .zero
-
-    init(result: Result<MainSummaryModel, Error>) {
-        self.results = [result]
-        self.delaysInNanoseconds = []
-    }
-
-    init(results: [Result<MainSummaryModel, Error>]) {
-        self.results = results
-        self.delaysInNanoseconds = []
-    }
-
-    init(
-        results: [Result<MainSummaryModel, Error>],
-        delaysInNanoseconds: [UInt64]
-    ) {
-        self.results = results
-        self.delaysInNanoseconds = delaysInNanoseconds
-    }
-
-    func fetchSummary() async throws -> MainSummaryModel {
-        let callIndex = fetchCallsCount
-        let index = min(callIndex, max(results.count - 1, .zero))
-        fetchCallsCount += 1
-
-        let delayIndex = min(callIndex, max(delaysInNanoseconds.count - 1, .zero))
-        let delay = delaysInNanoseconds.isEmpty ? .zero : delaysInNanoseconds[delayIndex]
-        if delay > 0 {
-            do {
-                try await Task.sleep(nanoseconds: delay)
-            } catch {
-                cancelledCallsCount += 1
-                throw error
-            }
+private extension MainInteractorTests {
+    func emitOverview(categories: [MainCategoryCardModel], expenses: [MainExpenseModel]) {
+        store.update { state in
+            categories.forEach { state.categoriesByID[$0.id] = $0 }
+            state.categoryOrder = categories.map(\.id)
+            expenses.forEach { state.expensesByID[$0.id] = $0 }
+            state.recentExpenseIDs = expenses.map(\.id)
         }
-
-        return try results[index].get()
+        observer.publishAll(from: store)
     }
 
-    func recordedFetchCallsCount() -> Int {
-        fetchCallsCount
+    nonisolated static func makeRepository(
+        store: MainFlowDomainStore,
+        observer: MainFlowDomainObserver,
+        categoriesResults: [Result<[MainCategoryCardModel], Error>],
+        recentExpensesResults: [Result<[MainExpenseModel], Error>],
+        categoriesDelaysInNanoseconds: [UInt64] = [],
+        recentExpensesDelaysInNanoseconds: [UInt64] = [],
+        onDelayStarted: @escaping @Sendable () -> Void = {},
+        onDelayCancelled: @escaping @Sendable () -> Void = {}
+    ) -> MainFlowDomainRepositoryProtocolMock {
+        let repository = MainFlowDomainRepositoryProtocolMock()
+        repository.refreshCategoriesClosure = { [unowned repository] in
+            let callIndex = repository.refreshCategoriesCallsCount - 1
+            try await delayIfNeeded(
+                delaysInNanoseconds: categoriesDelaysInNanoseconds,
+                callIndex: callIndex,
+                onDelayStarted: onDelayStarted,
+                onDelayCancelled: onDelayCancelled
+            )
+            let categories = try categoriesResults[min(callIndex, max(categoriesResults.count - 1, .zero))].get()
+            store.update { state in
+                categories.forEach { state.categoriesByID[$0.id] = $0 }
+                state.categoryOrder = categories.map(\.id)
+            }
+            observer.publishAll(from: store)
+        }
+        repository.refreshRecentExpensesClosure = { [unowned repository] in
+            let callIndex = repository.refreshRecentExpensesCallsCount - 1
+            try await delayIfNeeded(
+                delaysInNanoseconds: recentExpensesDelaysInNanoseconds,
+                callIndex: callIndex,
+                onDelayStarted: onDelayStarted,
+                onDelayCancelled: onDelayCancelled
+            )
+            let expenses = try recentExpensesResults[min(callIndex, max(recentExpensesResults.count - 1, .zero))].get()
+            store.update { state in
+                expenses.forEach { state.expensesByID[$0.id] = $0 }
+                state.recentExpenseIDs = expenses.map(\.id)
+            }
+            observer.publishAll(from: store)
+        }
+        repository.refreshMainFlowClosure = { [unowned repository] in
+            try await repository.refreshCategories()
+            try await repository.refreshRecentExpenses()
+        }
+        return repository
     }
 
-    func cancelledFetchCallsCount() -> Int {
-        cancelledCallsCount
-    }
-}
-
-private actor MainCurrencyRateProviderStub: MainCurrencyRateProviding {
-    let results: [Result<Void, Swift.Error>]
-    private var syncCallsCount: Int = .zero
-
-    init(result: Result<Void, Swift.Error>) {
-        self.results = [result]
+    nonisolated static func makeSummaryProvider(result: Result<MainSummaryModel, Error>) -> MainSummaryProvidingMock {
+        makeSummaryProvider(results: [result])
     }
 
-    func synchronizeCurrencyRateOnLaunch() async throws {
-        let index = min(syncCallsCount, max(results.count - 1, .zero))
-        syncCallsCount += 1
-        _ = try results[index].get()
+    nonisolated static func makeSummaryProvider(
+        results: [Result<MainSummaryModel, Error>],
+        delaysInNanoseconds: [UInt64] = [],
+        onDelayStarted: @escaping @Sendable () -> Void = {},
+        onDelayCancelled: @escaping @Sendable () -> Void = {}
+    ) -> MainSummaryProvidingMock {
+        let summaryProvider = MainSummaryProvidingMock()
+        summaryProvider.fetchSummaryClosure = { [unowned summaryProvider] in
+            let callIndex = summaryProvider.fetchSummaryCallsCount - 1
+            try await delayIfNeeded(
+                delaysInNanoseconds: delaysInNanoseconds,
+                callIndex: callIndex,
+                onDelayStarted: onDelayStarted,
+                onDelayCancelled: onDelayCancelled
+            )
+            return try results[min(callIndex, max(results.count - 1, .zero))].get()
+        }
+        return summaryProvider
     }
-}
 
-private actor SubscriptionAccessServiceStub: SubscriptionAccessServicing {
-    private let currentSnapshot: SubscriptionAccessSnapshot
-    private let refreshedSnapshot: SubscriptionAccessSnapshot
-    private var refreshCalls = 0
+    nonisolated static func makeCurrencyRateProvider(result: Result<Void, Error>) -> MainCurrencyRateProvidingMock {
+        let currencyRateProvider = MainCurrencyRateProvidingMock()
+        if case let .failure(error) = result {
+            currencyRateProvider.synchronizeCurrencyRateOnLaunchThrowableError = error
+        }
+        return currencyRateProvider
+    }
 
-    init(
+    nonisolated static func makeSubscriptionAccessService(
         currentTier: String,
         refreshedTier: String? = nil,
         currentSnapshot: SubscriptionAccessSnapshot? = nil,
         refreshedSnapshot: SubscriptionAccessSnapshot? = nil
-    ) {
-        self.currentSnapshot = currentSnapshot ?? Self.makeSnapshot(tier: currentTier)
-        self.refreshedSnapshot = refreshedSnapshot ?? Self.makeSnapshot(tier: refreshedTier ?? currentTier)
+    ) -> SubscriptionAccessServicingMock {
+        let current = currentSnapshot ?? SubscriptionAccessSnapshotFixtures.makeSnapshot(tierName: currentTier)
+        let refreshed = refreshedSnapshot ?? SubscriptionAccessSnapshotFixtures.makeSnapshot(tierName: refreshedTier ?? currentTier)
+        let subscriptionAccessService = SubscriptionAccessServicingMock()
+        subscriptionAccessService.currentTierStateReturnValue = .resolved(current.tier)
+        subscriptionAccessService.refreshCurrentTierStateReturnValue = .resolved(refreshed.tier)
+        subscriptionAccessService.refreshCurrentTierSourceStateReturnValue = .network(refreshed.tier)
+        subscriptionAccessService.currentSubscriptionSnapshotReturnValue = current
+        subscriptionAccessService.refreshCurrentSubscriptionSnapshotReturnValue = refreshed
+        return subscriptionAccessService
     }
 
-    func currentTierState() async -> SubscriptionTierState {
-        .resolved(currentSnapshot.tier)
-    }
-
-    func refreshCurrentTierState() async -> SubscriptionTierState {
-        refreshCalls += 1
-        return .resolved(refreshedSnapshot.tier)
-    }
-
-    func refreshCurrentTierSourceState() async -> SubscriptionTierRefreshState {
-        refreshCalls += 1
-        return .network(refreshedSnapshot.tier)
-    }
-
-    func currentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
-        currentSnapshot
-    }
-
-    func refreshCurrentSubscriptionSnapshot() async -> SubscriptionAccessSnapshot? {
-        refreshCalls += 1
-        return refreshedSnapshot
-    }
-
-    func refreshCallsCount() -> Int {
-        refreshCalls
-    }
-
-    nonisolated private static func makeSnapshot(tier: String) -> SubscriptionAccessSnapshot {
-        let capabilities: [SubscriptionCapability] = switch tier {
-        case "PREMIUM", "PLUS", "ACTIVE":
-            [
-                SubscriptionCapability.analytics,
-                .customDateRange,
-                .aiInput
-            ]
-        default:
-            []
-        }
-
-        return SubscriptionAccessSnapshot(
-            tier: tier == "REGULAR" ? .regular : .premium,
-            status: .active,
-            paidAccessUntil: nil,
-            capabilities: capabilities,
-            aiRequestsLimit: capabilities.isEmpty ? 0 : 300,
-            aiRequestsRemaining: capabilities.isEmpty ? 0 : 300,
-            statusVersion: 42
-        )
-    }
-}
-
-private final class MainSummaryPeriodServiceStub: MainSummaryPeriodServicing, @unchecked Sendable {
-    private var period: MainSummaryPeriod
-    private let defaultPeriod: MainSummaryPeriod
-    private(set) var resetCallsCount = 0
-
-    init(
+    nonisolated static func makeSummaryPeriodService(
         period: MainSummaryPeriod = .init(
             from: Date(timeIntervalSince1970: 1),
             to: Date(timeIntervalSince1970: 2)
         ),
         defaultPeriod: MainSummaryPeriod? = nil
-    ) {
-        self.period = period
-        self.defaultPeriod = defaultPeriod ?? period
+    ) -> MainSummaryPeriodServicingMock {
+        var currentPeriod = period
+        let summaryPeriodProvider = MainSummaryPeriodServicingMock()
+        summaryPeriodProvider.currentMonthPeriodClosure = { currentPeriod }
+        summaryPeriodProvider.updatePeriodFromToClosure = { currentPeriod = .init(from: $0, to: $1) }
+        summaryPeriodProvider.resetToCurrentMonthClosure = { currentPeriod = defaultPeriod ?? period }
+        return summaryPeriodProvider
     }
 
-    func currentMonthPeriod() -> MainSummaryPeriod {
-        period
-    }
-
-    func updatePeriod(from: Date, to: Date) {
-        period = .init(from: from, to: to)
-    }
-
-    func resetToCurrentMonth() {
-        resetCallsCount += 1
-        period = defaultPeriod
-    }
-}
-
-private actor MainRepositoryStub: MainFlowDomainRepositoryProtocol {
-    nonisolated let observer: MainFlowDomainObserverProtocol
-
-    private let store: MainFlowDomainStoreProtocol
-    private let categoriesResults: [Result<[MainCategoryCardModel], Error>]
-    private let recentExpensesResults: [Result<[MainExpenseModel], Error>]
-    private let categoriesDelaysInNanoseconds: [UInt64]
-    private let recentExpensesDelaysInNanoseconds: [UInt64]
-    private var categoriesCallCount: Int = .zero
-    private var recentExpensesCallCount: Int = .zero
-    private var cancelledCategoriesCallCount: Int = .zero
-    private var cancelledRecentExpensesCallCount: Int = .zero
-    private var refreshLoadedPeriodDependentModulesCallCount: Int = .zero
-
-    init(
-        categoriesResults: [Result<[MainCategoryCardModel], Error>],
-        recentExpensesResults: [Result<[MainExpenseModel], Error>],
-        categoriesDelaysInNanoseconds: [UInt64] = [],
-        recentExpensesDelaysInNanoseconds: [UInt64] = []
-    ) {
-        let store = MainFlowDomainStore()
-        self.store = store
-        self.observer = MainFlowDomainObserver(expenseGrouping: MainExpenseDateGrouping())
-        self.categoriesResults = categoriesResults
-        self.recentExpensesResults = recentExpensesResults
-        self.categoriesDelaysInNanoseconds = categoriesDelaysInNanoseconds
-        self.recentExpensesDelaysInNanoseconds = recentExpensesDelaysInNanoseconds
-    }
-
-    func refreshMainFlow() async throws {
-        try await refreshCategories()
-        try await refreshRecentExpenses()
-    }
-
-    func refreshCategories() async throws {
-        let callIndex = categoriesCallCount
-        let index = min(callIndex, max(categoriesResults.count - 1, .zero))
-        categoriesCallCount += 1
-
-        let delayIndex = min(callIndex, max(categoriesDelaysInNanoseconds.count - 1, .zero))
-        let delay = categoriesDelaysInNanoseconds.isEmpty ? .zero : categoriesDelaysInNanoseconds[delayIndex]
-        if delay > 0 {
-            do {
-                try await Task.sleep(nanoseconds: delay)
-            } catch {
-                cancelledCategoriesCallCount += 1
-                throw error
-            }
+    nonisolated static func delayIfNeeded(
+        delaysInNanoseconds: [UInt64],
+        callIndex: Int,
+        onDelayStarted: @Sendable () -> Void,
+        onDelayCancelled: @Sendable () -> Void
+    ) async throws {
+        let delay = delaysInNanoseconds.isEmpty
+            ? .zero
+            : delaysInNanoseconds[min(callIndex, delaysInNanoseconds.count - 1)]
+        guard delay > .zero else {
+            return
         }
 
-        let categories = try categoriesResults[index].get()
-
-        store.update { state in
-            categories.forEach { state.categoriesByID[$0.id] = $0 }
-            state.categoryOrder = categories.map(\.id)
+        onDelayStarted()
+        do {
+            try await Task.sleep(nanoseconds: delay)
+        } catch {
+            onDelayCancelled()
+            throw error
         }
-        observer.publishAll(from: store)
-    }
-
-    func refreshRecentExpenses() async throws {
-        let callIndex = recentExpensesCallCount
-        let index = min(callIndex, max(recentExpensesResults.count - 1, .zero))
-        recentExpensesCallCount += 1
-
-        let delayIndex = min(callIndex, max(recentExpensesDelaysInNanoseconds.count - 1, .zero))
-        let delay = recentExpensesDelaysInNanoseconds.isEmpty ? .zero : recentExpensesDelaysInNanoseconds[delayIndex]
-        if delay > 0 {
-            do {
-                try await Task.sleep(nanoseconds: delay)
-            } catch {
-                cancelledRecentExpensesCallCount += 1
-                throw error
-            }
-        }
-
-        let expenses = try recentExpensesResults[index].get()
-
-        store.update { state in
-            expenses.forEach { state.expensesByID[$0.id] = $0 }
-            state.recentExpenseIDs = expenses.map(\.id)
-        }
-        observer.publishAll(from: store)
-    }
-
-    func refreshCategoryFirstPage(id: String, fromDate: Date?, toDate: Date?) async throws {}
-    func refreshExpensesFirstPage() async throws {}
-    func refreshLoadedPeriodDependentModules() async {
-        refreshLoadedPeriodDependentModulesCallCount += 1
-    }
-    func handleCurrencyDidChange(_ payload: ProfileCurrencyDidChangePayload) async {}
-    func loadNextCategoryPage(id: String) async throws {}
-    func loadNextExpensesPage() async throws {}
-    func addExpense(_ request: ExpensesCreateRequestDTO) async throws {}
-    func deleteExpense(id: String) async throws {}
-    func addCategory(_ request: CategoryCreateRequestDTO) async throws {}
-    func deleteCategory(id: String) async throws {}
-    func clearSession() async {}
-
-    func refreshCategoriesCalls() -> Int {
-        categoriesCallCount
-    }
-
-    func refreshRecentExpensesCalls() -> Int {
-        recentExpensesCallCount
-    }
-
-    func refreshCategoriesCancelledCalls() -> Int {
-        cancelledCategoriesCallCount
-    }
-
-    func refreshRecentExpensesCancelledCalls() -> Int {
-        cancelledRecentExpensesCallCount
-    }
-
-    func refreshLoadedPeriodDependentModulesCalls() -> Int {
-        refreshLoadedPeriodDependentModulesCallCount
-    }
-
-    func emitOverview(
-        categories: [MainCategoryCardModel],
-        expenses: [MainExpenseModel]
-    ) {
-        store.update { state in
-            categories.forEach { state.categoriesByID[$0.id] = $0 }
-            state.categoryOrder = categories.map(\.id)
-            expenses.forEach { state.expensesByID[$0.id] = $0 }
-            state.recentExpenseIDs = expenses.map(\.id)
-        }
-        observer.publishAll(from: store)
     }
 }

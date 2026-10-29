@@ -3,7 +3,7 @@ import XCTest
 
 final class ProfileContractServiceTests: XCTestCase {
     func testGetProfileForwardsTargetAndDecodesResponse() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"id":"user-1","email":"jane@example.com","name":"Jane","currency":"USD","preferred_language":"en-US","tier":"REGULAR","tier_valid_until":null}"#
         )
@@ -34,7 +34,7 @@ final class ProfileContractServiceTests: XCTestCase {
 
 extension ProfileContractServiceTests {
     func testGetProfileUsesSessionCacheAfterFirstSuccessfulLoad() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"id":"user-1","email":"jane@example.com","name":"Jane","currency":"USD","preferred_language":"en-US","tier":"REGULAR","tier_valid_until":null}"#
         )
@@ -50,7 +50,7 @@ extension ProfileContractServiceTests {
     }
 
     func testRefreshProfileBypassesCacheAndReplacesCachedValue() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         let sut = ProfileContractService(networkClient: spy)
 
         spy.setResponse(
@@ -72,7 +72,7 @@ extension ProfileContractServiceTests {
     }
 
     func testUpdateProfileUpdatesSessionCache() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"id":"user-1","email":"jane@example.com","name":"Jane Doe","currency":"EUR","preferred_language":"en-US","tier":"ACTIVE","tier_valid_until":null}"#
         )
@@ -94,7 +94,7 @@ extension ProfileContractServiceTests {
     }
 
     func testLogoutNotificationClearsSessionCache() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         let sut = ProfileContractService(networkClient: spy)
 
         spy.setResponse(
@@ -119,7 +119,7 @@ extension ProfileContractServiceTests {
 
 extension ProfileContractServiceTests {
     func testUpdateProfileForwardsPayloadAndDecodesResponse() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"id":"user-1","email":null,"name":"Jane Doe","currency":"EUR","preferred_language":"en-US","tier":"ACTIVE","tier_valid_until":"2026-04-01T00:00:00Z"}"#
         )
@@ -160,10 +160,10 @@ extension ProfileContractServiceTests {
     }
 
     func testDeleteAccountForwardsDeleteTarget() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
 
         var didCallDelete = false
-        spy.onRequest = { target in
+        spy.onRequestWithoutResponse = { target in
             guard let api = target as? AccountAPI,
                   case .delete = api else {
                 return XCTFail("Expected AccountAPI.delete")
@@ -181,7 +181,7 @@ extension ProfileContractServiceTests {
 
 extension ProfileContractServiceTests {
     func testGetProfileWhenClientFailsRethrowsError() async {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.nextError = StubError.any
 
         let sut = ProfileContractService(networkClient: spy)
@@ -195,7 +195,7 @@ extension ProfileContractServiceTests {
     }
 
     func testGetProfileAfterFailureRequestsAgain() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         let sut = ProfileContractService(networkClient: spy)
 
         spy.nextError = StubError.any

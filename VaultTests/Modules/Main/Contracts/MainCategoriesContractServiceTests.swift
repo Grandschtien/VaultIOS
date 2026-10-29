@@ -3,7 +3,7 @@ import XCTest
 
 final class MainCategoriesContractServiceTests: XCTestCase {
     func testCreateCategoryForwardsBodyAndDecodesResponse() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"category":{"id":"cat-1","name":"Food","icon":"🍔","color":"light_green","total_spent_usd":95.1,"total_spent":110.5,"currency":"EUR"}}"#
         )
@@ -39,7 +39,7 @@ final class MainCategoriesContractServiceTests: XCTestCase {
 
 extension MainCategoriesContractServiceTests {
     func testListCategoriesForwardsRangeAndDecodesResponse() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"categories":[{"id":"cat-1","name":"Food","icon":"🍔","color":"light_green","total_spent_usd":8,"total_spent":10,"currency":"USD"},{"id":"cat-2","name":"Taxi","icon":"🚕","color":"light_blue","total_spent_usd":15.3,"total_spent":20.2,"currency":"KZT"}]}"#
         )
@@ -76,7 +76,7 @@ extension MainCategoriesContractServiceTests {
 
 extension MainCategoriesContractServiceTests {
     func testGetCategoryForwardsIDAndRangeAndDecodesResponse() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: #"{"category":{"id":"cat-7","name":"Groceries","icon":"🛒","color":"light_orange","total_spent_usd":40,"total_spent":45,"currency":"USD"}}"#
         )
@@ -115,7 +115,7 @@ extension MainCategoriesContractServiceTests {
 
 extension MainCategoriesContractServiceTests {
     func testUpdateCategoryForwardsBodyAndDecodesResponse() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
         spy.setResponse(
             json: ##"{"category":{"id":"cat-9","name":"Travel","icon":"✈️","color":"#A0E7E5","total_spent_usd":14,"total_spent":18,"currency":"KZT"}}"##
         )
@@ -152,7 +152,7 @@ extension MainCategoriesContractServiceTests {
 
 extension MainCategoriesContractServiceTests {
     func testDeleteCategoryForwardsID() async throws {
-        let spy = AsyncNetworkClientContractSpy()
+        let spy = AsyncNetworkClientMock()
 
         var capturedID: String?
         spy.onRequestWithoutResponse = { target in

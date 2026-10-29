@@ -11,7 +11,7 @@ final class CategoryEditorSubscriptionLimitErrorResolverTests: XCTestCase {
         let result = sut.isSubscriptionLimitError(
             NetworkClientError.statusCode(
                 code: 429,
-                ResponseStub(statusCode: 429),
+                NetworkClientResponseFixtures.makeResponse(statusCode: 429),
                 ErrorMetadata(request: nil)
             )
         )
@@ -25,7 +25,7 @@ final class CategoryEditorSubscriptionLimitErrorResolverTests: XCTestCase {
         let result = sut.isSubscriptionLimitError(
             NetworkClientError.statusCode(
                 code: 500,
-                ResponseStub(statusCode: 500),
+                NetworkClientResponseFixtures.makeResponse(statusCode: 500),
                 ErrorMetadata(request: nil)
             )
         )
@@ -41,7 +41,7 @@ final class CategoryEditorSubscriptionLimitErrorResolverTests: XCTestCase {
                 AFError.responseValidationFailed(
                     reason: .unacceptableStatusCode(code: 429)
                 ),
-                ResponseStub(statusCode: 429),
+                NetworkClientResponseFixtures.makeResponse(statusCode: 429),
                 ErrorMetadata(request: nil)
             )
         )
@@ -57,7 +57,7 @@ final class CategoryEditorSubscriptionLimitErrorResolverTests: XCTestCase {
                 AFError.responseValidationFailed(
                     reason: .unacceptableStatusCode(code: 500)
                 ),
-                ResponseStub(statusCode: 500),
+                NetworkClientResponseFixtures.makeResponse(statusCode: 500),
                 ErrorMetadata(request: nil)
             )
         )
@@ -68,21 +68,8 @@ final class CategoryEditorSubscriptionLimitErrorResolverTests: XCTestCase {
     func testIsSubscriptionLimitErrorWhenErrorIsNotStatusCodeReturnsFalse() {
         let sut = CategoryEditorSubscriptionLimitErrorResolver()
 
-        let result = sut.isSubscriptionLimitError(StubError.any)
+        let result = sut.isSubscriptionLimitError(TestError.any)
 
         XCTAssertFalse(result)
     }
-}
-
-private struct ResponseStub: Response {
-    let statusCode: Int
-    let data: Data? = nil
-    let request: URLRequest? = nil
-    let response: HTTPURLResponse? = nil
-    let description: String = ""
-    let debugDescription: String = ""
-}
-
-private enum StubError: Error {
-    case any
 }

@@ -3,199 +3,220 @@ import RevenueCat
 @testable import Vylok
 
 final class SubscriptionServiceTests: XCTestCase {
-    func testLoadPlansEligibleFreeTrialProducesTrialText() async throws {
-        let trialText = try await loadTrialText(
-            discount: .init(
-                paymentMode: .freeTrial,
-                subscriptionPeriod: .init(value: 7, unit: .day)
-            ),
-            eligibility: .eligible
-        )
+    private var revenueCatClient: SubscriptionRevenueCatClientProtocolMock!
+    private var appLogService: AppLogServiceProtocolMock!
+    private var firebaseTransactionLogger: FirebaseTransactionLoggingMock!
 
-        XCTAssertEqual(
-            trialText,
-            L10n.subscriptionTrialFreeFor(
-                L10n.subscriptionTrialPeriodDays(7)
-            )
-        )
+    override func setUp() {
+        super.setUp()
+        revenueCatClient = SubscriptionRevenueCatClientProtocolMock()
+        appLogService = AppLogServiceProtocolMock()
+        firebaseTransactionLogger = FirebaseTransactionLoggingMock()
     }
 
-    func testLoadPlansWithoutIntroductoryDiscountKeepsTrialHidden() async throws {
-        let trialText = try await loadTrialText(
-            discount: nil,
-            eligibility: .eligible
-        )
-
-        XCTAssertNil(trialText)
+    override func tearDown() {
+        firebaseTransactionLogger = nil
+        appLogService = nil
+        revenueCatClient = nil
+        super.tearDown()
     }
+}
 
-    func testLoadPlansIneligibleTrialKeepsTrialHidden() async throws {
-        let trialText = try await loadTrialText(
-            discount: .init(
-                paymentMode: .freeTrial,
-                subscriptionPeriod: .init(value: 7, unit: .day)
-            ),
-            eligibility: .ineligible
-        )
+// MARK: - loadPlans
 
-        XCTAssertNil(trialText)
-    }
-
-    func testLoadPlansUnknownEligibilityKeepsTrialHidden() async throws {
-        let trialText = try await loadTrialText(
-            discount: .init(
-                paymentMode: .freeTrial,
-                subscriptionPeriod: .init(value: 7, unit: .day)
-            ),
-            eligibility: .unknown
-        )
-
-        XCTAssertNil(trialText)
-    }
-
-    func testLoadPlansWithoutIntroOfferEligibilityKeepsTrialHidden() async throws {
-        let trialText = try await loadTrialText(
-            discount: .init(
-                paymentMode: .freeTrial,
-                subscriptionPeriod: .init(value: 7, unit: .day)
-            ),
-            eligibility: .noIntroOfferExists
-        )
-
-        XCTAssertNil(trialText)
-    }
-
-    func testLoadPlansNonFreeTrialKeepsTrialHidden() async throws {
-        let trialText = try await loadTrialText(
-            discount: .init(
-                paymentMode: .payAsYouGo,
-                subscriptionPeriod: .init(value: 1, unit: .month)
-            ),
-            eligibility: .eligible
-        )
-
-        XCTAssertNil(trialText)
-    }
-
-    func testPurchaseTracksFirebaseTransactionWhenRevenueCatReturnsTransaction() async throws {
-        let firebaseTransactionLogger = FirebaseTransactionLoggingSpy()
-        let transaction = StoreTransaction(
-            productIdentifier: SubscriptionCatalog.premium.id,
-            purchaseDate: Date(timeIntervalSince1970: 10),
-            transactionIdentifier: "transaction-1"
-        )
-        let client = SubscriptionRevenueCatClientStub(
-            packages: [
-                .init(
-                    productIdentifier: SubscriptionCatalog.premium.id,
-                    localizedPriceString: "$2.99"
-                )
-            ],
-            customerInfo: .init(activeEntitlementIDs: ["premium_access"]),
-            purchaseResult: .init(
-                transaction: transaction,
-                customerInfo: .init(activeEntitlementIDs: ["premium_access"])
-            )
-        )
+extension SubscriptionServiceTests {
+    func testLoadPlansWhenFreeTrialIsEligibleProducesTrialText() async throws {
+        // Arrange
         let sut = SubscriptionService(
-            revenueCatClient: client,
-            appLogService: AppLogServiceSpy(),
+            revenueCatClient: revenueCatClient,
+            appLogService: appLogService,
             firebaseTransactionLogger: firebaseTransactionLogger
         )
+        revenueCatClient.fetchPackagesReturnValue = [
+            SubscriptionRevenueCatPackage(
+                productIdentifier: SubscriptionCatalog.premium.id,
+                localizedPriceString: "$2.99",
+                introductoryDiscount: .init(paymentMode: .freeTrial, subscriptionPeriod: .init(value: 7, unit: .day))
+            )
+        ]
+        revenueCatClient.fetchCustomerInfoReturnValue = .init(activeEntitlementIDs: [])
+        revenueCatClient.checkTrialOrIntroDiscountEligibilityPackagesReturnValue = [
+            SubscriptionCatalog.premium.id: .eligible
+        ]
 
+        // Act
+        let plans = try await sut.loadPlans()
+
+        // Assert
+        XCTAssertEqual(plans.first?.trialText, L10n.subscriptionTrialFreeFor(L10n.subscriptionTrialPeriodDays(7)))
+    }
+
+    func testLoadPlansWhenIntroductoryDiscountIsMissingHidesTrial() async throws {
+        // Arrange
+        let sut = SubscriptionService(
+            revenueCatClient: revenueCatClient,
+            appLogService: appLogService,
+            firebaseTransactionLogger: firebaseTransactionLogger
+        )
+        revenueCatClient.fetchPackagesReturnValue = [
+            SubscriptionRevenueCatPackage(
+                productIdentifier: SubscriptionCatalog.premium.id,
+                localizedPriceString: "$2.99"
+            )
+        ]
+        revenueCatClient.fetchCustomerInfoReturnValue = .init(activeEntitlementIDs: [])
+        revenueCatClient.checkTrialOrIntroDiscountEligibilityPackagesReturnValue = [
+            SubscriptionCatalog.premium.id: .eligible
+        ]
+
+        // Act
+        let plans = try await sut.loadPlans()
+
+        // Assert
+        XCTAssertNil(plans.first?.trialText)
+    }
+
+    func testLoadPlansWhenTrialIsIneligibleHidesTrial() async throws {
+        // Arrange
+        let sut = SubscriptionService(
+            revenueCatClient: revenueCatClient,
+            appLogService: appLogService,
+            firebaseTransactionLogger: firebaseTransactionLogger
+        )
+        revenueCatClient.fetchPackagesReturnValue = [
+            SubscriptionRevenueCatPackage(
+                productIdentifier: SubscriptionCatalog.premium.id,
+                localizedPriceString: "$2.99",
+                introductoryDiscount: .init(paymentMode: .freeTrial, subscriptionPeriod: .init(value: 7, unit: .day))
+            )
+        ]
+        revenueCatClient.fetchCustomerInfoReturnValue = .init(activeEntitlementIDs: [])
+        revenueCatClient.checkTrialOrIntroDiscountEligibilityPackagesReturnValue = [
+            SubscriptionCatalog.premium.id: .ineligible
+        ]
+
+        // Act
+        let plans = try await sut.loadPlans()
+
+        // Assert
+        XCTAssertNil(plans.first?.trialText)
+    }
+
+    func testLoadPlansWhenEligibilityIsUnknownHidesTrial() async throws {
+        // Arrange
+        let sut = SubscriptionService(
+            revenueCatClient: revenueCatClient,
+            appLogService: appLogService,
+            firebaseTransactionLogger: firebaseTransactionLogger
+        )
+        revenueCatClient.fetchPackagesReturnValue = [
+            SubscriptionRevenueCatPackage(
+                productIdentifier: SubscriptionCatalog.premium.id,
+                localizedPriceString: "$2.99",
+                introductoryDiscount: .init(paymentMode: .freeTrial, subscriptionPeriod: .init(value: 7, unit: .day))
+            )
+        ]
+        revenueCatClient.fetchCustomerInfoReturnValue = .init(activeEntitlementIDs: [])
+        revenueCatClient.checkTrialOrIntroDiscountEligibilityPackagesReturnValue = [
+            SubscriptionCatalog.premium.id: .unknown
+        ]
+
+        // Act
+        let plans = try await sut.loadPlans()
+
+        // Assert
+        XCTAssertNil(plans.first?.trialText)
+    }
+
+    func testLoadPlansWhenIntroOfferDoesNotExistHidesTrial() async throws {
+        // Arrange
+        let sut = SubscriptionService(
+            revenueCatClient: revenueCatClient,
+            appLogService: appLogService,
+            firebaseTransactionLogger: firebaseTransactionLogger
+        )
+        revenueCatClient.fetchPackagesReturnValue = [
+            SubscriptionRevenueCatPackage(
+                productIdentifier: SubscriptionCatalog.premium.id,
+                localizedPriceString: "$2.99",
+                introductoryDiscount: .init(paymentMode: .freeTrial, subscriptionPeriod: .init(value: 7, unit: .day))
+            )
+        ]
+        revenueCatClient.fetchCustomerInfoReturnValue = .init(activeEntitlementIDs: [])
+        revenueCatClient.checkTrialOrIntroDiscountEligibilityPackagesReturnValue = [
+            SubscriptionCatalog.premium.id: .noIntroOfferExists
+        ]
+
+        // Act
+        let plans = try await sut.loadPlans()
+
+        // Assert
+        XCTAssertNil(plans.first?.trialText)
+    }
+
+    func testLoadPlansWhenDiscountIsNotFreeTrialHidesTrial() async throws {
+        // Arrange
+        let sut = SubscriptionService(
+            revenueCatClient: revenueCatClient,
+            appLogService: appLogService,
+            firebaseTransactionLogger: firebaseTransactionLogger
+        )
+        revenueCatClient.fetchPackagesReturnValue = [
+            SubscriptionRevenueCatPackage(
+                productIdentifier: SubscriptionCatalog.premium.id,
+                localizedPriceString: "$2.99",
+                introductoryDiscount: .init(paymentMode: .payAsYouGo, subscriptionPeriod: .init(value: 1, unit: .month))
+            )
+        ]
+        revenueCatClient.fetchCustomerInfoReturnValue = .init(activeEntitlementIDs: [])
+        revenueCatClient.checkTrialOrIntroDiscountEligibilityPackagesReturnValue = [
+            SubscriptionCatalog.premium.id: .eligible
+        ]
+
+        // Act
+        let plans = try await sut.loadPlans()
+
+        // Assert
+        XCTAssertNil(plans.first?.trialText)
+    }
+}
+
+// MARK: - purchase
+
+extension SubscriptionServiceTests {
+    func testPurchaseWhenRevenueCatReturnsTransactionTracksItAndUpdatesTier() async throws {
+        // Arrange
+        let sut = SubscriptionService(
+            revenueCatClient: revenueCatClient,
+            appLogService: appLogService,
+            firebaseTransactionLogger: firebaseTransactionLogger
+        )
+        revenueCatClient.fetchPackagesReturnValue = [
+            SubscriptionRevenueCatPackage(
+                productIdentifier: SubscriptionCatalog.premium.id,
+                localizedPriceString: "$2.99"
+            )
+        ]
+        revenueCatClient.fetchCustomerInfoReturnValue = .init(activeEntitlementIDs: ["premium_access"])
+        revenueCatClient.checkTrialOrIntroDiscountEligibilityPackagesReturnValue = [:]
+        revenueCatClient.purchasePackageReturnValue = .init(
+            transaction: StoreTransaction(
+                productIdentifier: SubscriptionCatalog.premium.id,
+                purchaseDate: Date(timeIntervalSince1970: 10),
+                transactionIdentifier: "transaction-1"
+            ),
+            customerInfo: .init(activeEntitlementIDs: ["premium_access"])
+        )
         _ = try await sut.loadPlans()
+
+        // Act
         try await sut.purchase(planID: SubscriptionCatalog.premium.id)
 
-        let trackedTransaction = await firebaseTransactionLogger.trackedTransaction()
-        XCTAssertEqual(trackedTransaction?.productIdentifier, SubscriptionCatalog.premium.id)
+        // Assert
+        XCTAssertEqual(
+            firebaseTransactionLogger.trackTransactionIfNeededReceivedInvocations.map { $0?.transactionIdentifier },
+            ["transaction-1"]
+        )
         XCTAssertEqual(sut.currentTier, .premium)
-    }
-}
-
-private extension SubscriptionServiceTests {
-    func loadTrialText(
-        discount: SubscriptionRevenueCatDiscount?,
-        eligibility: IntroEligibilityStatus
-    ) async throws -> String? {
-        let client = SubscriptionRevenueCatClientStub(
-            packages: [
-                .init(
-                    productIdentifier: SubscriptionCatalog.premium.id,
-                    localizedPriceString: "$2.99",
-                    introductoryDiscount: discount
-                )
-            ],
-            customerInfo: .init(activeEntitlementIDs: [])
-        )
-        client.eligibilityByProductID = [SubscriptionCatalog.premium.id: eligibility]
-        let sut = SubscriptionService(
-            revenueCatClient: client,
-            appLogService: AppLogServiceSpy()
-        )
-
-        return try await sut.loadPlans().first?.trialText
-    }
-}
-
-private final class SubscriptionRevenueCatClientStub: SubscriptionRevenueCatClientProtocol, @unchecked Sendable {
-    private let packages: [SubscriptionRevenueCatPackage]
-    private let customerInfo: SubscriptionRevenueCatCustomerInfo
-    private let purchaseResult: SubscriptionRevenueCatPurchaseResult
-
-    var eligibilityByProductID: [String: IntroEligibilityStatus] = [:]
-
-    init(
-        packages: [SubscriptionRevenueCatPackage],
-        customerInfo: SubscriptionRevenueCatCustomerInfo,
-        purchaseResult: SubscriptionRevenueCatPurchaseResult? = nil
-    ) {
-        self.packages = packages
-        self.customerInfo = customerInfo
-        self.purchaseResult = purchaseResult ?? .init(
-            transaction: nil,
-            customerInfo: customerInfo
-        )
-    }
-
-    func fetchPackages() async throws -> [SubscriptionRevenueCatPackage] {
-        packages
-    }
-
-    func fetchCustomerInfo() async throws -> SubscriptionRevenueCatCustomerInfo {
-        customerInfo
-    }
-
-    func checkTrialOrIntroDiscountEligibility(
-        packages: [SubscriptionRevenueCatPackage]
-    ) async -> [String: IntroEligibilityStatus] {
-        Dictionary(
-            uniqueKeysWithValues: packages.map { package in
-                (package.productIdentifier, eligibilityByProductID[package.productIdentifier] ?? .unknown)
-            }
-        )
-    }
-
-    func purchase(package: SubscriptionRevenueCatPackage) async throws -> SubscriptionRevenueCatPurchaseResult {
-        purchaseResult
-    }
-
-    func restorePurchases() async throws -> SubscriptionRevenueCatCustomerInfo {
-        customerInfo
-    }
-
-    func syncPurchases() async throws -> SubscriptionRevenueCatCustomerInfo {
-        customerInfo
-    }
-}
-
-private actor FirebaseTransactionLoggingSpy: FirebaseTransactionLogging {
-    private var storedTransaction: StoreTransaction?
-
-    func trackTransactionIfNeeded(_ transaction: StoreTransaction?) async {
-        storedTransaction = transaction
-    }
-
-    func trackedTransaction() -> StoreTransaction? {
-        storedTransaction
     }
 }

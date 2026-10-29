@@ -39,17 +39,33 @@ final class RetryInterceptor: RequestInterceptor {
         dueTo error: any Error,
         completion: @escaping @Sendable (RetryResult) -> Void
     ) {
-        guard request.response?.statusCode == Constants.unauthorizedStatusCode else {
+        retry(
+            statusCode: request.response?.statusCode,
+            path: request.request?.url?.path,
+            retryCount: request.retryCount,
+            dueTo: error,
+            completion: completion
+        )
+    }
+
+    func retry(
+        statusCode: Int?,
+        path: String?,
+        retryCount: Int,
+        dueTo error: any Error,
+        completion: @escaping @Sendable (RetryResult) -> Void
+    ) {
+        guard statusCode == Constants.unauthorizedStatusCode else {
             completion(.doNotRetry)
             return
         }
 
-        guard isProtected(request) else {
+        guard isProtected(path) else {
             completion(.doNotRetry)
             return
         }
 
-        guard request.retryCount == .zero else {
+        guard retryCount == .zero else {
             completion(.doNotRetryWithError(error))
             return
         }
@@ -66,8 +82,8 @@ final class RetryInterceptor: RequestInterceptor {
 }
 
 private extension RetryInterceptor {
-    func isProtected(_ request: Request) -> Bool {
-        guard let path = request.request?.url?.path else {
+    func isProtected(_ path: String?) -> Bool {
+        guard let path else {
             return false
         }
 
