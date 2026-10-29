@@ -2,6 +2,7 @@ import UIKit
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol CategoryEditorRoutingLogic: Sendable {
     func close()
     func openConfirmation(context: CommonConfirmationContext)

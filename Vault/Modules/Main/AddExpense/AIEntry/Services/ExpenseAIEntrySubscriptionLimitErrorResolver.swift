@@ -1,6 +1,7 @@
 import Foundation
 import NetworkClient
 
+// sourcery: AutoMockable
 protocol ExpenseAIEntrySubscriptionLimitErrorResolving: Sendable {
     func isSubscriptionLimitError(_ error: Error) -> Bool
 }

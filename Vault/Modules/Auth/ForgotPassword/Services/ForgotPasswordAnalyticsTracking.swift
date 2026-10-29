@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol ForgotPasswordAnalyticsTracking: Sendable {
     func trackScreenOpen()
     func trackForgotPasswordSuccess()

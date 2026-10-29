@@ -77,6 +77,7 @@ enum AuthVerificationContractErrorMapper {
     }
 }
 
+// sourcery: AutoMockable
 protocol AuthVerificationContractServicing: Sendable {
     func startEmailRegistration(_ request: RegisterRequestDTO) async throws -> EmailVerificationChallengeResponseDTO
     func verifyEmail(_ request: EmailVerificationRequestDTO) async throws -> LoginResponseDTO

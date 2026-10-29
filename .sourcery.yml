@@ -1,0 +1,15 @@
+sources:
+  - Vault
+  - VaultWidgetShared
+templates:
+  - Templates/Sourcery
+output: VaultTests/Generated
+args:
+  imports:
+    - AVFoundation
+    - Foundation
+    - RevenueCat
+    - Speech
+    - UIKit
+  testableImports:
+    - Vylok

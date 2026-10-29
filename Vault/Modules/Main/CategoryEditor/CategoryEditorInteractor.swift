@@ -1,9 +1,11 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol CategoryEditorBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol CategoryEditorHandler: AnyObject, Sendable {
     func handleChangeCategoryName(_ text: String) async
     func handleTapEmojiPreset(_ emoji: String) async
@@ -17,6 +19,7 @@ protocol CategoryEditorHandler: AnyObject, Sendable {
     func handleTapRetryButton() async
 }
 
+// sourcery: AutoMockable
 protocol CategoryEditorSystemPickerOutput: AnyObject, Sendable {
     func handleDidSelectCustomColor(_ hex: String) async
 }

@@ -2,17 +2,20 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol OnboardingBusinessLogic {
     func fetchData() async
     func didTapPrimaryButton() async
     func didChangeCurrentPage(_ page: Int) async
 }
 
+// sourcery: AutoMockable
 protocol OnboardingHandler: AnyObject {
     func didTapPrimaryButton() async
     func didChangeCurrentPage(_ page: Int) async
 }
 
+// sourcery: AutoMockable
 protocol OnboardingFlowOutput: AnyObject {
     func didFinishOnboarding() async
 }

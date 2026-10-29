@@ -8,6 +8,7 @@
 import Foundation
 import RevenueCat
 
+// sourcery: AutoMockable
 protocol SubscriptionInitializerLogic {
     func initialize() async
     func setUserId(_ id: String) async

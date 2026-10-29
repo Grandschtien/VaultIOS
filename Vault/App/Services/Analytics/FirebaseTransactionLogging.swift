@@ -3,6 +3,7 @@ import FirebaseCore
 import RevenueCat
 import StoreKit
 
+// sourcery: AutoMockable
 protocol FirebaseTransactionLogging: Sendable {
     func trackTransactionIfNeeded(_ transaction: StoreTransaction?) async
 }

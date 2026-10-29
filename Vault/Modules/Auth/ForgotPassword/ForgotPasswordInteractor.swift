@@ -1,9 +1,11 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol ForgotPasswordBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol ForgotPasswordHandler: AnyObject, Sendable {
     func handleEmailDidChange(_ email: String) async
     func handleTapSend() async

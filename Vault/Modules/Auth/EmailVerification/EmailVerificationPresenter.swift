@@ -3,6 +3,7 @@ import UIKit
 internal import Combine
 
 @MainActor
+// sourcery: AutoMockable
 protocol EmailVerificationPresentationLogic: Sendable {
     func presentFetchedData(_ data: EmailVerificationFetchData)
 }

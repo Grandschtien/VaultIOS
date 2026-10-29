@@ -7,6 +7,7 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol KeyValueStorage {
     func set<Value: Codable>(_ value: Value, forKey key: String)
     func get<Value: Codable>(_ type: Value.Type, forKey key: String) -> Value?

@@ -1,0 +1,80 @@
+// sourcery:file:AutoMockable.generated.swift
+// Mark a protocol with `// sourcery: AutoMockable` to generate `<ProtocolName>Mock`.
+
+{% for import in argument.imports %}
+import {{ import }}
+{% endfor %}
+{% for import in argument.testableImports %}
+@testable import {{ import }}
+{% endfor %}
+{% macro mockedName method %}{{ method.selectorName|replace:"(","_"|replace:")",""|replace:":","_"|replace:"`",""|snakeToCamelCase|lowerFirstWord }}{% endmacro %}
+{% macro paramType method param %}{% if method.isGeneric %}Any{% else %}{{ param.typeName.asSource|replace:"@escaping ","" }}{% endif %}{% endmacro %}
+{% macro argumentsType method %}{% if method.parameters.count == 1 %}({% call paramType method method.parameters.first %}){% else %}({% for param in method.parameters %}{{ param.name }}: {% call paramType method param %}{% if not forloop.last %}, {% endif %}{% endfor %}){% endif %}{% endmacro %}
+{% macro argumentsValue method %}{% if method.parameters.count == 1 %}{{ method.parameters.first.name }}{% else %}({% for param in method.parameters %}{{ param.name }}: {{ param.name }}{% if not forloop.last %}, {% endif %}{% endfor %}){% endif %}{% endmacro %}
+{% macro returnType method %}{% if method.isGeneric %}Any?{% elif method.isOptionalReturnType %}{{ method.returnTypeName }}{% else %}{{ method.returnTypeName.name }}{% endif %}{% endmacro %}
+{% macro closureType method %}(({% for param in method.parameters %}{% call paramType method param %}{% if not forloop.last %}, {% endif %}{% endfor %}){% if method.isAsync %} async{% endif %}{% if method.throws %} throws{% endif %} -> {% if method.returnTypeName.isVoid %}Void{% else %}{% call returnType method %}{% endif %})?{% endmacro %}
+{% macro genericCast method %}{% if method.isGeneric %}{% if method.isOptionalReturnType %} as? {{ method.returnTypeName.unwrappedTypeName }}{% else %} as! {{ method.returnTypeName }}{% endif %}{% endif %}{% endmacro %}
+{% macro tryAwait method %}{% if method.throws %}try {% endif %}{% if method.isAsync %}await {% endif %}{% endmacro %}
+{% for type in types.protocols where type.annotations.AutoMockable %}
+
+nonisolated final class {{ type.name }}Mock: {{ type.name }}, @unchecked Sendable {
+    {% for variable in type.allVariables|!definedInExtension %}
+    {% if variable.isOptional %}
+    var {{ variable.name }}: {{ variable.typeName }}
+    {% else %}
+    var {{ variable.name }}: {{ variable.typeName }} {
+        get { underlying{{ variable.name|upperFirstLetter }} }
+        set { underlying{{ variable.name|upperFirstLetter }} = newValue }
+    }
+    var underlying{{ variable.name|upperFirstLetter }}: {{ variable.typeName }}!
+    {% endif %}
+
+    {% endfor %}
+    {% for method in type.allMethods|!definedInExtension %}
+    {% set name %}{% call mockedName method %}{% endset %}
+    {% set hasNonEscapingClosure %}{% for param in method.parameters %}{% if param.typeName.isClosure and not param.typeAttributes.escaping %}true{% endif %}{% endfor %}{% endset %}
+    // MARK: - {{ method.shortName }}
+
+    var {{ name }}CallsCount = 0
+    var {{ name }}Called: Bool {
+        {{ name }}CallsCount > 0
+    }
+    {% if method.parameters.count > 0 and not hasNonEscapingClosure %}
+    var {{ name }}ReceivedArguments: {% call argumentsType method %}?
+    var {{ name }}ReceivedInvocations: [{% call argumentsType method %}] = []
+    {% endif %}
+    {% if method.throws %}
+    var {{ name }}ThrowableError: (any Error)?
+    {% endif %}
+    {% if not method.returnTypeName.isVoid %}
+    var {{ name }}ReturnValue: {% call returnType method %}{% if not method.isGeneric and not method.isOptionalReturnType %}!{% endif %}
+    {% endif %}
+    var {{ name }}Closure: {% call closureType method %}
+
+    func {{ method.name }}{% if method.isAsync %} async{% endif %}{% if method.throws %} throws{% endif %}{% if not method.returnTypeName.isVoid %} -> {{ method.returnTypeName }}{% endif %} {
+        {{ name }}CallsCount += 1
+        {% if method.parameters.count > 0 and not hasNonEscapingClosure %}
+        {{ name }}ReceivedArguments = {% call argumentsValue method %}
+        {{ name }}ReceivedInvocations.append({% call argumentsValue method %})
+        {% endif %}
+        {% if method.throws %}
+        if let error = {{ name }}ThrowableError {
+            throw error
+        }
+        {% endif %}
+        {% if method.returnTypeName.isVoid %}
+        {% call tryAwait method %}{{ name }}Closure?({% for param in method.parameters %}{{ param.name }}{% if not forloop.last %}, {% endif %}{% endfor %})
+        {% else %}
+        if let closure = {{ name }}Closure {
+            return {% call tryAwait method %}closure({% for param in method.parameters %}{{ param.name }}{% if not forloop.last %}, {% endif %}{% endfor %}){% call genericCast method %}
+        }
+        return {{ name }}ReturnValue{% call genericCast method %}
+        {% endif %}
+    }
+    {% if not forloop.last %}
+
+    {% endif %}
+    {% endfor %}
+}
+{% endfor %}
+// sourcery:end

@@ -7,6 +7,7 @@ struct UserCurrencyAmount: Equatable, Sendable {
     let currency: String
 }
 
+// sourcery: AutoMockable
 protocol UserCurrencyConverting: Sendable {
     func convertUsdAmount(_ amount: Double) -> UserCurrencyAmount
     func convertExpense(

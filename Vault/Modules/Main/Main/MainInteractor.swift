@@ -2,10 +2,12 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol MainBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol MainHandler: AnyObject, Sendable {
     func handleTapSeeAllCategories() async
     func handleTapSeeAllExpenses() async

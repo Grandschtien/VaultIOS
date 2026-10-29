@@ -29,6 +29,7 @@ struct RegistrationDraft: Equatable, Sendable {
     }
 }
 
+// sourcery: AutoMockable
 protocol RegistrationStorageProtocol: Sendable {
     func loadDraft() async -> RegistrationDraft
     func saveDraft(_ draft: RegistrationDraft) async

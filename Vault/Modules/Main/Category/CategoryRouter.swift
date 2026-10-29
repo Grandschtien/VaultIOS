@@ -5,6 +5,7 @@ import Foundation
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol CategoryRoutingLogic: Sendable {
     func presentError(with text: String)
     func openCategoryEdit(id: String)

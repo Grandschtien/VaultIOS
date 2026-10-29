@@ -5,6 +5,7 @@ import UIKit
 internal import Combine
 
 @MainActor
+// sourcery: AutoMockable
 protocol RegistrationPresentationLogic: Sendable {
     func presentFetchedData(_ data: RegistrationFetchData)
 }

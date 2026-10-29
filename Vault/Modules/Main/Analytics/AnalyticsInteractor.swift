@@ -1,9 +1,11 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol AnalyticsBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol AnalyticsHandler: AnyObject, Sendable {
     func handleTapRetry() async
     func handleTapMonthFilter() async

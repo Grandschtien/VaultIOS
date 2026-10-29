@@ -2,6 +2,7 @@ import UIKit
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol CommonConfirmationRoutingLogic: Sendable {
     func close()
 }

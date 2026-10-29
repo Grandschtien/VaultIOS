@@ -2,10 +2,12 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol CategoriesListBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol CategoriesListHandler: AnyObject, Sendable {
     func handleTapRetry() async
     func handleTapCategory(id: String, name: String) async

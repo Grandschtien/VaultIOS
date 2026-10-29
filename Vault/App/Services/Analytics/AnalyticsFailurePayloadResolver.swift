@@ -2,6 +2,7 @@ import Alamofire
 import Foundation
 import NetworkClient
 
+// sourcery: AutoMockable
 protocol AnalyticsFailurePayloadResolving: Sendable {
     func makePayload(for error: Error) -> [String: Any]
 }

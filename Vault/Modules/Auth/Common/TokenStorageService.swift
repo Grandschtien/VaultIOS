@@ -8,6 +8,7 @@
 import Foundation
 import Security
 
+// sourcery: AutoMockable
 protocol TokenStorageServiceProtocol: Sendable {
     func setToken(_ token: AuthTokenDTO)
     func getToken() -> AuthTokenDTO?

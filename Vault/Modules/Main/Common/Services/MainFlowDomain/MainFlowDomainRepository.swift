@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol MainFlowDomainRepositoryProtocol: Sendable {
     func refreshMainFlow() async throws
     func refreshCategories() async throws

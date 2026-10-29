@@ -8,10 +8,12 @@ struct CategoryExpensesPage: Equatable, Sendable {
     let hasMore: Bool
 }
 
+// sourcery: AutoMockable
 protocol CategorySummaryProviding: Sendable {
     func fetchCategory(id: String) async throws -> MainCategoryCardModel
 }
 
+// sourcery: AutoMockable
 protocol CategoryExpensesProviding: Sendable {
     func fetchExpensesPage(
         categoryID: String,

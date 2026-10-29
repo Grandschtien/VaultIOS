@@ -3,6 +3,7 @@
 import Foundation
 import RevenueCat
 
+// sourcery: AutoMockable
 protocol SubscriptionServiceLogic: AnyObject {
     var currentTier: SubscriptionTier { get }
     var loadedPlans: [SubscriptionFetchData.SubscriptionStorePlan] { get }
@@ -149,6 +150,7 @@ private extension SubscriptionService {
     }
 }
 
+// sourcery: AutoMockable
 protocol SubscriptionRevenueCatClientProtocol: AnyObject {
     func fetchPackages() async throws -> [SubscriptionRevenueCatPackage]
     func fetchCustomerInfo() async throws -> SubscriptionRevenueCatCustomerInfo

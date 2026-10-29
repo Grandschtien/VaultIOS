@@ -2,6 +2,7 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol LaunchEnvironmentProviding {
     var apiBaseURL: URL? { get }
     var isQAMode: Bool { get }

@@ -5,6 +5,7 @@ import Foundation
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol CategoriesListRoutingLogic: Sendable {
     func openCategory(id: String, name: String)
     func openCategoryCreate()

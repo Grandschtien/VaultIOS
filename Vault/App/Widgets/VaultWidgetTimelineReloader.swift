@@ -1,5 +1,6 @@
 import WidgetKit
 
+// sourcery: AutoMockable
 protocol VylokWidgetTimelineReloading: Sendable {
     func reloadTimelines()
 }

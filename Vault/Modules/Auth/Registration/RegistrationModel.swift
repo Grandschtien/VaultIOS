@@ -26,6 +26,7 @@ struct RegistrationCurrency: Equatable, Sendable {
     let title: String
 }
 
+// sourcery: AutoMockable
 protocol RegistrationCurrencyProviding: Sendable {
     func fiatCurrencies() -> [RegistrationCurrency]
 }
@@ -50,6 +51,7 @@ final class RegistrationCurrencyProvider: RegistrationCurrencyProviding, @unchec
     }
 }
 
+// sourcery: AutoMockable
 protocol RegistrationLocaleProviding: Sendable {
     var preferredLanguageIdentifier: String { get }
     var preferredCurrencyCode: String { get }

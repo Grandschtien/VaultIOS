@@ -8,6 +8,7 @@ struct ExpesiesListExpensesPage: Equatable, Sendable {
     let hasMore: Bool
 }
 
+// sourcery: AutoMockable
 protocol ExpesiesListExpensesProviding: Sendable {
     func fetchExpensesPage(
         cursor: String?,
@@ -15,6 +16,7 @@ protocol ExpesiesListExpensesProviding: Sendable {
     ) async throws -> ExpesiesListExpensesPage
 }
 
+// sourcery: AutoMockable
 protocol ExpesiesListCategoriesProviding: Sendable {
     func fetchCategories() async throws -> [MainCategoryModel]
 }

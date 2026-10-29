@@ -2,6 +2,7 @@ import UIKit
 import SnapKit
 
 @MainActor
+// sourcery: AutoMockable
 protocol ExpenseAIEntryNoExpenseAlertPresenting: Sendable {
     func present(
         addManuallyCommand: Command,

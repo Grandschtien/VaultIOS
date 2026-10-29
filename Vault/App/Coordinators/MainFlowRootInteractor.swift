@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol MainFlowRootBusinessLogic: Sendable {
     func handlePendingRouteIfNeeded(isViewVisible: Bool) async
 }

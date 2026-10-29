@@ -5,6 +5,7 @@ import Foundation
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol LoginRoutingLogic: Sendable {
     func openRegistration()
     func openEmailVerification(context: EmailVerificationContext)

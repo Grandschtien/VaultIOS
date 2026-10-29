@@ -2,6 +2,7 @@ import UIKit
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol ExpenseManualEntryRoutingLogic: Sendable {
     func openCategoryPicker(
         selectedCategoryID: String?,

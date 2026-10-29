@@ -218,10 +218,12 @@ private extension MainPeriodRangeResolver {
     }
 }
 
+// sourcery: AutoMockable
 protocol MainSummaryPeriodProviding: Sendable {
     func currentMonthPeriod() -> MainSummaryPeriod
 }
 
+// sourcery: AutoMockable
 protocol MainSummaryPeriodUpdating: Sendable {
     func updatePeriod(from: Date, to: Date)
     func resetToCurrentMonth()

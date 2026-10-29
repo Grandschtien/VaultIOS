@@ -2,6 +2,7 @@ import UIKit
 internal import Combine
 
 @MainActor
+// sourcery: AutoMockable
 protocol ExpenseAIEntryPresentationLogic: Sendable {
     func presentFetchedData(_ data: ExpenseAIEntryFetchData)
 }

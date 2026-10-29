@@ -1,9 +1,11 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol CategoryPeriodPickerBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol CategoryPeriodPickerOutput: AnyObject, Sendable {
     func handleDidConfirmCategoryPeriod(
         fromDate: Date,
@@ -11,6 +13,7 @@ protocol CategoryPeriodPickerOutput: AnyObject, Sendable {
     ) async
 }
 
+// sourcery: AutoMockable
 protocol CategoryPeriodPickerHandler: AnyObject, Sendable {
     func handleTapFromField() async
     func handleTapToField() async

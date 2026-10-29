@@ -3,6 +3,7 @@ import Foundation
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol AnalyticsRoutingLogic: Sendable {
     func openCategory(id: String, name: String, period: MainSummaryPeriod)
     func openSubscription(

@@ -5,6 +5,7 @@ import Foundation
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol MainRoutingLogic: Sendable {
     func openAllCategories()
     func openAllExpenses()

@@ -5,6 +5,7 @@ import Foundation
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol ProfileRoutingLogic: Sendable {
     func openConfirmation(context: CommonConfirmationContext)
     func openCurrencySelection(

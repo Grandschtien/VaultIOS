@@ -7,6 +7,7 @@
 
 import UIKit
 
+// sourcery: AutoMockable
 protocol ImageProviding {
     var houseImage: UIImage? { get }
     var houseFillImage: UIImage? { get }

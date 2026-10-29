@@ -2,10 +2,12 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol ExpesiesListBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol ExpesiesListHandler: AnyObject, Sendable {
     func handleLoadNextPage() async
     func handleTapRetry() async

@@ -3,6 +3,7 @@
 import Foundation
 @preconcurrency import NetworkClient
 
+// sourcery: AutoMockable
 protocol MainSummaryContractServicing: Sendable {
     func getSummary(parameters: SummaryQueryParameters) async throws -> SummaryResponseDTO
     func getSummaryByCategory(

@@ -41,6 +41,7 @@ struct UserProfileDefaults: Codable, Equatable, Sendable {
     }
 }
 
+// sourcery: AutoMockable
 protocol UserProfileStorageServiceProtocol: Sendable {
     func saveProfile(_ profile: UserProfileDefaults)
     func loadProfile() -> UserProfileDefaults?

@@ -1,6 +1,7 @@
 import Foundation
 @preconcurrency import NetworkClient
 
+// sourcery: AutoMockable
 protocol PasswordRestorationContractServicing: Sendable {
     func requestPasswordReset(_ request: ForgotPasswordRequestDTO) async throws
     func resetPassword(_ request: ResetPasswordRequestDTO) async throws

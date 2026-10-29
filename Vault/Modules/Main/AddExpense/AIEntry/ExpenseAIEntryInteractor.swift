@@ -1,10 +1,12 @@
 import Foundation
 import NetworkClient
 
+// sourcery: AutoMockable
 protocol ExpenseAIEntryBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol ExpenseAIEntryHandler: AnyObject, Sendable {
     func handleChangePrompt(_ text: String) async
     func handleStartVoiceRecording() async

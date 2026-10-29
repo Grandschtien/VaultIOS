@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol AnalyticsDataProviding: Sendable {
     func fetchData(for period: MainSummaryPeriod) async throws -> AnalyticsDataModel
 }

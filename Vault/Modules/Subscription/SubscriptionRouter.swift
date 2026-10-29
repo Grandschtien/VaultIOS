@@ -5,6 +5,7 @@ import Foundation
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol SubscriptionRoutingLogic: Sendable {
     func close()
     func presentError(with text: String)

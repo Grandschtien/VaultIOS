@@ -2,6 +2,7 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol MainCategoriesProviding: Sendable {
     func fetchCategories() async throws -> [MainCategoryCardModel]
 }

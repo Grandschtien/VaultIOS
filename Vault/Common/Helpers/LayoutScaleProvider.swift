@@ -7,6 +7,7 @@
 
 import UIKit
 
+// sourcery: AutoMockable
 protocol LayoutScaleProviding {
     var sizeXS: CGFloat { get }
     var sizeS: CGFloat { get }

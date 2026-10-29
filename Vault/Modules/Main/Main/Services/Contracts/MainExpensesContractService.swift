@@ -3,6 +3,7 @@
 import Foundation
 @preconcurrency import NetworkClient
 
+// sourcery: AutoMockable
 protocol MainExpensesContractServicing: Sendable {
     func createExpenses(_ request: ExpensesCreateRequestDTO) async throws -> ExpensesCreateResponseDTO
     func listExpenses(parameters: ExpensesListQueryParameters) async throws -> ExpensesListResponseDTO

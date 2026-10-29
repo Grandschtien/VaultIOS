@@ -2,6 +2,7 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol QASessionSeedingServiceProtocol {
     func seedSessionIfNeeded()
 }

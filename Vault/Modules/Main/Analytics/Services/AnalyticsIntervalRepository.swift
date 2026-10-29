@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol AnalyticsIntervalRepositoryProtocol: Sendable {
     func cachedData(for resolution: AnalyticsPeriodResolution) async -> AnalyticsDataModel?
     func save(data: AnalyticsDataModel, for resolution: AnalyticsPeriodResolution) async

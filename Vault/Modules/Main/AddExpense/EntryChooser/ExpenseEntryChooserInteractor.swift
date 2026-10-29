@@ -1,9 +1,11 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol ExpenseEntryChooserBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol ExpenseEntryChooserHandler: AnyObject, Sendable {
     func handleTapClose() async
     func handleTapAiEntry() async

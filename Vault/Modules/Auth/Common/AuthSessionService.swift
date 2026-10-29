@@ -12,6 +12,7 @@ extension Notification.Name {
     static let authSessionDidLogout = Notification.Name("authSessionDidLogout")
 }
 
+// sourcery: AutoMockable
 protocol AuthSessionServiceProtocol: Sendable {
     func hasValidSession() async -> Bool
     func refreshAccessToken() async throws -> AuthTokenDTO

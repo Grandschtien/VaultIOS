@@ -59,6 +59,7 @@ enum SubscriptionAccessRefreshState: Equatable, Sendable {
     }
 }
 
+// sourcery: AutoMockable
 protocol SubscriptionAccessServicing: Sendable {
     func currentTierState() async -> SubscriptionTierState
     func refreshCurrentTierState() async -> SubscriptionTierState

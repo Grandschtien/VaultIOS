@@ -5,6 +5,7 @@ enum VylokWidgetEntryDestination: Equatable, Sendable {
     case manualEntry
 }
 
+// sourcery: AutoMockable
 protocol VylokWidgetEntryDestinationResolving: Sendable {
     func resolveDestination() async -> VylokWidgetEntryDestination
 }

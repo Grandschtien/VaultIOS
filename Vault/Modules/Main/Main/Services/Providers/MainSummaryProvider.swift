@@ -7,6 +7,7 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol MainSummaryProviding: Sendable {
     func fetchSummary() async throws -> MainSummaryModel
 }

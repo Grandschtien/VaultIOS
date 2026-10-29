@@ -2,6 +2,7 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol MainCurrencyRateProviding: Sendable {
     func synchronizeCurrencyRateOnLaunch() async throws
 }

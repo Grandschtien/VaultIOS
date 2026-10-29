@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol MainFlowDomainObserverProtocol: Sendable {
     func subscribeOverview() -> AsyncStream<MainFlowOverviewSnapshot>
     func subscribeCategories() -> AsyncStream<MainFlowCategoriesSnapshot>

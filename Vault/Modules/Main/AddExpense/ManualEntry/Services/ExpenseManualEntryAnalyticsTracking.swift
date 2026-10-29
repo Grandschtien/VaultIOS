@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol ExpenseManualEntryAnalyticsTracking: Sendable {
     func trackScreenOpen()
     func trackPageChange(page: Int)

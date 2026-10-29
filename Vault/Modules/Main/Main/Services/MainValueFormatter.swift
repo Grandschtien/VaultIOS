@@ -2,6 +2,7 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol MainValueFormatting: Sendable {
     func formatAmount(_ amount: Double, currencyCode: String) -> String
     func formatExpenseAmount(_ amount: Double, currencyCode: String) -> String

@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol VylokRouteParsing: Sendable {
     func parse(url: URL) -> VylokRoute?
 }

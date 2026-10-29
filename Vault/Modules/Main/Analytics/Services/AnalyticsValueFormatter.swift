@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol AnalyticsValueFormatting: Sendable {
     func formatAmount(_ amount: Double, currencyCode: String) -> String
     func formatMonth(_ date: Date) -> String

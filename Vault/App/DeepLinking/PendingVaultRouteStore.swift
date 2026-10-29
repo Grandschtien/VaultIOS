@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol PendingVylokRouteStoring: Sendable {
     func store(_ route: VylokRoute)
     func consume() -> VylokRoute?

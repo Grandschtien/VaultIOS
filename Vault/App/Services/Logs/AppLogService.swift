@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol AppLogServiceProtocol: Sendable {
     var sessionID: String { get }
 

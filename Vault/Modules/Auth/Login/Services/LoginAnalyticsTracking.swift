@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol LoginAnalyticsTracking: Sendable {
     func trackScreenOpen()
     func trackLoginSuccess()

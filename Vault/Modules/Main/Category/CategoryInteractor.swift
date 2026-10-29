@@ -2,10 +2,12 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol CategoryBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol CategoryHandler: AnyObject, Sendable {
     func handleTapRetry() async
     func handleLoadNextPage() async

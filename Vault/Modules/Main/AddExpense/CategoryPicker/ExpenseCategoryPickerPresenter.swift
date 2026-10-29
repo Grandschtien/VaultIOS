@@ -2,6 +2,7 @@ import UIKit
 internal import Combine
 
 @MainActor
+// sourcery: AutoMockable
 protocol ExpenseCategoryPickerPresentationLogic: Sendable {
     func presentFetchedData(_ data: ExpenseCategoryPickerFetchData)
 }

@@ -3,6 +3,7 @@
 import Foundation
 @preconcurrency import NetworkClient
 
+// sourcery: AutoMockable
 protocol MainCategoriesContractServicing: Sendable {
     func createCategory(_ request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO
     func updateCategory(id: String, request: CategoryCreateRequestDTO) async throws -> CategoryResponseDTO

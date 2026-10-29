@@ -5,6 +5,7 @@ import Foundation
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol ExpesiesListRoutingLogic: Sendable {
     func presentError(with text: String)
 }

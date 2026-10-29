@@ -8,6 +8,7 @@
 import Security
 import Foundation
 
+// sourcery: AutoMockable
 public protocol KeychainClientProtocol {
     func set(_ data: Data, forAccount account: String, service: String)
     func getData(forAccount account: String, service: String) -> Data?

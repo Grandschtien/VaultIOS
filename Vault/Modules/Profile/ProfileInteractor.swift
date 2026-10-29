@@ -2,11 +2,13 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol ProfileBusinessLogic: Sendable {
     func fetchData() async
     func sendLogs() async
 }
 
+// sourcery: AutoMockable
 protocol ProfileHandler: AnyObject, Sendable {
     func handleTapRetry() async
     func handleTapLogout() async

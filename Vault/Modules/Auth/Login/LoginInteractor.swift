@@ -3,10 +3,12 @@
 import Foundation
 @preconcurrency import NetworkClient
 
+// sourcery: AutoMockable
 protocol LoginBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol LoginHandler: AnyObject, Sendable {
     func handleEmailDidChange(_ email: String) async
     func handlePasswordDidChange(_ password: String) async

@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol ExpenseAIEntryAnalyticsTracking: Sendable {
     func trackScreenOpen()
     func trackScreenSuccess()

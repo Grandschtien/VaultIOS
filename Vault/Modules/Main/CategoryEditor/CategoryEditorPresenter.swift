@@ -2,6 +2,7 @@ import UIKit
 internal import Combine
 
 @MainActor
+// sourcery: AutoMockable
 protocol CategoryEditorPresentationLogic: Sendable {
     func presentFetchedData(_ data: CategoryEditorFetchData)
 }

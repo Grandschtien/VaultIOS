@@ -1,12 +1,14 @@
 import UIKit
 import Nivelir
 
+// sourcery: AutoMockable
 protocol ExpenseAIEntryNoExpenseAlertOutput: AnyObject, Sendable {
     func handleTapAddManually() async
     func handleTapFixPrompt() async
 }
 
 @MainActor
+// sourcery: AutoMockable
 protocol ExpenseAIEntryRoutingLogic: Sendable {
     func close()
     func presentError(with text: String)

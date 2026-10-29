@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol VylokWidgetSnapshotSyncing: Sendable {
     func syncSnapshot() async
     func clearSnapshot()

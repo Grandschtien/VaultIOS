@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol VylokWidgetSnapshotStoring: Sendable {
     func loadSnapshot() -> VylokWidgetSnapshot?
     func saveSnapshot(_ snapshot: VylokWidgetSnapshot)

@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol AnalyticsServiceProtocol: Sendable {
     var provider: AnalyticsProvider { get }
     func send(event: AnalyticsEvent, payload: AnalyticsPayload) async

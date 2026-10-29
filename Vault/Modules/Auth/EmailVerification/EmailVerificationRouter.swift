@@ -2,6 +2,7 @@ import Foundation
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol EmailVerificationRoutingLogic: Sendable {
     func openMainFlow()
     func presentError(with text: String)

@@ -2,6 +2,7 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol MainExpenseGrouping: Sendable {
     func groupExpenses(_ expenses: [MainExpenseModel]) -> [MainExpenseGroupModel]
 }

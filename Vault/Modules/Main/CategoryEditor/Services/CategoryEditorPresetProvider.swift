@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol CategoryEditorPresetProviding: Sendable {
     var defaultEmoji: String { get }
     var defaultColorHex: String { get }

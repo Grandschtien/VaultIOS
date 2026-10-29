@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol CategoriesListAnalyticsTracking: Sendable {
     func trackScreenOpen()
     func trackScreenSuccess()

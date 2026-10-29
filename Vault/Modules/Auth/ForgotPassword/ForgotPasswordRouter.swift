@@ -3,6 +3,7 @@ import Foundation
 import Nivelir
 
 @MainActor
+// sourcery: AutoMockable
 protocol ForgotPasswordRoutingLogic: Sendable {
     func close()
     func presentSuccess(with text: String)

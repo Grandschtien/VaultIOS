@@ -1,9 +1,11 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol ExpenseManualEntryBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol ExpenseManualEntryHandler: AnyObject, Sendable {
     func handleChangeAmount(_ text: String) async
     func handleChangeTitle(_ text: String) async

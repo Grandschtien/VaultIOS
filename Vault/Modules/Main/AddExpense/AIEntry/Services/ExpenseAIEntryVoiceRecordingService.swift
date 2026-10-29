@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import Speech
 
+// sourcery: AutoMockable
 protocol ExpenseAIEntryVoiceRecordingServicing: Sendable {
     @MainActor
     func startRecording() async throws
@@ -21,6 +22,7 @@ struct ExpenseAIEntrySpeechRecognitionUpdate: Equatable {
     let isFinal: Bool
 }
 
+// sourcery: AutoMockable
 protocol ExpenseAIEntrySpeechRecognizerControlling: AnyObject {
     var isAvailable: Bool { get }
 
@@ -30,11 +32,13 @@ protocol ExpenseAIEntrySpeechRecognizerControlling: AnyObject {
     ) -> ExpenseAIEntrySpeechRecognitionTaskControlling
 }
 
+// sourcery: AutoMockable
 protocol ExpenseAIEntrySpeechRecognitionTaskControlling: AnyObject {
     func finish() async throws
     func cancel()
 }
 
+// sourcery: AutoMockable
 protocol ExpenseAIEntryAudioSessionControlling: AnyObject {
     func setCategory(
         _ category: AVAudioSession.Category,
@@ -44,6 +48,7 @@ protocol ExpenseAIEntryAudioSessionControlling: AnyObject {
     func setActive(_ active: Bool, options: AVAudioSession.SetActiveOptions) throws
 }
 
+// sourcery: AutoMockable
 protocol ExpenseAIEntryAudioEngineControlling: AnyObject {
     func installTap(bufferHandler: @escaping (AVAudioPCMBuffer, AVAudioTime) -> Void)
     func removeTap()

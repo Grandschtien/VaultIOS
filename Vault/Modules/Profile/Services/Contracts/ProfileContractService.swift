@@ -3,6 +3,7 @@
 import Foundation
 @preconcurrency import NetworkClient
 
+// sourcery: AutoMockable
 protocol ProfileContractServicing: Sendable {
     func getProfile() async throws -> ProfileResponseDTO
     func refreshProfile() async throws -> ProfileResponseDTO

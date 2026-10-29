@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol ExpenseEntryChooserAnalyticsTracking: Sendable {
     func trackScreenOpen()
     func trackPaywallOpen(currentTier: String)

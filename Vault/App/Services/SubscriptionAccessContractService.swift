@@ -3,6 +3,7 @@
 import Foundation
 @preconcurrency import NetworkClient
 
+// sourcery: AutoMockable
 protocol SubscriptionAccessContractServicing: Sendable {
     func getSubscription() async throws -> SubscriptionAccessSnapshot
     func refreshSubscription() async throws -> SubscriptionAccessSnapshot

@@ -7,6 +7,7 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol FirstRunKeychainCleanupServiceProtocol {
     func clearKeychainIfNeeded()
 }

@@ -215,6 +215,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 61B0A106307E8B0100A10001 /* Build configuration list for PBXNativeTarget "VaultTests" */;
 			buildPhases = (
+				61B0A10F307E8B0300A10001 /* Sourcery */,
 				61B0A105307E8B0100A10001 /* Sources */,
 				61B0A103307E8B0100A10001 /* Frameworks */,
 				61B0A104307E8B0100A10001 /* Resources */,
@@ -398,6 +399,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "if command -v swiftgen > /dev/null 2>&1; then\n  swiftgen config run --config \"${SRCROOT}/swiftgen.widget.yml\"\nelse\n  echo \"SwiftGen is not installed. Install it from https://github.com/SwiftGen/SwiftGen\"\nfi\n";
+		};
+		61B0A10F307E8B0300A10001 /* Sourcery */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/.sourcery.yml",
+				"$(SRCROOT)/Templates/Sourcery/AutoMockable.stencil",
+			);
+			name = Sourcery;
+			outputPaths = (
+				"$(SRCROOT)/VaultTests/Generated/AutoMockable.generated.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "export PATH=\"$PATH:/opt/homebrew/bin\"\nif command -v sourcery > /dev/null 2>&1; then\n  sourcery --config \"${SRCROOT}/.sourcery.yml\" --disableCache\nelse\n  echo \"error: Sourcery is not installed. Run: brew install sourcery\"\n  exit 1\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -660,6 +679,7 @@
 		61B0A107307E8B0100A10001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -686,6 +706,7 @@
 		61B0A108307E8B0100A10001 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

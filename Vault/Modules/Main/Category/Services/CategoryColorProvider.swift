@@ -2,6 +2,7 @@
 
 import UIKit
 
+// sourcery: AutoMockable
 protocol CategoryColorProviding: Sendable {
     func color(for value: String) -> UIColor
     func summaryColor(for value: String) -> UIColor

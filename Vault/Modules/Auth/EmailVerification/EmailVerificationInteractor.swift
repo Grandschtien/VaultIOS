@@ -1,10 +1,12 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol EmailVerificationBusinessLogic: Sendable {
     func fetchData() async
     func handleFlowDidExit() async
 }
 
+// sourcery: AutoMockable
 protocol EmailVerificationHandler: AnyObject, Sendable {
     func handleCodeDidChange(_ code: String) async
     func handleTapVerify() async

@@ -1,6 +1,7 @@
 import Foundation
 @preconcurrency import NetworkClient
 
+// sourcery: AutoMockable
 protocol MainAIParseContractServicing: Sendable {
     func parse(_ request: AIParseRequestDTO) async throws -> AIParseResponseDTO
 }

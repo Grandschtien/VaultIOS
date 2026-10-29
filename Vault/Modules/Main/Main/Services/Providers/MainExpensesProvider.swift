@@ -7,6 +7,7 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol MainExpensesProviding: Sendable {
     func fetchExpenses() async throws -> [MainExpenseModel]
 }

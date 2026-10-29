@@ -1,13 +1,16 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol ExpenseCategoryPickerBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol ExpenseCategoryPickerOutput: AnyObject, Sendable {
     func handleDidSelectCategory(_ category: ExpenseCategorySelectionModel) async
 }
 
+// sourcery: AutoMockable
 protocol ExpenseCategoryPickerHandler: AnyObject, Sendable {
     func handleTapCategory(id: String) async
     func handleTapAdd() async

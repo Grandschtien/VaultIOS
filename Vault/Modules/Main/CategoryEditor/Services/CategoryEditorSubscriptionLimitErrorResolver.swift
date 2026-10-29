@@ -2,6 +2,7 @@ import Foundation
 import Alamofire
 import NetworkClient
 
+// sourcery: AutoMockable
 protocol CategoryEditorSubscriptionLimitErrorResolving: Sendable {
     func isSubscriptionLimitError(_ error: Error) -> Bool
 }

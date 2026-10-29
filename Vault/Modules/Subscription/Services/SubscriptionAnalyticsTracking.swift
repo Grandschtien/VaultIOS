@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol SubscriptionAnalyticsTracking: Sendable {
     func trackScreenOpen()
     func trackSubscriptionSuccess(plans: [SubscriptionFetchData.SubscriptionStorePlan], currentTier: String)

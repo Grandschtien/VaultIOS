@@ -3,6 +3,7 @@
 import Foundation
 @preconcurrency import NetworkClient
 
+// sourcery: AutoMockable
 protocol MainCurrencyRateContractServicing: Sendable {
     func getCurrencyRate(currency: String) async throws -> CurrencyRateResponseDTO
 }

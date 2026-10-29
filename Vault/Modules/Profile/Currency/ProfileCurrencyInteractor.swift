@@ -1,13 +1,16 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol ProfileCurrencyBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol ProfileCurrencySelectionOutput: AnyObject, Sendable {
     func handleDidSelectCurrency(_ currencyCode: String) async
 }
 
+// sourcery: AutoMockable
 protocol ProfileCurrencyHandler: AnyObject, Sendable {
     func handleSelectCurrency(_ currencyCode: String) async
     func handleSearchQueryDidChange(_ query: String) async

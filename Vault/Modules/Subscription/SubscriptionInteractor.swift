@@ -2,10 +2,12 @@
 
 import Foundation
 
+// sourcery: AutoMockable
 protocol SubscriptionBusinessLogic: Sendable {
     func fetchData() async
 }
 
+// sourcery: AutoMockable
 protocol SubscriptionHandler: AnyObject, Sendable {
     func handleTapClose() async
     func handleTapRetry() async
@@ -15,6 +17,7 @@ protocol SubscriptionHandler: AnyObject, Sendable {
     func handleTapPrivacyPolicy() async
 }
 
+// sourcery: AutoMockable
 protocol SubscriptionOutput: AnyObject, Sendable {
     func handleSubscriptionDidSync() async
 }

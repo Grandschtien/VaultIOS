@@ -11,6 +11,7 @@ struct AnalyticsPeriodResolution: Equatable, Sendable {
     let preset: AnalyticsPeriodPreset?
 }
 
+// sourcery: AutoMockable
 protocol AnalyticsPeriodResolving: Sendable {
     func defaultPeriod() -> AnalyticsPeriodResolution
     func resolveCurrentPeriod(for preset: AnalyticsPeriodPreset) -> AnalyticsPeriodResolution

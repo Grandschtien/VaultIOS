@@ -1,5 +1,6 @@
 import Foundation
 
+// sourcery: AutoMockable
 protocol MainFlowDomainStoreProtocol: Sendable {
     func snapshot() -> MainFlowDomainState
     @discardableResult
