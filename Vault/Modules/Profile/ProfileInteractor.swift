@@ -75,33 +75,16 @@ actor ProfileInteractor: ProfileBusinessLogic {
             analytics?.trackScreenOpen()
             hasTrackedScreenOpen = true
         }
-        loadingState = .loading
         isSavingCurrency = false
         isLoggingOut = false
         isDeletingAccount = false
-        profile = nil
-        subscription = nil
         aiParseUsage = userProfileStorageService.loadProfile()?.cachedAIParseUsage
-        let cachedCurrency = normalizedCurrencyCode(
-            userProfileStorageService.loadProfile()?.currency
-        )
-        selectedCurrencyCode = cachedCurrency.isEmpty ? nil : cachedCurrency
-        await presentFetchedData()
 
-        do {
-            async let fetchedProfile = profileService.getProfile()
-            async let fetchedSubscription = subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
-
-            profile = try await fetchedProfile
-            subscription = await fetchedSubscription
-            loadingState = .loaded
-            selectedCurrencyCode = normalizedCurrencyCode(profile?.currency)
-            await presentFetchedData()
-            analytics?.trackProfileSuccess()
-        } catch {
-            analytics?.trackProfileFailure(error)
-            loadingState = .failed(.undelinedError(description: error.localizedDescription))
-            await presentFetchedData()
+        if let cachedProfile = await profileService.cachedProfile() {
+            await presentCachedData(with: cachedProfile)
+            await refreshSubscription()
+        } else {
+            await loadData()
         }
     }
     
@@ -150,6 +133,50 @@ private extension ProfileInteractor {
                 await self.handleSubscriptionAccessDidChange(snapshot)
             }
         }
+    }
+
+    func presentCachedData(with cachedProfile: ProfileResponseDTO) async {
+        profile = cachedProfile
+        subscription = await subscriptionAccessService.currentSubscriptionSnapshot()
+        selectedCurrencyCode = normalizedCurrencyCode(cachedProfile.currency)
+        loadingState = .loaded
+        await presentFetchedData()
+        analytics?.trackProfileSuccess()
+    }
+
+    func loadData() async {
+        loadingState = .loading
+        profile = nil
+        subscription = nil
+        let cachedCurrency = normalizedCurrencyCode(
+            userProfileStorageService.loadProfile()?.currency
+        )
+        selectedCurrencyCode = cachedCurrency.isEmpty ? nil : cachedCurrency
+        await presentFetchedData()
+
+        do {
+            async let fetchedProfile = profileService.getProfile()
+            async let fetchedSubscription = subscriptionAccessService.refreshCurrentSubscriptionSnapshot()
+
+            profile = try await fetchedProfile
+            subscription = await fetchedSubscription
+            loadingState = .loaded
+            selectedCurrencyCode = normalizedCurrencyCode(profile?.currency)
+            await presentFetchedData()
+            analytics?.trackProfileSuccess()
+        } catch {
+            analytics?.trackProfileFailure(error)
+            loadingState = .failed(.undelinedError(description: error.localizedDescription))
+            await presentFetchedData()
+        }
+    }
+
+    func refreshSubscription() async {
+        guard let refreshedSubscription = await subscriptionAccessService.refreshCurrentSubscriptionSnapshot() else {
+            return
+        }
+
+        await handleSubscriptionAccessDidChange(refreshedSubscription)
     }
 
     func handleSubscriptionAccessDidChange(

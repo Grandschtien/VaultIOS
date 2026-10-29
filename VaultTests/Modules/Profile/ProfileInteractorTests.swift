@@ -52,6 +52,62 @@ final class ProfileInteractorTests: XCTestCase {
         let serviceCallsCount = profileService.getProfileCallsCount
         XCTAssertEqual(serviceCallsCount, 1)
     }
+
+    func testFetchDataWithCachedProfilePresentsLoadedWithoutLoadingThenRefreshesSubscription() async {
+        let presenter = ProfilePresentationLogicMock()
+        let profileService = Self.makeProfileService(results: [])
+        profileService.cachedProfileReturnValue = Self.makeCachedProfile()
+        let subscriptionAccessService = Self.makeSubscriptionAccessService(
+            currentTierResult: "REGULAR",
+            refreshTierResult: "PREMIUM"
+        )
+        let sut = makeSut(
+            presenter: presenter,
+            router: ProfileRoutingLogicMock(),
+            profileService: profileService,
+            subscriptionAccessService: subscriptionAccessService
+        )
+
+        await sut.fetchData()
+
+        let invocations = presenter.presentFetchedDataReceivedInvocations
+        XCTAssertEqual(invocations.map(\.loadingState), [.loaded, .loaded])
+        XCTAssertEqual(invocations.map { $0.subscription?.tier }, [.regular, .premium])
+        XCTAssertEqual(invocations.first?.profile?.name, "Sarah Connor")
+        XCTAssertEqual(profileService.getProfileCallsCount, 0)
+        XCTAssertEqual(subscriptionAccessService.refreshCurrentSubscriptionSnapshotCallsCount, 1)
+    }
+
+    func testFetchDataWithCachedProfileDoesNotRepresentWhenRefreshedSubscriptionIsUnchanged() async {
+        let presenter = ProfilePresentationLogicMock()
+        let profileService = Self.makeProfileService(results: [])
+        profileService.cachedProfileReturnValue = Self.makeCachedProfile()
+        let sut = makeSut(
+            presenter: presenter,
+            router: ProfileRoutingLogicMock(),
+            profileService: profileService,
+            subscriptionAccessService: Self.makeSubscriptionAccessService(
+                currentTierResult: "REGULAR",
+                refreshTierResult: "REGULAR"
+            )
+        )
+
+        await sut.fetchData()
+
+        XCTAssertEqual(presenter.presentFetchedDataReceivedInvocations.map(\.loadingState), [.loaded])
+    }
+
+    nonisolated static func makeCachedProfile() -> ProfileResponseDTO {
+        .init(
+            id: "user-1",
+            email: "sarah@example.com",
+            name: "Sarah Connor",
+            currency: "USD",
+            preferredLanguage: "en-US",
+            tier: "REGULAR",
+            tierValidUntil: nil
+        )
+    }
 }
 
 extension ProfileInteractorTests {

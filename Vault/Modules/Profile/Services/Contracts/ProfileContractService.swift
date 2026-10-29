@@ -5,6 +5,7 @@ import Foundation
 
 // sourcery: AutoMockable
 protocol ProfileContractServicing: Sendable {
+    func cachedProfile() async -> ProfileResponseDTO?
     func getProfile() async throws -> ProfileResponseDTO
     func refreshProfile() async throws -> ProfileResponseDTO
     func updateProfile(_ request: ProfileUpdateRequestDTO) async throws -> ProfileResponseDTO
@@ -40,6 +41,10 @@ final class ProfileContractService: ProfileContractServicing, @unchecked Sendabl
         if let logoutObserver {
             NotificationCenter.default.removeObserver(logoutObserver)
         }
+    }
+
+    func cachedProfile() async -> ProfileResponseDTO? {
+        await state.profile
     }
 
     func getProfile() async throws -> ProfileResponseDTO {

@@ -49,7 +49,7 @@ final class ProfileFactory: Screen {
 
         let viewModelStore = ViewModelStore(
             viewModel: presenter.viewModel,
-            options: .applyInitial,
+            options: .default,
             publisher: presenter.$viewModel
         )
 
