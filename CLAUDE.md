@@ -38,6 +38,7 @@
 - All modules must be created through factories built with `Nivelir`, using template
 - All navigation must go through `Nivelir`
 - Network calls must go through `NetworkService`(use `AsyncNetworkService` for Swift Concurrency)
+- Notification observation must go through `NotificationCenterServicing`, never through `NotificationCenter` directly; tests use the shared `NotificationCenterMock`
 - Every service must be abstracted behind a protocol
 - Every new service must include tests
 - Prefer Swift Concurrency for async work

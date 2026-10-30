@@ -18,7 +18,10 @@ final class ProfileContractServiceTests: XCTestCase {
             didCallGet = true
         }
 
-        let sut = ProfileContractService(networkClient: spy)
+        let sut = ProfileContractService(
+            networkClient: spy,
+            notificationCenter: NotificationCenterMock()
+        )
         let response = try await sut.getProfile()
 
         XCTAssertTrue(didCallGet)
@@ -39,7 +42,10 @@ extension ProfileContractServiceTests {
             json: #"{"id":"user-1","email":"jane@example.com","name":"Jane","currency":"USD","preferred_language":"en-US","tier":"REGULAR","tier_valid_until":null}"#
         )
 
-        let sut = ProfileContractService(networkClient: spy)
+        let sut = ProfileContractService(
+            networkClient: spy,
+            notificationCenter: NotificationCenterMock()
+        )
 
         let firstResponse = try await sut.getProfile()
         spy.nextError = StubError.any
@@ -51,7 +57,10 @@ extension ProfileContractServiceTests {
 
     func testRefreshProfileBypassesCacheAndReplacesCachedValue() async throws {
         let spy = AsyncNetworkClientMock()
-        let sut = ProfileContractService(networkClient: spy)
+        let sut = ProfileContractService(
+            networkClient: spy,
+            notificationCenter: NotificationCenterMock()
+        )
 
         spy.setResponse(
             json: #"{"id":"user-1","email":"jane@example.com","name":"Jane","currency":"USD","preferred_language":"en-US","tier":"REGULAR","tier_valid_until":null}"#
@@ -77,7 +86,10 @@ extension ProfileContractServiceTests {
             json: #"{"id":"user-1","email":"jane@example.com","name":"Jane Doe","currency":"EUR","preferred_language":"en-US","tier":"ACTIVE","tier_valid_until":null}"#
         )
 
-        let sut = ProfileContractService(networkClient: spy)
+        let sut = ProfileContractService(
+            networkClient: spy,
+            notificationCenter: NotificationCenterMock()
+        )
 
         let updatedResponse = try await sut.updateProfile(
             .init(
@@ -95,17 +107,18 @@ extension ProfileContractServiceTests {
 
     func testLogoutNotificationClearsSessionCache() async throws {
         let spy = AsyncNetworkClientMock()
-        let sut = ProfileContractService(networkClient: spy)
+        let notificationCenter = NotificationCenterMock()
+        let sut = ProfileContractService(
+            networkClient: spy,
+            notificationCenter: notificationCenter
+        )
 
         spy.setResponse(
             json: #"{"id":"user-1","email":"jane@example.com","name":"Jane","currency":"USD","preferred_language":"en-US","tier":"REGULAR","tier_valid_until":null}"#
         )
         _ = try await sut.getProfile()
 
-        await MainActor.run {
-            NotificationCenter.default.post(name: .authSessionDidLogout, object: nil)
-        }
-        await Task.yield()
+        await notificationCenter.post(name: .authSessionDidLogout)
 
         spy.setResponse(
             json: #"{"id":"user-1","email":"jane@example.com","name":"Jane Doe","currency":"EUR","preferred_language":"en-US","tier":"ACTIVE","tier_valid_until":null}"#
@@ -134,7 +147,10 @@ extension ProfileContractServiceTests {
             capturedRequest = request
         }
 
-        let sut = ProfileContractService(networkClient: spy)
+        let sut = ProfileContractService(
+            networkClient: spy,
+            notificationCenter: NotificationCenterMock()
+        )
         let response = try await sut.updateProfile(
             .init(
                 name: "Jane Doe",
@@ -172,7 +188,10 @@ extension ProfileContractServiceTests {
             didCallDelete = true
         }
 
-        let sut = ProfileContractService(networkClient: spy)
+        let sut = ProfileContractService(
+            networkClient: spy,
+            notificationCenter: NotificationCenterMock()
+        )
         try await sut.deleteAccount()
 
         XCTAssertTrue(didCallDelete)
@@ -184,7 +203,10 @@ extension ProfileContractServiceTests {
         let spy = AsyncNetworkClientMock()
         spy.nextError = StubError.any
 
-        let sut = ProfileContractService(networkClient: spy)
+        let sut = ProfileContractService(
+            networkClient: spy,
+            notificationCenter: NotificationCenterMock()
+        )
 
         do {
             _ = try await sut.getProfile()
@@ -196,7 +218,10 @@ extension ProfileContractServiceTests {
 
     func testGetProfileAfterFailureRequestsAgain() async throws {
         let spy = AsyncNetworkClientMock()
-        let sut = ProfileContractService(networkClient: spy)
+        let sut = ProfileContractService(
+            networkClient: spy,
+            notificationCenter: NotificationCenterMock()
+        )
 
         spy.nextError = StubError.any
 

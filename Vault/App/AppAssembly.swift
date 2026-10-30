@@ -249,12 +249,21 @@ private extension AppAssembly {
         }
         .inObjectScope(.transient)
 
+        container.register(NotificationCenterServicing.self) { _ in
+            NotificationCenterService()
+        }
+        .inObjectScope(.transient)
+
         container.register(ProfileContractServicing.self) { resolver in
-            guard let networkClient = resolver.resolve(AsyncNetworkClient.self) else {
-                fatalError("Failed to resolve AsyncNetworkClient for ProfileContractService")
+            guard let networkClient = resolver.resolve(AsyncNetworkClient.self),
+                  let notificationCenter = resolver.resolve(NotificationCenterServicing.self) else {
+                fatalError("Failed to resolve dependencies for ProfileContractService")
             }
 
-            return ProfileContractService(networkClient: networkClient)
+            return ProfileContractService(
+                networkClient: networkClient,
+                notificationCenter: notificationCenter
+            )
         }
         .inObjectScope(.container)
 

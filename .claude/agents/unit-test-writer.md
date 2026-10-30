@@ -19,7 +19,7 @@ First read `.claude/skills/unit-tests/SKILL.md` and `.claude/skills/unit-tests/e
 ## 2. Mocks
 
 1. For every dependency of the class, find its protocol. If it lacks `// sourcery: AutoMockable`, add the annotation in the production file.
-2. For `AsyncNetworkClient` always use the shared `AsyncNetworkClientMock` from `VaultTests/Support/Mocks/AsyncNetworkClientMock.swift`; never write another one. If any other dependency is a concrete type that cannot be mocked through an app protocol, stop and report it. Do not write a fake.
+2. For `AsyncNetworkClient` always use the shared `AsyncNetworkClientMock` from `VaultTests/Support/Mocks/AsyncNetworkClientMock.swift`; for `NotificationCenterServicing` always use the shared `NotificationCenterMock` from `VaultTests/Support/Mocks/NotificationCenterMock.swift` (`await post(name:)` runs the handlers to completion); never write another one of either. If any other dependency is a concrete type that cannot be mocked through an app protocol, stop and report it. Do not write a fake.
 3. If an output model is not `Equatable`, add `Equatable` to its declaration.
 4. Regenerate: `/opt/homebrew/bin/sourcery --config .sourcery.yml --disableCache`.
 5. Look up the exact mock member names you need in `VaultTests/Generated/AutoMockable.generated.swift` with Grep.

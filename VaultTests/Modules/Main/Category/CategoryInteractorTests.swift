@@ -60,7 +60,6 @@ extension CategoryInteractorTests {
 
         await otherSut.fetchData()
         await otherSut.handleTapEditCategory()
-        await waitForUpdates()
 
         XCTAssertEqual(otherPresenter.presentFetchedDataReceivedInvocations.last?.canEditCategory, false)
         XCTAssertTrue(otherRouter.openCategoryEditIdReceivedInvocations.isEmpty)
@@ -112,7 +111,6 @@ extension CategoryInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
 
         guard let first = presenter.presentFetchedDataReceivedInvocations.first,
               let last = presenter.presentFetchedDataReceivedInvocations.last else {
@@ -159,7 +157,6 @@ extension CategoryInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
 
         guard let first = presenter.presentFetchedDataReceivedInvocations.first,
               let last = presenter.presentFetchedDataReceivedInvocations.last else {
@@ -212,7 +209,6 @@ extension CategoryInteractorTests {
 
         await sut.fetchData()
         await sut.handleLoadNextPage()
-        await waitForUpdates()
 
         guard let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter update")
@@ -255,7 +251,6 @@ extension CategoryInteractorTests {
 
         await sut.fetchData()
         await sut.handleDeleteExpense(id: "exp-1")
-        await waitForUpdates()
 
         guard let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter update")
@@ -300,7 +295,6 @@ extension CategoryInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
 
         guard let first = presenter.presentFetchedDataReceivedInvocations.first,
               let last = presenter.presentFetchedDataReceivedInvocations.last else {
@@ -446,7 +440,6 @@ extension CategoryInteractorTests {
 
         await sut.fetchData()
         await sut.handleLoadNextPage()
-        await waitForUpdates()
 
         guard let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter update")
@@ -522,11 +515,6 @@ private extension CategoryInteractorTests {
             amount: amount,
             currency: "USD"
         )
-    }
-
-    func waitForUpdates() async {
-        await Task.yield()
-        await Task.yield()
     }
 
     func presentationExpectation(

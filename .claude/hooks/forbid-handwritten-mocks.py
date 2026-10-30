@@ -12,6 +12,11 @@ APP_CONFORMANCE = re.compile(
     r"\b(?:class|struct|actor)\s+\w+\s*:\s*[^{]*?\b\w*"
     r"(?:Protocol|Logic|Handler|Servicing|Providing|Tracking|Resolving|Output|Storage|Controlling|Converting|Logging|Reloading)\b"
 )
+# The only hand-written doubles allowed: shared mocks every test must reuse.
+SHARED_MOCKS = (
+    "/VaultTests/Support/Mocks/AsyncNetworkClientMock.swift",
+    "/VaultTests/Support/Mocks/NotificationCenterMock.swift",
+)
 
 
 def reject(message):
@@ -31,6 +36,9 @@ if "/VaultTests/Generated/" in path:
         "VaultTests/Generated is produced by Sourcery. Do not edit it: mark the protocol with "
         "`// sourcery: AutoMockable` and run `/opt/homebrew/bin/sourcery --config .sourcery.yml --disableCache`."
     )
+
+if path.endswith(SHARED_MOCKS):
+    sys.exit(0)
 
 if payload.get("tool_name") == "Write":
     texts = [tool_input.get("content", "")]

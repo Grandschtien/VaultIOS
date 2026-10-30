@@ -19,7 +19,6 @@ final class AnalyticsInteractorTests: XCTestCase {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
 
         let fetchCalls = dataProvider.fetchDataForReceivedInvocations
         XCTAssertEqual(fetchCalls, [aprilCurrentPeriod])
@@ -55,7 +54,6 @@ final class AnalyticsInteractorTests: XCTestCase {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
 
         let fetchCalls = dataProvider.fetchDataForReceivedInvocations
         XCTAssertEqual(fetchCalls, [aprilCurrentPeriod])
@@ -112,10 +110,8 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
 
         await sut.handleTapRetry()
-        await waitForUpdates()
 
         let fetchCalls = dataProvider.fetchDataForReceivedInvocations
         XCTAssertEqual(fetchCalls, [aprilCurrentPeriod, aprilCurrentPeriod])
@@ -145,12 +141,10 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
         await sut.handleDidConfirmCategoryPeriod(
             fromDate: marchCustomPeriod.from,
             to: marchCustomPeriod.to
         )
-        await waitForUpdates()
 
         let fetchCalls = dataProvider.fetchDataForReceivedInvocations
         let refreshMainFlowCalls = repository.refreshMainFlowCallsCount
@@ -184,12 +178,10 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
         await sut.handleDidConfirmCategoryPeriod(
             fromDate: marchCustomPeriod.from,
             to: marchCustomPeriod.to
         )
-        await waitForUpdates()
 
         let fetchCalls = dataProvider.fetchDataForReceivedInvocations
         XCTAssertEqual(fetchCalls, [aprilCurrentPeriod, marchCustomPeriod])
@@ -244,12 +236,10 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
         await sut.handleDidConfirmCategoryPeriod(
             fromDate: marchCustomPeriod.from,
             to: marchCustomPeriod.to
         )
-        await waitForUpdates()
         await sut.handleTapMonthFilter()
 
         XCTAssertEqual(router.openPeriodPickerSelectedFromDateSelectedToDateOutputReceivedInvocations.map { MainSummaryPeriod(from: $0.selectedFromDate, to: $0.selectedToDate) }, [marchCustomPeriod])
@@ -309,9 +299,7 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
         await sut.handleSwipeToPreviousPeriod()
-        await waitForUpdates()
 
         let awaitedValue1 = dataProvider.fetchDataForReceivedInvocations
         XCTAssertEqual(awaitedValue1, [aprilCurrentPeriod])
@@ -345,9 +333,7 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
         await sut.handleSwipeToPreviousPeriod()
-        await waitForUpdates()
 
         let localLoadingState = presenter.presentFetchedDataReceivedInvocations.last {
             $0.isBodyLoading && $0.selectedPeriod == marchMonthPeriod
@@ -385,9 +371,7 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
         await sut.handleSwipeToPreviousPeriod()
-        await waitForUpdates()
 
         let awaitedValue3 = dataProvider.fetchDataForReceivedInvocations
         XCTAssertEqual(
@@ -442,11 +426,8 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
         await sut.handleSwipeToPreviousPeriod()
-        await waitForUpdates()
         await sut.handleSwipeToPreviousPeriod()
-        await waitForUpdates()
 
         let awaitedValue4 = dataProvider.fetchDataForReceivedInvocations
         XCTAssertEqual(
@@ -488,15 +469,12 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
         await sut.handleDidConfirmCategoryPeriod(
             fromDate: marchCustomPeriod.from,
             to: marchCustomPeriod.to
         )
-        await waitForUpdates()
         await sut.handleSwipeToPreviousPeriod()
         await sut.handleSwipeToNextPeriod()
-        await waitForUpdates()
 
         let awaitedValue5 = dataProvider.fetchDataForReceivedInvocations
         XCTAssertEqual(
@@ -529,13 +507,9 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
         await sut.handleSelectPreset(.week)
-        await waitForUpdates()
         await sut.handleSelectPreset(.month)
-        await waitForUpdates()
         await sut.handleSelectPreset(.week)
-        await waitForUpdates()
 
         let awaitedValue6 = dataProvider.fetchDataForReceivedInvocations
         XCTAssertEqual(
@@ -575,10 +549,14 @@ extension AnalyticsInteractorTests {
             subscriptionAccessService: Self.makeSubscriptionAccessService(currentTier: "PREMIUM")
         )
 
+        let refreshedDataPresented = presentationExpectation(on: presenter) { data in
+            data.data?.totalAmount == 140
+        }
+
         await sut.fetchData()
-        await waitForUpdates()
         publishOverview()
-        await waitForUpdates()
+
+        await fulfillment(of: [refreshedDataPresented], timeout: 1)
 
         let awaitedValue8 = dataProvider.fetchDataForReceivedInvocations
         XCTAssertEqual(awaitedValue8, [aprilCurrentPeriod])
@@ -615,12 +593,10 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
         await sut.handleDidConfirmCategoryPeriod(
             fromDate: marchCustomPeriod.from,
             to: marchCustomPeriod.to
         )
-        await waitForUpdates()
 
         let awaitedValue10 = dataProvider.fetchDataForReceivedInvocations
         XCTAssertEqual(awaitedValue10, [])
@@ -693,7 +669,10 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
+        let screenLocked = presentationExpectation(on: presenter) { data in
+            data.isLocked
+        }
+        screenLocked.isInverted = true
 
         notificationCenter.post(
             name: .subscriptionAccessDidChange,
@@ -703,7 +682,8 @@ extension AnalyticsInteractorTests {
                     makeSubscriptionSnapshot(tier: .regular, aiRequestsRemaining: 272)
             ]
         )
-        await waitForUpdates()
+
+        await fulfillment(of: [screenLocked], timeout: 0.2)
 
         XCTAssertEqual(presenter.presentFetchedDataReceivedInvocations.last?.isLocked, false)
         let awaitedValue11 = dataProvider.fetchDataForReceivedInvocations
@@ -730,14 +710,11 @@ extension AnalyticsInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
         await sut.handleDidConfirmCategoryPeriod(
             fromDate: marchCustomPeriod.from,
             to: marchCustomPeriod.to
         )
-        await waitForUpdates()
         await sut.handleSubscriptionDidSync()
-        await waitForUpdates()
 
         let fetchCalls = dataProvider.fetchDataForReceivedInvocations
 
@@ -807,7 +784,6 @@ extension AnalyticsInteractorTests {
 
         await sut.fetchData()
         await sut.handleSubscriptionDidSync()
-        await waitForUpdates()
         let refreshCallsCount = subscriptionAccessService.refreshCurrentSubscriptionSnapshotCallsCount + subscriptionAccessService.refreshCurrentTierStateCallsCount + subscriptionAccessService.refreshCurrentTierSourceStateCallsCount
         let recordedFetchCalls = dataProvider.fetchDataForReceivedInvocations
 
@@ -983,12 +959,6 @@ private extension AnalyticsInteractorTests {
         )
     }
 
-    func waitForUpdates() async {
-        await Task.yield()
-        await Task.yield()
-        await Task.yield()
-    }
-
     func presentationExpectation(
         on presenter: AnalyticsPresentationLogicMock,
         where predicate: @escaping (AnalyticsFetchData) -> Bool
@@ -1011,7 +981,7 @@ private extension AnalyticsInteractorTests {
         var continuation: AsyncStream<MainFlowOverviewSnapshot>.Continuation?
         let observer = MainFlowDomainObserverProtocolMock()
         observer.subscribeOverviewClosure = {
-            AsyncStream(bufferingPolicy: .bufferingNewest(1)) {
+            AsyncStream(bufferingPolicy: .unbounded) {
                 continuation = $0
                 $0.yield(.init())
             }

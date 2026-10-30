@@ -151,7 +151,6 @@ extension MainInteractorTests {
 //
 //        await sut.fetchData()
 //        await sut.handleTapRetryCategories()
-//        await waitForUpdates()
 //
 //        guard let last = presenter.presentFetchedDataReceivedInvocations.last else {
 //            return XCTFail("Expected presenter update")
@@ -325,9 +324,13 @@ extension MainInteractorTests {
             repository: repository,
             observer: observer
         )
+        let observedSummaryPresented = presentationExpectation(on: presenter) { data in
+            data.summaryState == .loaded && data.summary?.totalAmount == 10
+        }
 
         await sut.fetchData()
-        await waitForUpdates()
+
+        await fulfillment(of: [observedSummaryPresented], timeout: 1)
 
         guard let last = presenter.presentFetchedDataReceivedInvocations.last else {
             return XCTFail("Expected presenter update")
@@ -612,7 +615,6 @@ extension MainInteractorTests {
         )
 
         await sut.fetchData()
-        await waitForUpdates()
 
         XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod().from, Date(timeIntervalSince1970: 10))
         XCTAssertEqual(summaryPeriodProvider.currentMonthPeriod().to, Date(timeIntervalSince1970: 20))
@@ -675,7 +677,6 @@ extension MainInteractorTests {
             fromDate: expectedPeriod.from,
             to: expectedPeriod.to
         )
-        await waitForUpdates()
 
         let summaryFetchCalls = summaryProvider.fetchSummaryCallsCount
         let refreshCategoriesCalls = repository.refreshCategoriesCallsCount
@@ -748,11 +749,6 @@ private extension MainInteractorTests {
             category: category,
             timeOfAdd: Date(timeIntervalSince1970: time)
         )
-    }
-
-    func waitForUpdates() async {
-        await Task.yield()
-        await Task.yield()
     }
 
     func presentationExpectation(

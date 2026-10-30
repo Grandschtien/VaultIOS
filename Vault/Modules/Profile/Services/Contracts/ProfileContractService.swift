@@ -20,26 +20,27 @@ extension ProfileContractServicing {
 
 final class ProfileContractService: ProfileContractServicing, @unchecked Sendable {
     private let networkClient: AsyncNetworkClient
+    private let notificationCenter: NotificationCenterServicing
     private let state = State()
     private var logoutObserver: NSObjectProtocol?
 
-    init(networkClient: AsyncNetworkClient) {
+    init(
+        networkClient: AsyncNetworkClient,
+        notificationCenter: NotificationCenterServicing
+    ) {
         self.networkClient = networkClient
+        self.notificationCenter = notificationCenter
 
-        logoutObserver = NotificationCenter.default.addObserver(
-            forName: .authSessionDidLogout,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task {
-                await self?.state.clear()
-            }
+        logoutObserver = notificationCenter.addObserver(
+            forName: .authSessionDidLogout
+        ) { [weak self] in
+            await self?.state.clear()
         }
     }
 
     deinit {
         if let logoutObserver {
-            NotificationCenter.default.removeObserver(logoutObserver)
+            notificationCenter.removeObserver(logoutObserver)
         }
     }
 

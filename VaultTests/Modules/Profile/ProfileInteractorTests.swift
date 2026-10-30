@@ -335,9 +335,13 @@ extension ProfileInteractorTests {
             authSessionService: authSessionService
         )
 
+        let completed = expectation(description: "logoutFromBackend")
+        authSessionService.logoutFromBackendClosure = { completed.fulfill() }
         await sut.handleTapLogout()
+
         router.openConfirmationContextReceivedInvocations.last?.confirmCommand.execute()
-        await waitForCommandExecution()
+
+        await fulfillment(of: [completed], timeout: 1)
 
         XCTAssertTrue(router.presentErrorWithReceivedInvocations.isEmpty)
         XCTAssertEqual(presenter.presentFetchedDataReceivedInvocations.last?.isLoggingOut, true)
@@ -359,9 +363,13 @@ extension ProfileInteractorTests {
             authSessionService: authSessionService
         )
 
+        let completed = expectation(description: "presentError")
+        router.presentErrorWithClosure = { _ in completed.fulfill() }
         await sut.handleTapLogout()
+
         router.openConfirmationContextReceivedInvocations.last?.confirmCommand.execute()
-        await waitForCommandExecution()
+
+        await fulfillment(of: [completed], timeout: 1)
 
         XCTAssertEqual(router.presentErrorWithReceivedInvocations.count, 1)
         XCTAssertGreaterThanOrEqual(presenter.presentFetchedDataReceivedInvocations.count, 2)
@@ -420,9 +428,13 @@ extension ProfileInteractorTests {
             authSessionService: authSessionService
         )
 
+        let completed = expectation(description: "logout")
+        authSessionService.logoutClosure = { completed.fulfill() }
         await sut.handleTapDeleteAccount()
+
         router.openConfirmationContextReceivedInvocations.last?.confirmCommand.execute()
-        await waitForCommandExecution()
+
+        await fulfillment(of: [completed], timeout: 1)
 
         XCTAssertTrue(router.presentErrorWithReceivedInvocations.isEmpty)
 
@@ -451,9 +463,13 @@ extension ProfileInteractorTests {
             authSessionService: authSessionService
         )
 
+        let completed = expectation(description: "presentError")
+        router.presentErrorWithClosure = { _ in completed.fulfill() }
         await sut.handleTapDeleteAccount()
+
         router.openConfirmationContextReceivedInvocations.last?.confirmCommand.execute()
-        await waitForCommandExecution()
+
+        await fulfillment(of: [completed], timeout: 1)
 
         XCTAssertEqual(router.presentErrorWithReceivedInvocations.count, 1)
 
@@ -711,12 +727,6 @@ private extension ProfileInteractorTests {
             XCTAssertTrue(true, file: file, line: line)
         default:
             XCTFail("Unexpected status", file: file, line: line)
-        }
-    }
-
-    func waitForCommandExecution() async {
-        for _ in 0..<10 {
-            await Task.yield()
         }
     }
 }
