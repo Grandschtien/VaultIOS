@@ -1,0 +1,17 @@
+# Signs in as ${EMAIL} through the UI. No checks: login itself is verified in 02-login-logout.
+# Return closes the keyboard (the password field would be under it) instead of hideKeyboard,
+# which swipes over the fields on iOS. Return on the password field signs in.
+appId: com.egor.shkarin.Vault
+---
+- runFlow: logout-if-signed-in.yaml
+- runFlow: open-login.yaml
+- tapOn:
+    id: login.emailField.input
+- inputText: ${EMAIL}
+- pressKey: Enter
+- tapOn:
+    id: login.passwordField.input
+- inputText: ${QA_PASSWORD}
+- pressKey: Enter
+- runFlow: dismiss-save-password.yaml
+- runFlow: wait-main.yaml

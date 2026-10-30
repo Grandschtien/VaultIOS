@@ -1,0 +1,27 @@
+# Premium without purchase.
+# qa-setup: create-user; seed analytics-month.json; rc-grant premium_access weekly
+appId: com.egor.shkarin.Vault
+---
+- runFlow: subflows/launch.yaml
+- runFlow: subflows/login.yaml
+
+- tapOn:
+    id: tabBar.statsTab
+- extendedWaitUntil:
+    visible:
+      id: analytics.chart
+    timeout: 20000
+- assertNotVisible:
+    id: analytics.unlockButton
+- assertVisible:
+    id: analytics.categoryRow.0
+- assertVisible:
+    text: Home
+    childOf:
+      id: analytics.categoryRow.0
+
+- tapOn:
+    id: navigation.profileButton
+- assertVisible:
+    id: profile.plan.title
+    text: "(?i).*premium.*"

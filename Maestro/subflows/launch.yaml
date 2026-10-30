@@ -1,0 +1,9 @@
+# Clean launch against the QA backend.
+appId: com.egor.shkarin.Vault
+---
+- launchApp:
+    clearState: true
+    arguments:
+      VAULT_API_BASE_URL: ${API_BASE_URL}
+      VAULT_QA_MODE: "1"
+      REVENUECAT_API_KEY: ${RC_API_KEY}

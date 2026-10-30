@@ -1,0 +1,39 @@
+# Manual expense.
+# qa-setup: create-user
+appId: com.egor.shkarin.Vault
+---
+- runFlow: subflows/launch.yaml
+- runFlow: subflows/login.yaml
+
+- tapOn:
+    id: tabBar.addExpenseButton
+- tapOn:
+    id: entryChooser.manualButton
+- tapOn:
+    id: manualEntry.amount.input
+- inputText: "42"
+- tapOn:
+    id: manualEntry.titleField.input
+- inputText: QA lunch
+- hideKeyboard
+
+- runFlow: subflows/select-first-category.yaml
+- assertVisible:
+    id: manualEntry.category.value
+    text: ".+"
+
+- tapOn:
+    id: manualEntry.primaryButton
+- runFlow: subflows/wait-main.yaml
+- scrollUntilVisible:
+    element:
+      id: main.expenses.collectionView
+- assertVisible:
+    id: expenseItem.title
+    text: QA lunch
+- assertVisible:
+    id: expenseItem.amount
+    text: ".*42.*"
+- assertVisible:
+    id: main.summary.amount
+    text: ".*[1-9].*"

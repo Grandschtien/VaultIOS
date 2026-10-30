@@ -1,0 +1,6 @@
+appId: com.egor.shkarin.Vault
+---
+- extendedWaitUntil:
+    visible:
+      id: main.summary.card
+    timeout: 20000

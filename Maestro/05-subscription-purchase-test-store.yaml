@@ -1,0 +1,40 @@
+# Subscription purchase through the RevenueCat Test Store.
+# qa-setup: create-user
+appId: com.egor.shkarin.Vault
+---
+- runFlow: subflows/launch.yaml
+- runFlow: subflows/login.yaml
+
+- tapOn:
+    id: tabBar.statsTab
+- tapOn:
+    id: analytics.unlockButton
+- extendedWaitUntil:
+    visible:
+      id: subscription.title
+    timeout: 15000
+- tapOn:
+    id: "subscription\\.plan\\..*\\.button"
+    index: 0
+
+# Test Store sheet: choose the successful purchase.
+- extendedWaitUntil:
+    visible: "(?i).*valid purchase.*"
+    timeout: 15000
+- tapOn: "(?i).*valid purchase.*"
+
+# Same as rc-sync.sh INITIAL_PURCHASE + wait-subscription.sh PREMIUM.
+- runScript:
+    file: scripts/rc-sync.js
+    env:
+      EVENT_TYPE: INITIAL_PURCHASE
+- assertTrue: ${output.tier == 'PREMIUM'}
+
+- tapOn:
+    id: tabBar.statsTab
+- extendedWaitUntil:
+    notVisible:
+      id: analytics.unlockButton
+    timeout: 20000
+- assertVisible:
+    id: "analytics\\.chart|analytics\\.body\\.emptyText"

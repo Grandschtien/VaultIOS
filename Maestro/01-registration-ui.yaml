@@ -1,0 +1,71 @@
+# Registration through the UI.
+# Run through scripts/qa/maestro.sh: it starts the QA backend, which accepts QA_DEV_CODE instead of the emailed code.
+# qa-setup:
+appId: com.egor.shkarin.Vault
+---
+- runFlow: subflows/launch.yaml
+- runFlow: ./subflows/logout-if-signed-in.yaml
+
+# 2. Onboarding until the login screen, then open registration.
+- runFlow: subflows/open-login.yaml
+- tapOn:
+    id: login.emailField.additionalLabel
+
+# 3. Account.
+- tapOn:
+    id: registration.account.emailField.input
+- inputText: ${EMAIL}
+- pressKey: Enter
+- tapOn:
+    id: registration.account.passwordField.input
+- runFlow: subflows/dismiss-strong-password.yaml
+- tapOn:
+    id: registration.account.passwordField.input
+- eraseText
+- inputText: ${QA_PASSWORD}
+- runFlow: subflows/dismiss-strong-password.yaml
+# Return closes the keyboard over the confirm field; validation of the empty confirm field is expected here.
+- pressKey: Enter
+- tapOn:
+    id: registration.account.confirmPasswordField.input
+- runFlow: subflows/dismiss-strong-password.yaml
+- tapOn:
+    id: registration.account.confirmPasswordField.input
+- eraseText
+- inputText: ${QA_PASSWORD}
+- runFlow: subflows/dismiss-strong-password.yaml
+# Return on the confirm field submits the step.
+- pressKey: Enter
+- runFlow: subflows/dismiss-save-password.yaml
+
+# 4. Name.
+- tapOn:
+    id: registration.name.nameField.input
+- inputText: QA
+# Return on the name field submits the step.
+- pressKey: Enter
+
+# 5. Currency.
+- tapOn:
+    id: registration.currency.searchField.input
+- inputText: USD
+- pressKey: Enter
+- tapOn:
+    id: registration.currency.cell.USD
+- tapOn:
+    id: registration.primaryButton
+
+# 6. Email verification with the backend dev code.
+- extendedWaitUntil:
+    visible:
+      id: emailVerification.title
+    timeout: 15000
+- tapOn:
+    id: emailVerification.codeInput
+- inputText: ${QA_DEV_CODE}
+- assertNotVisible:
+    id: emailVerification.errorLabel
+
+- runFlow: subflows/wait-main.yaml
+- assertNotVisible:
+    id: emailVerification.errorLabel

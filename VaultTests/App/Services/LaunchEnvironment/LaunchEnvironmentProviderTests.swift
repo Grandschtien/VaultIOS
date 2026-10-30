@@ -85,3 +85,25 @@ extension LaunchEnvironmentProviderTests {
         XCTAssertNil(sut.qaSession)
     }
 }
+
+extension LaunchEnvironmentProviderTests {
+    func testValuesReadLaunchArgumentPairs() {
+        let values = LaunchEnvironmentProvider.values(
+            environment: ["VAULT_QA_MODE": "0"],
+            arguments: ["Vault", "-VAULT_QA_MODE", "1", "-VAULT_QA_SESSION", "{\"access_token\":\"t\"}"]
+        )
+
+        XCTAssertEqual(values["VAULT_QA_MODE"], "1")
+        XCTAssertEqual(values["VAULT_QA_SESSION"], "{\"access_token\":\"t\"}")
+    }
+
+    func testValuesSkipFlagWithoutValue() {
+        let values = LaunchEnvironmentProvider.values(
+            environment: [:],
+            arguments: ["Vault", "-VAULT_QA_MODE", "-VAULT_API_BASE_URL", "http://localhost:8080"]
+        )
+
+        XCTAssertNil(values["VAULT_QA_MODE"])
+        XCTAssertEqual(values["VAULT_API_BASE_URL"], "http://localhost:8080")
+    }
+}

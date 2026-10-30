@@ -1,0 +1,49 @@
+# Expense through AI.
+# The parse result is not deterministic: check amounts, not titles.
+# AI entry is a premium feature.
+# qa-setup: create-user; rc-grant premium_access weekly
+appId: com.egor.shkarin.Vault
+---
+- runFlow: subflows/launch.yaml
+- runFlow: subflows/login.yaml
+
+- tapOn:
+    id: tabBar.addExpenseButton
+- tapOn:
+    id: entryChooser.aiButton
+- tapOn:
+    id: aiEntry.promptInput.input
+- inputText: coffee 350 and taxi 800
+- tapOn:
+    id: aiEntry.processButton
+
+# The parsed expenses open one by one in the manual entry review.
+- extendedWaitUntil:
+    visible:
+      id: manualEntry.primaryButton
+    timeout: 30000
+- assertNotVisible:
+    id: aiEntry.noExpenseAlert
+- assertVisible:
+    id: manualEntry.amount.input
+    text: ".*(350|800).*"
+- runFlow: subflows/select-first-category.yaml
+- tapOn:
+    id: manualEntry.primaryButton
+- assertVisible:
+    id: manualEntry.amount.input
+    text: ".*(350|800).*"
+- runFlow: subflows/select-first-category.yaml
+- tapOn:
+    id: manualEntry.primaryButton
+
+- runFlow: subflows/wait-main.yaml
+- scrollUntilVisible:
+    element:
+      id: main.expenses.collectionView
+- assertVisible:
+    id: expenseItem.amount
+    text: ".*350.*"
+- assertVisible:
+    id: expenseItem.amount
+    text: ".*800.*"

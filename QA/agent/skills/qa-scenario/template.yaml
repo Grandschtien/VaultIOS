@@ -1,0 +1,14 @@
+# <Short title of what the flow checks>.
+# qa-setup: create-user
+appId: com.egor.shkarin.Vault
+---
+- runFlow: subflows/launch.yaml
+- runFlow: subflows/login.yaml
+
+# 1. <Step>.
+- tapOn:
+    id: <id>
+
+# Expected: <what must be true after the step>.
+- assertVisible:
+    id: <id>

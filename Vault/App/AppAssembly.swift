@@ -343,7 +343,7 @@ private extension AppAssembly {
     }
 
     func resolvedRevenueCatAPIKey() -> String {
-        if let environmentValue = ProcessInfo.processInfo.environment[ConfigurationKey.revenueCatEnvironmentKey],
+        if let environmentValue = LaunchEnvironmentProvider.processValues[ConfigurationKey.revenueCatEnvironmentKey],
            !environmentValue.isEmpty {
             return environmentValue
         }

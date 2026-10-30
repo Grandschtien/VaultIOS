@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Checks that every element id in QA scenarios exists in AccessibilityIdentifier.swift.
+"""Checks that every element id in Maestro flows exists in AccessibilityIdentifier.swift.
 
-Usage: check-ids.py <scenario.md> [...]
+Usage: check-ids.py <flow.yaml> [...]
 Exit code 1 if an unknown id is found.
 """
 import re
@@ -12,6 +12,8 @@ ROOT = next(p for p in Path(__file__).resolve().parents if (p / "Vault/Common").
 SWIFT = ROOT / "Vault/Common/Accessibility/AccessibilityIdentifier.swift"
 # Suffixes added by shared components (TextFieldParts, MultilineInputParts, PeriodPicker, CategoryEditor).
 SUFFIXES = r"(\.(input|additionalLabel|rightAccessory|helpText|title|value|counter|option\.[0-9]+))?"
+# Ids of system UI the app does not own (iOS sheets and alerts).
+SYSTEM_IDS = {"xmark"}
 
 
 def known_patterns():
@@ -25,21 +27,21 @@ def known_patterns():
     return patterns
 
 
-def scenario_ids(text):
-    # Ids are backticked tokens like `login.emailField` or `main.expenses.cell.0.0`.
-    for token in re.findall(r"`([^`\s]+)`", text):
-        if token.startswith(("$", "text:")) or "/" in token or token.endswith((".md", ".sh", ".py", ".swift", ".json")):
-            continue
-        if re.fullmatch(r"[a-z][A-Za-z]*(\.[A-Za-z0-9_-]+)+", token):
-            yield token
+def flow_ids(text):
+    # Ids are `id:` values; a regex id like `a\\.b|c\\.d` is split into its alternatives.
+    for value in re.findall(r"^\s*-?\s*id:\s*[\"']?([^\"'\n#]+?)[\"']?\s*$", text, re.MULTILINE):
+        for token in value.replace("\\\\.", ".").replace("\\.", ".").split("|"):
+            if "*" in token or "${" in token:
+                continue  # wildcard or variable: cannot be checked statically
+            yield token.strip()
 
 
 def main(paths):
     patterns = known_patterns()
     unknown = 0
     for path in paths:
-        for token in sorted(set(scenario_ids(Path(path).read_text()))):
-            if not any(p.match(token) for p in patterns):
+        for token in sorted(set(flow_ids(Path(path).read_text()))):
+            if token not in SYSTEM_IDS and not any(p.match(token) for p in patterns):
                 print(f"{path}: unknown id `{token}`")
                 unknown += 1
     print("OK" if unknown == 0 else f"{unknown} unknown id(s)")

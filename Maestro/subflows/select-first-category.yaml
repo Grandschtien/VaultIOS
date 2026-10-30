@@ -1,0 +1,9 @@
+# Picks the first category on the expense entry screen: a category is required to go further.
+appId: com.egor.shkarin.Vault
+---
+- tapOn:
+    id: manualEntry.category.button
+- tapOn:
+    id: expenseCategoryPicker.cell.0
+- tapOn:
+    id: expenseCategoryPicker.addButton

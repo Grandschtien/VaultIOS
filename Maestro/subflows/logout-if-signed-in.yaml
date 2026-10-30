@@ -1,0 +1,17 @@
+# A session from a previous run can survive clearState in the keychain: log out first.
+appId: com.egor.shkarin.Vault
+---
+- runFlow:
+    when:
+      visible:
+        id: navigation.profileButton
+    commands:
+      - tapOn:
+          id: navigation.profileButton
+      - scrollUntilVisible:
+          element:
+            id: profile.logoutButton
+      - tapOn:
+          id: profile.logoutButton
+      - tapOn:
+          id: confirmation.confirmButton

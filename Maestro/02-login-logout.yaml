@@ -1,0 +1,37 @@
+# Login and logout.
+# qa-setup: create-user
+appId: com.egor.shkarin.Vault
+---
+- runFlow: subflows/launch.yaml
+
+# 1. Log in.
+- runFlow: subflows/login.yaml
+# Expected: the main screen is shown.
+- assertVisible:
+    id: main.summary.card
+
+- tapOn:
+    id: navigation.profileButton
+- scrollUntilVisible:
+    element:
+      id: profile.logoutButton
+- tapOn:
+    id: profile.logoutButton
+- assertVisible:
+    id: confirmation.title
+
+- tapOn:
+    id: confirmation.cancelButton
+- assertVisible:
+    id: profile.logoutButton
+
+- tapOn:
+    id: profile.logoutButton
+- tapOn:
+    id: confirmation.confirmButton
+- extendedWaitUntil:
+    visible:
+      id: "onboarding.primaryButton|login.signInButton"
+    timeout: 10000
+- assertNotVisible:
+    id: main.summary.card

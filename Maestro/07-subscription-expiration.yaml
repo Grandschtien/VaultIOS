@@ -1,0 +1,19 @@
+# Subscription expiration.
+# qa-setup: create-user; seed analytics-month.json; rc-grant premium_access weekly; rc-revoke premium_access
+appId: com.egor.shkarin.Vault
+---
+- runFlow: subflows/launch.yaml
+- runFlow: subflows/login.yaml
+
+- tapOn:
+    id: tabBar.statsTab
+- extendedWaitUntil:
+    visible:
+      id: analytics.unlockButton
+    timeout: 20000
+
+- tapOn:
+    id: navigation.profileButton
+- assertVisible:
+    id: profile.plan.title
+    text: "(?i).*free.*"
