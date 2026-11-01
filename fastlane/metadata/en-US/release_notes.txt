@@ -1,0 +1,5 @@
+Updated analytics:
+- Added precomputed analytics for daily, weekly, and monthly periods.
+- Added swipe navigation to view analytics for previous periods.
+- Added a 7-day free trial for new users.
+

@@ -40,3 +40,4 @@ Vault/Configuration/LocalSecrets.xcconfig
 QA/.env.qa.local
 QA/.run/
 QA/reports/
+fastlane/metadata/review_information/

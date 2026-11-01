@@ -1,0 +1,21 @@
+Vylok is a modern expense tracker built to make personal finance simple, fast, and clear.
+
+Quickly add expenses manually or save time with AI-powered input that can recognize free-form text and turn it into structured expense entries. Organize your spending with unlimited categories, explore monthly analytics, and review expenses across flexible date ranges.
+
+With Vylok, you can:
+
+• Add expenses manually with a fast and intuitive flow
+• Use AI-powered input for easier expense tracking
+• View clear monthly spending analytics
+• Create unlimited categories for better organization
+• Analyze spending across custom date ranges
+• Stay in control with a simple and user-friendly design
+
+Vylok helps you track expenses with less friction, understand your spending habits, and manage your money more effectively every day.
+
+Subscriptions:
+• Premium - 1 month - $1.99
+
+Privacy Policy: https://www.moneyvaultapp.com/privacy/
+Terms of Use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
