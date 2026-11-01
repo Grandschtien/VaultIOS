@@ -2,7 +2,7 @@
 # Usage: maestro.sh [flow ids…] — runs Maestro flows from Maestro/ against the local QA backend (all flows when no ids).
 # Each flow gets a fresh qa-maestro-…@example.com account. Its header declares the setup:
 #   # qa-setup: create-user; seed <fixture>; rc-grant [entitlement] [duration]; rc-revoke [entitlement]
-# The app must already be installed on the booted simulator as a Debug build.
+# The app must already be installed on the booted simulator as a Debug build. QA_DEVICE selects a simulator by udid.
 source "$(dirname "$0")/env.sh"
 source "$QA_SCRIPTS_DIR/lib/api.sh"
 
@@ -16,7 +16,7 @@ MAESTRO_DIR="$IOS_DIR/Maestro"
 "$QA_SCRIPTS_DIR/backend-up.sh"
 
 # inputText types through the keyboard: with a non-Latin layout first, Latin letters are dropped.
-xcrun simctl spawn booted defaults write .GlobalPreferences AppleKeyboards \
+xcrun simctl spawn "${QA_DEVICE:-booted}" defaults write .GlobalPreferences AppleKeyboards \
   -array "en_US@sw=QWERTY;hw=Automatic" "emoji@sw=Emoji" \
   || die "No booted simulator"
 
@@ -61,7 +61,7 @@ for flow in "${flows[@]}"; do
     status=BLOCKED
   else
     [[ -f "$(user_file "$email")" ]] && user="$(user_id "$email")"
-    maestro test \
+    maestro ${QA_DEVICE:+--device "$QA_DEVICE"} test \
       -e EMAIL="$email" \
       -e QA_PASSWORD="$QA_PASSWORD" \
       -e QA_DEV_CODE="$QA_DEV_CODE" \

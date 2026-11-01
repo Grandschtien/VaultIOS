@@ -1,0 +1,271 @@
+require_relative "release_version"
+require "deliver/setup"
+
+fastlane_version "2.241.0"
+skip_docs
+default_platform(:ios)
+
+PROJECT = "Vault.xcodeproj"
+PBXPROJ_PATH = File.expand_path("../Vault.xcodeproj/project.pbxproj", __dir__)
+CREDENTIALS_PATH = File.expand_path("~/.appstoreconnect/vault.env")
+BUNDLE_ID = "com.egor.shkarin.Vault"
+OUTPUT_DIR = File.expand_path("../build/release", __dir__)
+DERIVED_DATA = File.expand_path("../build/DD", __dir__)
+QA_SCRIPTS = File.expand_path("../scripts/qa", __dir__)
+UNIT_TEST_DEVICE = "iPhone 17"
+# Maestro flows are stable only here: on iPhone 17 they lose typed characters, on iOS 27 taps get lost too.
+REGRESSION_DEVICE = "iPhone 13 mini"
+TEST_RUNTIME = "com.apple.CoreSimulator.SimRuntime.iOS-26-2"
+# Homebrew must stay off PATH for xcodebuild: the sandboxed SwiftGen phase would wipe the generated assets.
+XCODEBUILD_PATH = "/usr/bin:/bin:/usr/sbin:/sbin"
+
+# Key file: ~/.appstoreconnect/vault.env with ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_PATH. Never printed.
+def credentials
+  @credentials ||= begin
+    UI.user_error!("#{CREDENTIALS_PATH} is missing") unless File.exist?(CREDENTIALS_PATH)
+    values = File.readlines(CREDENTIALS_PATH, chomp: true)
+                 .reject { |line| line.strip.start_with?("#") }
+                 .filter_map { |line| line.split("=", 2) if line.include?("=") }
+                 .to_h { |key, value| [key.strip, value.strip.delete("\"'")] }
+    %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_PATH].each do |key|
+      UI.user_error!("#{key} is missing in #{CREDENTIALS_PATH}") if values[key].to_s.empty?
+    end
+    values
+  end
+end
+
+def authenticate
+  app_store_connect_api_key(
+    key_id: credentials["ASC_KEY_ID"],
+    issuer_id: credentials["ASC_ISSUER_ID"],
+    key_filepath: File.expand_path(credentials["ASC_KEY_PATH"])
+  )
+end
+
+def asc_app
+  Spaceship::ConnectAPI::App.find(BUNDLE_ID) || UI.user_error!("#{BUNDLE_ID} is not visible for this API key")
+end
+
+def with_xcodebuild_path
+  original = ENV["PATH"]
+  ENV["PATH"] = XCODEBUILD_PATH
+  yield
+ensure
+  ENV["PATH"] = original
+end
+
+def xcodebuild_auth_arguments
+  "-allowProvisioningUpdates -authenticationKeyPath #{File.expand_path(credentials['ASC_KEY_PATH']).shellescape} " \
+    "-authenticationKeyID #{credentials['ASC_KEY_ID']} -authenticationKeyIssuerID #{credentials['ASC_ISSUER_ID']}"
+end
+
+def xcodebuild_arguments
+  ["xcodebuild", "-project", File.expand_path("../#{PROJECT}", __dir__), "-scheme", "Vylok", "-derivedDataPath", DERIVED_DATA]
+end
+
+# A dedicated simulator, so tests never touch one the user has open.
+def simulator_id(name)
+  runtimes = JSON.parse(sh("xcrun", "simctl", "list", "devices", "available", "-j", log: false))["devices"]
+  device = runtimes.fetch(TEST_RUNTIME, []).find { |item| item["name"] == name }
+  device ? device["udid"] : UI.user_error!("#{name} simulator on #{TEST_RUNTIME} is not available")
+end
+
+# These preferences apply only after a reboot.
+def prepare_simulator(device, language, locale)
+  sh("xcrun", "simctl", "boot", device) { |status, _, _| UI.verbose("Simulator is already booted") unless status.success? }
+  sh("xcrun", "simctl", "bootstatus", device)
+  sh("xcrun", "simctl", "spawn", device, "defaults", "write", ".GlobalPreferences", "AppleLanguages", "-array", language)
+  sh("xcrun", "simctl", "spawn", device, "defaults", "write", ".GlobalPreferences", "AppleLocale", locale)
+  # Flows type Latin text: with a non-Latin layout first, letters are dropped.
+  sh("xcrun", "simctl", "spawn", device, "defaults", "write", ".GlobalPreferences", "AppleKeyboards",
+     "-array", "en_US@sw=QWERTY;hw=Automatic", "emoji@sw=Emoji")
+  sh("xcrun", "simctl", "shutdown", device)
+  sh("xcrun", "simctl", "boot", device)
+  sh("xcrun", "simctl", "bootstatus", device)
+end
+
+def asc_version_states
+  authenticate
+  asc_app.get_app_store_versions(filter: { platform: "IOS" }, limit: 200)
+         .to_h { |item| [item.version_string, item.app_version_state || item.app_store_state] }
+end
+
+def git_tags
+  sh("git", "tag", "--list", "v*", "--sort=-creatordate", log: false).split("\n")
+end
+
+def announce_release(version, build)
+  UI.important("Next build: #{version} (#{build})")
+  { version: version, build: build }
+end
+
+def local_version
+  ReleaseVersion.read_local_versions(File.read(PBXPROJ_PATH)).first
+end
+
+# Options shared by every App Store Connect metadata upload. It must never submit or release anything.
+def deliver_options(version)
+  {
+    app_version: version,
+    skip_binary_upload: true,
+    force: true,
+    submit_for_review: false,
+    automatic_release: false,
+    run_precheck_before_submit: false,
+    ignore_language_directory_validation: false
+  }
+end
+
+platform :ios do
+  desc "Checks the credentials and App Store Connect access"
+  lane :doctor do
+    authenticate
+    UI.success("App Store Connect: #{asc_app.name}")
+  end
+
+  desc "Prints the next store version, always with build 1. Options: version:1.5"
+  lane :plan_release do |options|
+    local = ReleaseVersion.read_local_versions(File.read(PBXPROJ_PATH)).first
+    announce_release(ReleaseVersion.resolve_release_version(local, asc_version_states, options[:version]), 1)
+  end
+
+  desc "Prints the version of the last release and its next build"
+  lane :plan_beta do
+    sh("git", "fetch", "origin", "--tags")
+    local_version, local_build = ReleaseVersion.read_local_versions(File.read(PBXPROJ_PATH))
+    target = ReleaseVersion.latest_release_tag(git_tags)&.delete_prefix("v") || local_version
+    version = ReleaseVersion.resolve_beta_version(target, asc_version_states)
+    uploaded = latest_testflight_build_number(version: version, initial_build_number: 0).to_i
+    # A branch cut before the release holds a build number of another version.
+    announce_release(version, ReleaseVersion.resolve_build(version == local_version ? local_build : 0, uploaded))
+  end
+
+  desc "Writes the commits of the TestFlight and store ranges into build/release/changes.txt"
+  lane :changes do
+    tags = git_tags
+    fallback = sh("git", "log", "-1", "--format=%h", "-G", "CURRENT_PROJECT_VERSION", "--", PBXPROJ_PATH, log: false).strip
+    testflight, store = ReleaseVersion.change_bases(tags, fallback)
+    sections = { "TestFlight" => testflight, "Store" => store }.map do |name, base|
+      log = sh("git", "log", "--no-merges", "--format=%h %s", "#{base}..HEAD", log: false)
+      stat = sh("git", "diff", "--stat", "#{base}..HEAD", log: false)
+      "## #{name} range from #{base}\n#{log}\n#{stat}"
+    end
+    sections.unshift("The range is a guess: no release tags exist yet.") if tags.empty?
+    FileUtils.mkdir_p(OUTPUT_DIR)
+    File.write(File.join(OUTPUT_DIR, "changes.txt"), sections.join("\n"))
+  end
+
+  desc "Runs the unit tests"
+  lane :unit_tests do
+    device = simulator_id(UNIT_TEST_DEVICE)
+    # Tests compare localized strings with Russian values.
+    prepare_simulator(device, "ru", "ru_RU")
+    with_xcodebuild_path { sh(*xcodebuild_arguments, "-destination", "platform=iOS Simulator,id=#{device}", "test") }
+  end
+
+  desc "Runs all Maestro flows on a Debug build against the local QA backend"
+  lane :regression do
+    device = simulator_id(REGRESSION_DEVICE)
+    with_xcodebuild_path { sh(*xcodebuild_arguments, "-destination", "platform=iOS Simulator,id=#{device}", "build") }
+    # With a Russian system the keyboard drops the Latin letters of passwords.
+    prepare_simulator(device, "en", "en_US")
+    sh("xcrun", "simctl", "install", device, File.join(DERIVED_DATA, "Build/Products/Debug-iphonesimulator/Vylok.app"))
+    original_path = ENV["PATH"]
+    begin
+      ENV["QA_DEVICE"] = device
+      ENV["PATH"] = "#{original_path}:#{File.expand_path('~/.maestro/bin')}"
+      sh(File.join(QA_SCRIPTS, "maestro.sh"))
+    ensure
+      ENV["PATH"] = original_path
+      ENV.delete("QA_DEVICE")
+      sh(File.join(QA_SCRIPTS, "backend-down.sh"))
+    end
+  end
+
+  desc "Bumps, runs unit tests and regression, builds, uploads to TestFlight, tags and pushes"
+  private_lane :ship do |options|
+    version = options[:version]
+    build = options[:build]
+    File.write(PBXPROJ_PATH, ReleaseVersion.apply_versions(File.read(PBXPROJ_PATH), version, build))
+
+    unit_tests
+    regression
+
+    sh("git", "add", PBXPROJ_PATH)
+    sh("git", "commit", "-m", "Bumped version to #{version} (#{build})")
+
+    with_xcodebuild_path do
+      build_app(project: PROJECT, scheme: "Vylok_release", derived_data_path: "build/DD",
+                output_directory: OUTPUT_DIR, output_name: "Vylok.ipa", export_method: "app-store",
+                xcodebuild_formatter: "",
+                xcargs: xcodebuild_auth_arguments, export_xcargs: xcodebuild_auth_arguments,
+                export_options: { manageAppVersionAndBuildNumber: false, uploadSymbols: true })
+    end
+
+    upload_to_testflight(
+      changelog: options[:notes] ? File.read(options[:notes]) : nil,
+      skip_submission: true,
+      skip_waiting_for_build_processing: false
+    )
+
+    sh("git", "tag", "-a", options[:tag], "-m", "#{version} (#{build})")
+    sh("git", "push", "-u", "origin", "HEAD", "--follow-tags")
+  end
+
+  desc "Ships a new store version from the current main and tags it v<version>. Options: version:1.5 notes:path/to/testflight.txt"
+  lane :release do |options|
+    ensure_git_status_clean
+    ensure_git_branch(branch: "^main$")
+    sh("git", "fetch", "origin", "main")
+    head, remote = %w[HEAD origin/main].map { |ref| sh("git", "rev-parse", ref, log: false).strip }
+    UI.user_error!("main differs from origin/main") unless head == remote
+
+    next_release = plan_release(version: options[:version])
+    ship(**next_release, tag: "v#{next_release[:version]}", notes: options[:notes])
+  end
+
+  desc "Ships the next build of the last release from the current branch and tags it v<version>-<build>. Options: notes:path/to/testflight.txt"
+  lane :beta do |options|
+    ensure_git_status_clean
+    next_build = plan_beta
+    ship(**next_build, tag: "v#{next_build[:version]}-#{next_build[:build]}", notes: options[:notes])
+  end
+
+  desc "Downloads the current texts from App Store Connect into fastlane/metadata (overwrites them)"
+  lane :pull_metadata do
+    authenticate
+    app = asc_app
+    version = app.get_latest_app_store_version(platform: Spaceship::ConnectAPI::Platform::IOS)
+    Deliver::Setup.new.generate_metadata_files(app, version, File.expand_path("metadata", __dir__), {})
+  end
+
+  desc "Uploads description, keywords and other texts from fastlane/metadata. Options: version:1.5"
+  lane :metadata do |options|
+    authenticate
+    upload_to_app_store(**deliver_options(options[:version] || local_version), skip_screenshots: true)
+  end
+
+  desc "Replaces the App Store screenshots with fastlane/screenshots. Options: version:1.5"
+  lane :upload_screenshots do |options|
+    authenticate
+    upload_to_app_store(**deliver_options(options[:version] || local_version),
+                        skip_metadata: true, skip_screenshots: false, overwrite_screenshots: true)
+  end
+
+  desc "Attaches the build, sends texts and What's New, sets phased release. Options: version:1.5 build:6 phased:true"
+  lane :prepare do |options|
+    UI.user_error!("version and build are required") unless options[:version] && options[:build]
+    authenticate
+    metadata_path = File.expand_path("metadata", __dir__)
+    unless sh("git", "status", "--porcelain", "--", metadata_path, log: false).strip.empty?
+      sh("git", "add", "--", metadata_path)
+      sh("git", "commit", "-m", "Updated release notes for #{options[:version]}")
+      sh("git", "push")
+    end
+    upload_to_app_store(**deliver_options(options[:version]),
+                        build_number: options[:build].to_s,
+                        skip_screenshots: true,
+                        # Off by default, which also removes it from this version.
+                        phased_release: options[:phased].to_s == "true")
+  end
+end
