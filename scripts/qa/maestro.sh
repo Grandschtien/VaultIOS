@@ -3,6 +3,7 @@
 # Each flow gets a fresh qa-maestro-…@example.com account. Its header declares the setup:
 #   # qa-setup: create-user; seed <fixture>; rc-grant [entitlement] [duration]; rc-revoke [entitlement]
 # The app must already be installed on the booted simulator as a Debug build. QA_DEVICE selects a simulator by udid.
+# QA_SKIP_FLOWS="01-registration-ui …" leaves those flows out when no ids are given.
 source "$(dirname "$0")/env.sh"
 source "$QA_SCRIPTS_DIR/lib/api.sh"
 
@@ -27,7 +28,10 @@ flows=()
 if (( $# )); then
   for id in "$@"; do flows+=("$MAESTRO_DIR/$id.yaml"); done
 else
-  flows=("$MAESTRO_DIR"/[0-9]*.yaml)
+  for flow in "$MAESTRO_DIR"/[0-9]*.yaml; do
+    [[ " ${QA_SKIP_FLOWS:-} " == *" $(basename "$flow" .yaml) "* ]] && { log "Skipping $(basename "$flow" .yaml)"; continue; }
+    flows+=("$flow")
+  done
 fi
 
 header() { sed -n "s/^# $1: *//p" "$2" | head -1; }
