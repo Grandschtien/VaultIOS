@@ -198,7 +198,7 @@ platform :ios do
       build_app(project: PROJECT, scheme: "Vylok_release", derived_data_path: "build/DD",
                 output_directory: OUTPUT_DIR, output_name: "Vylok.ipa", export_method: "app-store",
                 xcodebuild_formatter: "",
-                xcargs: xcodebuild_auth_arguments, export_xcargs: xcodebuild_auth_arguments,
+                xcargs: xcodebuild_auth_arguments,
                 export_options: { manageAppVersionAndBuildNumber: false, uploadSymbols: true })
     end
 
