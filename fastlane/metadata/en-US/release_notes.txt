@@ -1,5 +1,4 @@
-Updated analytics:
-- Added precomputed analytics for daily, weekly, and monthly periods.
-- Added swipe navigation to view analytics for previous periods.
-- Added a 7-day free trial for new users.
-
+- Your profile now opens instantly with your saved details.
+- The month selector in analytics looks cleaner and fits on one line.
+- The profile button looks right on iOS 26.
+- Stability and performance improvements.
