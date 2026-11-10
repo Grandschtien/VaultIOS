@@ -188,8 +188,10 @@ platform :ios do
     build = options[:build]
     File.write(PBXPROJ_PATH, ReleaseVersion.apply_versions(File.read(PBXPROJ_PATH), version, build))
 
-    unit_tests
-    regression
+    unless options[:skip_tests]
+      unit_tests
+      regression
+    end
 
     sh("git", "add", PBXPROJ_PATH)
     sh("git", "commit", "-m", "Bumped version to #{version} (#{build})")
@@ -212,7 +214,7 @@ platform :ios do
     sh("git", "push", "-u", "origin", "HEAD", "--follow-tags")
   end
 
-  desc "Ships a new store version from the current main and tags it v<version>. Options: version:1.5 notes:path/to/testflight.txt"
+  desc "Ships a new store version from the current main and tags it v<version>. Options: version:1.5 notes:path/to/testflight.txt skip_tests:true"
   lane :release do |options|
     ensure_git_status_clean
     ensure_git_branch(branch: "^main$")
@@ -221,7 +223,7 @@ platform :ios do
     UI.user_error!("main differs from origin/main") unless head == remote
 
     next_release = plan_release(version: options[:version])
-    ship(**next_release, tag: "v#{next_release[:version]}", notes: options[:notes])
+    ship(**next_release, tag: "v#{next_release[:version]}", notes: options[:notes], skip_tests: options[:skip_tests])
   end
 
   desc "Ships the next build of the last release from the current branch and tags it v<version>-<build>. Options: notes:path/to/testflight.txt"
